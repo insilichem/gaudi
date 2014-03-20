@@ -14,7 +14,7 @@
 import chimera, random, numpy, deap, argparse
 from chimera import UserError
 import hyde5 # the script!
-from deap import algorithms, base, creator, tools
+#from deap import algorithms, base, creator, tools
 import Rotamers
 # Initial checks
 if "ligand" not in chimera.selection.savedSels:
@@ -118,20 +118,20 @@ UP_BOUND = [360]*len(bonds) + [8]*len(residues)
 
 toolbox.register("evaluate", evalCoord)
 toolbox.register("mate", hetCxOnePoint, bound=len(bonds))
-toolbox.register("mutate", tools.mutPolynomialBounded,
+toolbox.register("mutate", deap.tools.mutPolynomialBounded,
 	eta = 20.0, low = LOW_BOUND, up = UP_BOUND, indpb=0.05)
-toolbox.register("select", tools.selNSGA2)
+toolbox.register("select", deap.tools.selNSGA2)
 adam = deap.creator.Individual([0] * len(bonds))
 
 def main():
 	pop = toolbox.population(n=args.pop-1) + [adam]
-	hof = tools.HallOfFame(1)
-	stats = tools.Statistics(lambda ind: ind.fitness.values)
+	hof = deap.tools.HallOfFame(1)
+	stats = deap.tools.Statistics(lambda ind: ind.fitness.values)
 	stats.register("avg", numpy.mean)
 	stats.register("std", numpy.std)
 	stats.register("min", numpy.min)
 	stats.register("max", numpy.max)
-	pop, log = algorithms.eaMuPlusLambda(pop, toolbox, 
+	pop, log = deap.algorithms.eaMuPlusLambda(pop, toolbox, 
 		mu = int(args.pop/2), lambda_= int(args.pop/2), cxpb=0.5, 
 		mutpb=0.2, ngen=args.ngen, stats=stats, halloffame=hof)
 	return pop, log, hof
