@@ -24,7 +24,6 @@ elif len(chimera.selection.currentAtoms()) != 1:
 elif not len(chimera.selection.currentBonds()):
 	raise UserError("Select some bonds to rotate")
 
-reload(hyde5)
 parser = argparse.ArgumentParser()
 parser.add_argument('-p', '--population',
 					required=False,
