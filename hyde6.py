@@ -11,14 +11,13 @@
 # - Consider Von Mises Distribution for random angle
 # - Calculate h bonds only if clashes < threshold?
 
-import chimera, random, numpy, deap, argparse
+import chimera, Rotamers, random, numpy, deap, argparse
 from chimera import UserError
 import hyde5 # the script!
-#from deap import algorithms, base, creator, tools
-import Rotamers
 # Initial checks
 if "ligand" not in chimera.selection.savedSels:
-	raise UserError("Define a selection named 'ligand' that contains the part of the molecule which will be moved")
+	raise UserError("Define a selection named 'ligand' that\
+	 contains the part of the molecule which will be moved")
 elif len(chimera.selection.currentAtoms()) != 1:
 	raise UserError("Select and anchor atom")
 elif not len(chimera.selection.currentBonds()):
@@ -52,7 +51,7 @@ residues = chimera.selection.savedSels['rotamers'].residues()
 res_atoms = [a for res in residues for a in res.atoms]
 rotamers = [ Rotamers.getRotamers(res)[1] for res in residues ]
 ligand = chimera.selection.savedSels['ligand'].atoms()
-# It will change with modifications!
+# TODO It will change with modifications!
 #ligand_atoms = [ a for r in ligand for a in r.atoms ]
 all_atoms = [ a for m in chimera.openModels.list() for a in m.atoms]
 not_ligand = list(set(all_atoms) - set(ligand) - set(res_atoms))
