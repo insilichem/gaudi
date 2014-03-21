@@ -67,6 +67,14 @@ def insertMol(mol2, target=None, join=True, inplace=True, alpha=120.0):
 
 		if join:
 			from chimera.molEdit import addAtom, addBond
+			from chimera.misc import getPseudoBondGroup 
+			# convert PseudoBonds to regular bonds
+			pseudobonds = getPseudoBondGroup("coordination complexes of %s (%s)" % 
+				(tmpl.name, tmpl), associateWith=[tmpl]).pseudoBonds
+			if pseudobonds:
+				for pb in pseudobonds:
+					addBond(pb.atoms[0],pb.atoms[1])
+
 			# rename atoms accordingly
 			oldRes = target.residue
 			index = getHighestAtomIndices(oldRes)
