@@ -6,10 +6,9 @@
 
 import chimera
 from chimera import selection as sel
-import hyde5 as hyde
 import fragment3 as frag
-import os, random
-reload(frag)
+import os, sys, random
+
 def getBase():
 	return sel.savedSels['base'].atoms(), sel.savedSels['anchor'].atoms()[0]
 
@@ -31,12 +30,13 @@ def clearBase(base, xform=False):
 
 #####
 base, anchor = getBase()
-linkers = getMol2Files('/home/jrodriguez/x/mol2/linkers/')
-fragments = getMol2Files('/home/jrodriguez/x/mol2/fragments/')
+wd = os.path.dirname(os.path.realpath(sys.argv[0]))
+linkers = getMol2Files(wd +'/mol2/linkers/')
+fragments = getMol2Files(wd + '/mol2/fragments/')
 
 l = random.randint(0, len(linkers)-1)
 f = random.randint(0, len(fragments)-1)
 clearBase(base)
 linker = frag.insertMol(linkers[l], target=anchor, join=True, inplace=True)
 linker_anchor = [ a for a in linker if a.anchor in (4,6,8)]
-fragment = frag.insertMol(fragments[f], target=linker_anchor[0])
+fragment = frag.insertMol(fragments[f], target=linker_anchor[0], alpha=-120.)
