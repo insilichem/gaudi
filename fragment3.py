@@ -35,16 +35,25 @@ def insertMol(mol2, target=None, join=True, inplace=True, alpha=120.0):
 			if a.anchor in (1,5,6): axis_start = a 
 			if a.anchor in (2,7,8): axis_end = a 
 
+
+		#discard H atom and set actual target
+		if target.element.number == 1:
+			H_coord = target.coord()
+			new_target = target.neighbors[0]
+			target.molecule.deleteAtom(target)
+			target = new_target
+		else:
+			from BuildStructure import changeAtom
+			geometry = target.getIdatmInfoMap()[target.idatmType].geometry
+			target, newH = changeAtom(target, target.element, geometry, target.numBonds + 1)
+			H_coord = newH.coord()
+			target.molecule.deleteAtom(newH)
+
 		# align target+anchor
-		dv = target.coord() - anchor.coord()  # translation vector
+		dv = H_coord - anchor.coord()  # translation vector
 		t = x.translation(dv) # translation xform matrix
 		for a in tmpl.atoms: 
 			a.setCoord(t.apply(a.coord()))
-
-		#discard H atom and set actual target
-		new_target = target.neighbors[0]
-		target.molecule.deleteAtom(target)
-		target = new_target
 
 		# rotate params
 		zero = chimera.Point(0.0, 0.0, 0.0)
