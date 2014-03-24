@@ -10,6 +10,8 @@
 # TODO
 # - Consider Von Mises Distribution for random angle
 # - Calculate h bonds only if clashes < threshold?
+# - Avoid ligand rebuilding every step! Use 'ghost' library instead
+# - Better crossover and mutations functions
 
 import chimera, Rotamers, random, numpy, deap, argparse, sys, os
 from deap import creator, tools, base, algorithms
