@@ -11,18 +11,99 @@
 # - Consider Von Mises Distribution for random angle
 # - Calculate h bonds only if clashes < threshold?
 
-import chimera, Rotamers, random, numpy, deap, argparse
+import chimera, Rotamers, random, numpy, deap, argparse, sys, os
+from deap import creator, tools, base, algorithms
 from chimera import UserError
 import hyde5, lego # the scripts!
+import fragment3 as frag
+reload(frag)
+reload(hyde5)
+### CUSTOM FUNCTIONS
+#
+def evalCoord(ind):
+
+	## 1 - Build ligand
+	# 'base' has to be selected in Chimera
+	# 'anchor' should be generated on the fly
+	cbase, anchor = lego.getBase()
+	lego.clearBase(cbase, anchor)
+
+	linker = frag.insertMol(linkers[int(ind[0][0])], target=anchor, join=True, 
+		inplace=True, h=int(ind[1][0]))
+	linker_anchor = [ a for a in linker if a.anchor in (4,6,8) ]
+	fragm = frag.insertMol(fragments[int(ind[0][1])], target=linker_anchor[0], 
+		alpha=-120., h=int(ind[1][1]))		
+	seen = { }
+	bonds = [ seen.setdefault(b, b) for a in linker for b in a.bonds if b not in seen ]
+
+	## Ligand atoms are new entities now
+	ligand = cbase[0].residue.atoms
+	static = cbase[0]
+	## Set rotations
+	for i, degrees in enumerate(ind[2]):
+		try: 
+			hyde5.createRotation(bonds[i], static)
+			hyde5.rotate(bonds[i], degrees, absolute=True)
+		except IndexError:
+			break
+	hbonds = hyde5.countHBonds(model, cache=False)
+	clashes, num_of_clashes = hyde5.countClashes(atoms=ligand)
+	hyde5.clearRotation(allbonds=True)
+
+	## Set rotamers
+	for i, rotId in enumerate(ind[3]):
+		rotId = int(rotId)
+		Rotamers.useRotamer(residues[i],[rotamers[i][rotId]])
+
+	# Rotamer atoms are new entities now!
+	#ligand_atoms = [ a for r in ligand for a in r.atoms ]
+	all_atoms = [ a for m in chimera.openModels.list() for a in m.atoms]
+	res_atoms = [ a for r in residues for a in r.atoms ]
+	not_ligand = list(set(all_atoms) - set(ligand) - set(res_atoms))
+	
+	clashes_r, num_of_clashes_r = hyde5.countClashes(atoms=res_atoms,
+		test=not_ligand)
+
+	
+	return len(hbonds), num_of_clashes, num_of_clashes_r
+
+def hetCxOnePoint(ind1, ind2):
+
+	for i, row in enumerate(ind1):
+		if not i: #ignore ligand, fragment building
+			continue
+		size = min(len(ind1[i]), len(ind2[i]))
+		if size > 1:
+			cxpoint = random.randint(1, size - 1)
+			ind1[i][cxpoint:], ind2[i][cxpoint:] = ind2[i][cxpoint:], ind1[i][cxpoint:]
+
+	return ind1, ind2
+
+def hetMutation(ind, indpb):
+	for i, row in enumerate(ind):
+		if random.random() < ind:
+			if not i: 
+				continue
+			elif i == 1:
+				j = random.randint(0,len(row)-1)
+				ind[i][j] = random.randint(0,3)
+				
+			elif i == 2:
+				j = random.randint(0,len(row)-1)
+				ind[i][j] = random.randint(0,360)
+				
+			elif i == 3:
+				j = random.randint(0,len(row)-1)
+				ind[i][j] = random.uniform(0,8)
+							
+	return ind,
+
+##/ FUNCTIONS
 
 # Initial checks
-if "ligand" not in chimera.selection.savedSels:
-	raise UserError("Define a selection named 'ligand' that\
-	 contains the part of the molecule which will be moved")
-elif len(chimera.selection.currentAtoms()) != 1:
-	raise UserError("Select and anchor atom")
-elif not len(chimera.selection.currentBonds()):
-	raise UserError("Select some bonds to rotate")
+if "base" not in chimera.selection.savedSels:
+	raise UserError("Define a selection with the static part, named 'base'.")
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-p', '--population',
@@ -42,62 +123,17 @@ parser.add_argument('-g', '--generation',
 args = parser.parse_args()
 #### /ARGUMENT PARSING
 
-
 # Set Chimera params
 chimera.selection.saveSel("initial")
-bonds = chimera.selection.currentBonds()
-anchor = chimera.selection.currentAtoms()[0]
-model = chimera.selection.currentMolecules()
+model = chimera.openModels.list()
 residues = chimera.selection.savedSels['rotamers'].residues()
 res_atoms = [a for res in residues for a in res.atoms]
 rotamers = [ Rotamers.getRotamers(res)[1] for res in residues ]
-ligand = chimera.selection.savedSels['ligand'].atoms()
-# TODO It will change with modifications!
-#ligand_atoms = [ a for r in ligand for a in r.atoms ]
-all_atoms = [ a for m in chimera.openModels.list() for a in m.atoms]
-not_ligand = list(set(all_atoms) - set(ligand) - set(res_atoms))
 
-
-for bond in bonds:
-	hyde5.createRotation(bond, anchor)
-
-def evalCoord(individual):
-	
-	for i, degrees in enumerate(individual[:len(bonds)]):
-		hyde5.rotate(bonds[i], degrees, absolute=True)
-	hbonds = hyde5.countHBonds(model)
-	clashes, num_of_clashes = hyde5.countClashes(atoms=ligand)
-
-	for i, rotId in enumerate(individual[len(bonds):]):
-		rotId = int(rotId)
-		Rotamers.useRotamer(residues[i],[rotamers[i][rotId]])
-
-	res_atoms = [ a for r in residues for a in r.atoms ]
-	clashes_r, num_of_clashes_r = hyde5.countClashes(atoms=res_atoms,
-		test=not_ligand)
-
-	
-	return len(hbonds), num_of_clashes, num_of_clashes_r
-
-def hetCxOnePoint(ind1, ind2, bound):
-
-	ind1_0, ind1_1 = ind1[:bound], ind1[bound:]
-	ind2_0, ind2_1 = ind2[:bound], ind2[bound:]
-	size_0 = min(len(ind1_0), len(ind2_0))
-	size_1 = min(len(ind1_1), len(ind2_1))
-
-	if size_0 > 1:
-		cxpoint = random.randint(1, size_0 - 1)
-		ind1_0[cxpoint:], ind2_0[cxpoint:] = ind2_0[cxpoint:], ind1_0[cxpoint:]
-	if size_1 > 1:
-		cxpoint = random.randint(1, size_1 - 1)
-		ind1_1[cxpoint:], ind2_1[cxpoint:] = ind2_1[cxpoint:], ind1_1[cxpoint:]
-
-	ind1[:] = ind1_0 + ind1_1
-	ind2[:] = ind2_0 + ind2_1
-
-	return ind1, ind2
-
+# building blocks
+wd = os.path.dirname(os.path.realpath(sys.argv[0]))
+linkers = lego.getMol2Files(wd +'/mol2/linkers/')
+fragments = lego.getMol2Files(wd + '/mol2/fragments/')
 
 ###
 # Genetic Algorithm
@@ -108,25 +144,37 @@ deap.creator.create("Individual", list, fitness=deap.creator.FitnessMax)
 
 toolbox = deap.base.Toolbox()
 toolbox.register("rand_angle", random.randint, 0, 359)
+toolbox.register("rand_h", random.randint, 1, 3)
 toolbox.register("rand_rotamer", random.randint, 0, 8)
+toolbox.register("rand_linker", random.randint, 0, len(linkers)-1)
+toolbox.register("rand_fragment", random.randint, 0, len(fragments)-1)
+
+toolbox.register("molecule", deap.tools.initCycle, list,
+	[toolbox.rand_linker, toolbox.rand_fragment], n=1)
+toolbox.register("h", deap.tools.initRepeat, list,
+	toolbox.rand_h, n=2)
+toolbox.register("linker_rots", deap.tools.initRepeat, list,
+	toolbox.rand_angle, 5)
+# toolbox.register("fragment_rots", deap.tools.initRepeat, list,
+# 	toolbox.rand_angle)
+toolbox.register("rotamers", deap.tools.initRepeat, list,
+	toolbox.rand_rotamer, n=len(residues))
+
 toolbox.register("individual", deap.tools.initCycle, 
-	deap.creator.Individual, [toolbox.rand_angle] * len(bonds) + 
-		[toolbox.rand_rotamer] * len(residues), n=1)
+	deap.creator.Individual, [toolbox.molecule, toolbox.h, toolbox.linker_rots,
+	toolbox.rotamers], n=1)
 toolbox.register("population", deap.tools.initRepeat, 
 	list, toolbox.individual)
 
-LOW_BOUND = [0]*(len(bonds)+len(residues))
-UP_BOUND = [360]*len(bonds) + [8]*len(residues)
 
 toolbox.register("evaluate", evalCoord)
-toolbox.register("mate", hetCxOnePoint, bound=len(bonds))
-toolbox.register("mutate", deap.tools.mutPolynomialBounded,
-	eta = 20.0, low = LOW_BOUND, up = UP_BOUND, indpb=0.05)
+toolbox.register("mate", hetCxOnePoint)
+toolbox.register("mutate", hetMutation, indpb=0.05)
 toolbox.register("select", deap.tools.selNSGA2)
-adam = deap.creator.Individual([0] * len(bonds))
+
 
 def main():
-	pop = toolbox.population(n=args.pop-1) + [adam]
+	pop = toolbox.population(n=args.pop-1)
 	hof = deap.tools.HallOfFame(1)
 	stats = deap.tools.Statistics(lambda ind: ind.fitness.values)
 	stats.register("avg", numpy.mean)
