@@ -13,7 +13,8 @@
 
 import chimera, Rotamers, random, numpy, deap, argparse
 from chimera import UserError
-import hyde5 # the script!
+import hyde5, lego # the scripts!
+
 # Initial checks
 if "ligand" not in chimera.selection.savedSels:
 	raise UserError("Define a selection named 'ligand' that\
@@ -70,10 +71,12 @@ def evalCoord(individual):
 	for i, rotId in enumerate(individual[len(bonds):]):
 		rotId = int(rotId)
 		Rotamers.useRotamer(residues[i],[rotamers[i][rotId]])
+
 	res_atoms = [ a for r in residues for a in r.atoms ]
 	clashes_r, num_of_clashes_r = hyde5.countClashes(atoms=res_atoms,
 		test=not_ligand)
 
+	
 	return len(hbonds), num_of_clashes, num_of_clashes_r
 
 def hetCxOnePoint(ind1, ind2, bound):
