@@ -16,16 +16,18 @@ def getMol2Files(path):
 	# default path sould be wd/mol2/<linkers | fragment>
 	return [ os.path.join(path,fn) for fn in next(os.walk(path))[2] if fn.endswith('.mol2') ]
 
-def clearBase(base, xform=False):
-	not_base = [ a for a in base[0].residue.atoms if a not in base and a != anchor]
-	if xform:
-		coords = [ a.xformCoord() for a in not_base ]
-	else:
-		coords = [ a.coord() for a in not_base ]
+def clearBase(base, anchor, get_coords=False, xform=False):
+	not_base = [ a for a in base[0].residue.atoms if a not in base ]
+	if get_coords:
+		if xform:
+			coords = [ a.xformCoord() for a in not_base ]
+		else:
+			coords = [ a.coord() for a in not_base ]
 
 	[ base[0].molecule.deleteAtom(a) for a in not_base]
-
-	return coords
+	
+	if get_coords:
+		return coords
 
 
 #####
@@ -36,7 +38,7 @@ fragments = getMol2Files(wd + '/mol2/fragments/')
 
 l = random.randint(0, len(linkers)-1)
 f = random.randint(0, len(fragments)-1)
-clearBase(base)
+clearBase(base,anchor)
 linker = frag.insertMol(linkers[l], target=anchor, join=True, inplace=True)
-linker_anchor = [ a for a in linker if a.anchor in (4,6,8)]
+linker_anchor = [ a for a in linker if a.anchor in (4,6,8) ]
 fragment = frag.insertMol(fragments[f], target=linker_anchor[0], alpha=-120.)
