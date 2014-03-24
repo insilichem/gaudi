@@ -6,7 +6,7 @@ runscript fragment.py <SMILES string>
 import chimera
 import sys
 
-def insertMol(mol2, target=None, join=True, inplace=True, alpha=120.0):
+def insertMol(mol2, target=None, join=True, inplace=True, alpha=120.0, h=1):
 	from chimera import UserError
 
 	if not target:
@@ -44,8 +44,18 @@ def insertMol(mol2, target=None, join=True, inplace=True, alpha=120.0):
 			target = new_target
 		else:
 			from BuildStructure import changeAtom
-			geometry = target.getIdatmInfoMap()[target.idatmType].geometry
-			target, newH = changeAtom(target, target.element, geometry, target.numBonds + 1)
+			try:
+				geometry = target.getIdatmInfoMap()[target.idatmType].geometry
+			except KeyError:
+				geometry = 4
+			try:
+				target, newH = changeAtom(target, target.element, geometry, 
+					target.numBonds+1)
+				#newH = [a for a in target.neighbors if a.numBonds == 1][h-1]
+			except IndexError:
+				newH = [a for a in target.neighbors if a.numBonds == 1][-1]
+				
+				
 			H_coord = newH.coord()
 			target.molecule.deleteAtom(newH)
 
