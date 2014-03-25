@@ -23,8 +23,8 @@ def clearBase(base, anchor, get_coords=False, xform=False):
 			coords = [ a.xformCoord() for a in not_base ]
 		else:
 			coords = [ a.coord() for a in not_base ]
-
-	[ base[0].molecule.deleteAtom(a) for a in not_base]
+			
+	[ base[0].molecule.deleteAtom(a) for a in not_base ]
 	
 	if get_coords:
 		return coords

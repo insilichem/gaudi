@@ -18,7 +18,7 @@ from deap import creator, tools, base, algorithms
 from chimera import UserError
 import hyde5, lego # the scripts!
 import fragment3 as frag
-reload(hyde5)
+
 ### CUSTOM FUNCTIONS
 #
 def evalCoord(ind):
@@ -152,10 +152,10 @@ deap.creator.create("Individual", dict, fitness=deap.creator.FitnessMax)
 
 # Operators
 toolbox = deap.base.Toolbox()
-toolbox.register("rand_angle", random.randint, 0, 359)
+toolbox.register("rand_angle", random.uniform, 0, 360)
 toolbox.register("rand_h", random.randint, 1, 3)
 toolbox.register("rand_aa", random.randint, 0, len(aminoacids)-1)
-toolbox.register("rand_rotamer", random.randint, 0, 5)
+toolbox.register("rand_rotamer", random.randint, 0, 8)
 toolbox.register("rand_linker", random.randint, 0, len(linkers)-1)
 toolbox.register("rand_fragment", random.randint, 0, len(fragments)-1)
 
@@ -191,7 +191,7 @@ toolbox.register("select", deap.tools.selNSGA2)
 def main():
 	pop = toolbox.population(n=args.pop-1)
 	hof = deap.tools.HallOfFame(1)
-	stats = deap.tools.Statistics(lambda ind: ind.fitness.values[2])
+	stats = deap.tools.Statistics(lambda ind: ind.fitness.values[1])
 	stats.register("avg", numpy.mean)
 	stats.register("std", numpy.std)
 	stats.register("min", numpy.min)
@@ -212,4 +212,3 @@ if __name__ == "__main__":
 	# 	'linker_rots': [268, 44, 207, 298, 248, 355, 200, 297], 
 	# 	'molecule': [2, 0]}
 	# print "Individual:\n{0}\nFitness:\n{1}".format(test, evalCoord(test))
-	

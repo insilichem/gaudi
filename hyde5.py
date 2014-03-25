@@ -98,12 +98,12 @@ def bondrot(bond, anchor, delta):
 	anchor = findNearest(anchor, bond.atoms)
 	br.angle = (delta, anchor)
 	br.destroy()
-	
-def countHBonds(model=None,	sel=None, selRestrict=True,cache=False):
-	## Calculates H bonds and clashes for current position of current selection
+
+def countHBonds(model=None, sel=None, selRestrict=True,cache=False):
+	## Calculates H bonds in `model` given `sel` atoms
 	if not model:
 		model = chimera.openModels.list(modelTypes=[chimera.Molecule])
-	if not sel:
+	if not sel and selRestrict:
 		sel = chimera.selection.currentAtoms()
 	#calculate H bonds
 	import FindHBond as fhb
@@ -170,8 +170,6 @@ def optimizeRotamer(residue,newRes=None,num=5,clashes=None,replace=False):
 		clashes = countClashes(residue.atoms)[1]
 	if clashes == 0:
 		return
-
-
 	# else
 	rotamers = r.getRotamers(residue)[1][:num]
 	
@@ -230,7 +228,6 @@ def main():
 						help="Degrees for each rotation" )
 	args = parser.parse_args()
 	#### /ARGUMENT PARSING
-
 
 	#working directory
 	wd = os.path.dirname(os.path.realpath(sys.argv[0])).replace('\\', '/') + '/'
