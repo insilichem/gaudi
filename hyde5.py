@@ -88,16 +88,17 @@ def rotate(bond, degrees, absolute=False):
 	elif degrees:
 		br.increment(degrees)
 
-def countHBonds(model=None,	selRestrict=True,cache=False):
+def countHBonds(model=None,	sel=None, selRestrict=True,cache=False):
 	## Calculates H bonds and clashes for current position of current selection
 	if not model:
 		model = chimera.openModels.list(modelTypes=[chimera.Molecule])
+	if not sel:
+		sel = chimera.selection.currentAtoms()
 	#calculate H bonds
 	import FindHBond as fhb
 	hbonds = fhb.findHBonds(model, cacheDA=cache)
 	if selRestrict:
-		hbonds = fhb.base._filterBySel(
-			hbonds,chimera.selection.currentAtoms(), 'any')
+		hbonds = fhb.base._filterBySel(hbonds, sel, 'any')
 	
 	return hbonds
 
