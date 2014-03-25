@@ -164,7 +164,7 @@ toolbox.register("molecule", deap.tools.initCycle, list,
 toolbox.register("h", deap.tools.initRepeat, list,
 	toolbox.rand_h, n=2)
 toolbox.register("linker_rots", deap.tools.initRepeat, list,
-	toolbox.rand_angle, 8)
+	toolbox.rand_angle, n=8)
 # toolbox.register("fragment_rots", deap.tools.initRepeat, list,
 # 	toolbox.rand_angle)
 toolbox.register("mutamers", deap.tools.initRepeat, list,
