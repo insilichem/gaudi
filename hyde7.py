@@ -64,7 +64,6 @@ def evalCoord(ind):
 		except IndexError:
 			Rotamers.useRotamer(residues[i],[rotamers[-1]])
 
-
 	# Rotamer atoms are new entities now!
 	#ligand_atoms = [ a for r in ligand for a in r.atoms ]
 	all_atoms = [ a for m in chimera.openModels.list() for a in m.atoms]
@@ -74,7 +73,6 @@ def evalCoord(ind):
 	clashes_r, num_of_clashes_r = hyde5.countClashes(atoms=res_atoms,
 		test=not_ligand)
 
-	
 	return len(hbonds), num_of_clashes, num_of_clashes_r
 
 def hetCxOnePoint(ind1, ind2):
@@ -97,13 +95,13 @@ def hetMutation(ind, indpb):
 			if key == 'molecule': 
 				continue
 			elif key == 'h':
-				ind[key][j] = random.randint(0,3)	
+				ind[key][j] = toolbox.rand_h()	
 			elif key == 'linker_rots':
-				ind[key][j] = random.uniform(0,360)
+				ind[key][j] = toolbox.rand_angle()
 			elif key == 'mutamers':
-				ind[key][j] = random.randint(0,len(aminoacids)-1)
+				ind[key][j] = toolbox.rand_aa()
 			elif key == 'rotamers':
-				ind[key][j] = random.randint(0,8)		
+				ind[key][j] = toolbox.rand_rotamer()		
 	return ind,
 
 aminoacids = ['ALA', 'ARG', 'ASN', 'ASP', 'CYS', 'GLU', 'GLN',
@@ -114,7 +112,6 @@ aminoacids = ['ALA', 'ARG', 'ASN', 'ASP', 'CYS', 'GLU', 'GLN',
 # Initial checks
 if "base" not in chimera.selection.savedSels:
 	raise UserError("Define a selection with the static part, named 'base'.")
-
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-p', '--population',
@@ -148,7 +145,6 @@ fragments = lego.getMol2Files(wd + '/mol2/fragments/')
 
 ###
 # Genetic Algorithm
-####
 # define individual, population, etc
 deap.creator.create("FitnessMax", deap.base.Fitness, weights=(1.0, -1.0, -1.0))
 deap.creator.create("Individual", dict, fitness=deap.creator.FitnessMax)
@@ -177,7 +173,6 @@ toolbox.register("rotamers", deap.tools.initRepeat, list,
 	toolbox.rand_rotamer, n=len(residues))
 toolbox.register("toDict", 
 	(lambda ind, *fn: ind((f.__name__, f()) for f in fn)))
-
 
 # Individual and population
 toolbox.register("individual", toolbox.toDict, deap.creator.Individual, 
@@ -210,6 +205,9 @@ if __name__ == "__main__":
     chimera.selection.setCurrent(chimera.selection.savedSels["initial"])
     evalCoord(hof[0])
     print("Best individual is: %s\nwith fitness: %s" % (hof[0], hof[0].fitness))
-	# # test only
-	# ind = [[0,0],[1,1],[0,0,0,0,0,0],[5],[1]]
-	# evalCoord(ind)
+    # test = {'h': [3, 3], 
+	   #  'rotamers': [4, 5], 
+	   #  'mutamers': [12, 9], 
+	   #  'linker_rots': [268, 44, 207, 298, 248, 355, 200, 297], 
+	   #  'molecule': [2, 0]}
+	# print "Fitness: " + str(evalcoord(test))
