@@ -4,7 +4,7 @@ Some description here
 ROADMAP
 =======
 ## New feats
-* Mutamers instead of rotamers
+* ~~Mutamers instead of rotamers~~
 	- Add one more gene to individual
 * Choose a random H of insertion
 
