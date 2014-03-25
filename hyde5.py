@@ -73,10 +73,12 @@ def createRotation(bond, anchor):
 	from BondRotMgr import bondRotMgr
 	br = bondRotMgr.rotationForBond(bond)
 
-	if anchor in br.atoms:
+	if anchor not in br.atoms:
+		anchor = findNearest(anchor, br.atoms)
+	if br._BondRotation__anchorSide != anchor:
+		br._BondRotation__anchorSide = anchor
 		br.anchorSide = anchor
-	else: 
-		br.anchorSide = findNearest(anchor, br.atoms)
+		bondRotMgr.triggers.activateTrigger(bondRotMgr.REVERSED, br)
 
 def rotate(bond, degrees, absolute=False):
 	## Python wrapper for rotation Chimera command
@@ -88,6 +90,15 @@ def rotate(bond, degrees, absolute=False):
 	elif degrees:
 		br.increment(degrees)
 
+def bondrot(bond, anchor, delta):
+	# Simpler than the two above. Avoids triggers though
+	# Will have to ask about its implications
+	from chimera import BondRot
+	br = BondRot(bond)
+	anchor = findNearest(anchor, bond.atoms)
+	br.angle = (delta, anchor)
+	br.destroy()
+	
 def countHBonds(model=None,	sel=None, selRestrict=True,cache=False):
 	## Calculates H bonds and clashes for current position of current selection
 	if not model:
@@ -135,7 +146,7 @@ def atomsBetween(atom1, atom2):
 		j += 1
 	
 	chain = set(chain1) & set(chain2)
-	ends = set([atom1, atom2])
+	#ends = set([atom1, atom2])
 	return chain
 
 def findNearest(anchor, atoms):

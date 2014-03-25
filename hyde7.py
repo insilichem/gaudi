@@ -18,6 +18,7 @@ from deap import creator, tools, base, algorithms
 from chimera import UserError
 import hyde5, lego # the scripts!
 import fragment3 as frag
+reload(hyde5)
 ### CUSTOM FUNCTIONS
 #
 def evalCoord(ind):
@@ -43,13 +44,14 @@ def evalCoord(ind):
 	## 2 - Set rotations
 	for i, degrees in enumerate(ind['linker_rots']):
 		try: 
-			hyde5.createRotation(bonds[i], static)
-			hyde5.rotate(bonds[i], degrees, absolute=True)
+			# hyde5.createRotation(bonds[i], static)
+			# hyde5.rotate(bonds[i], degrees, absolute=True)
+			hyde5.bondrot(bonds[i], static, degrees)
 		except IndexError:
 			break
 	hbonds = hyde5.countHBonds(model, sel=ligand, cache=False)
 	clashes, num_of_clashes = hyde5.countClashes(atoms=ligand)
-	hyde5.clearRotation(allbonds=True)
+	#hyde5.clearRotation(allbonds=True)
 
 	## 3 - Set mutamers/rotamers
 	for i, aa in enumerate(ind['mutamers']):
@@ -200,13 +202,14 @@ def main():
 	return pop, log, hof
 
 if __name__ == "__main__":
-	# pop, log, hof = main()
-	# chimera.selection.setCurrent(chimera.selection.savedSels["initial"])
-	# evalCoord(hof[0])
-	# print("Best individual is: %s\nwith fitness: %s" % (hof[0], hof[0].fitness))
-	test = {'h': [3, 3], 
-		'rotamers': [4, 5], 
-		'mutamers': [12, 9], 
-		'linker_rots': [268, 44, 207, 298, 248, 355, 200, 297], 
-		'molecule': [2, 0]}
-	print "Individual:\n{0}\nFitness:\n{1}".format(test, evalCoord(test))
+	pop, log, hof = main()
+	chimera.selection.setCurrent(chimera.selection.savedSels["initial"])
+	evalCoord(hof[0])
+	print("Best individual is: %s\nwith fitness: %s" % (hof[0], hof[0].fitness))
+	# test = {'h': [3, 3], 
+	# 	'rotamers': [4, 5], 
+	# 	'mutamers': [12, 9], 
+	# 	'linker_rots': [268, 44, 207, 298, 248, 355, 200, 297], 
+	# 	'molecule': [2, 0]}
+	# print "Individual:\n{0}\nFitness:\n{1}".format(test, evalCoord(test))
+	
