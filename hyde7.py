@@ -29,11 +29,11 @@ def evalCoord(ind):
 	cbase, anchor = lego.getBase()
 	lego.clearBase(cbase, anchor)
 
-	linker = frag.insertMol(linkers[int(ind[0][0])], target=anchor, join=True, 
-		inplace=True, h=int(ind[1][0]))
+	linker = frag.insertMol(linkers[ind['molecule'][0]], target=anchor, join=True, 
+		inplace=True, h=ind['h'][0])
 	linker_anchor = [ a for a in linker if a.anchor in (4,6,8) ]
-	frag.insertMol(fragments[int(ind[0][1])], target=linker_anchor[0], 
-		alpha=-120., h=int(ind[1][1]))		
+	frag.insertMol(fragments[int(ind['molecule'][1])], target=linker_anchor[0], 
+		alpha=-120., h=ind['h'][1])		
 	seen = { } # Used to remove duplicate entries in `bonds`
 	bonds = [ seen.setdefault(b, b) for a in linker for b in a.bonds if b not in seen ]
 
@@ -42,7 +42,7 @@ def evalCoord(ind):
 	static = cbase[0]
 
 	## 2 - Set rotations
-	for i, degrees in enumerate(ind[2]):
+	for i, degrees in enumerate(ind['linker_rots']):
 		try: 
 			hyde5.createRotation(bonds[i], static)
 			hyde5.rotate(bonds[i], degrees, absolute=True)
@@ -53,10 +53,10 @@ def evalCoord(ind):
 	hyde5.clearRotation(allbonds=True)
 
 	## 3 - Set mutamers/rotamers
-	for i, aa in enumerate(ind[3]):
+	for i, aa in enumerate(ind['mutamers']):
 		try: 
 			rotamers = Rotamers.getRotamers(residues[i], resType=aminoacids[aa])[1] 
-			rotId = ind[4][i]
+			rotId = ind['rotamers'][i]
 			Rotamers.useRotamer(residues[i],[rotamers[rotId]])
 		except Rotamers.NoResidueRotamersError:
 			from SwapRes import swap, BackboneError
@@ -79,37 +79,32 @@ def evalCoord(ind):
 
 def hetCxOnePoint(ind1, ind2):
 
-	for i, row in enumerate(ind1):
-		if not i: #ignore ligand, fragment building
+	for key in ind1:
+		if key == 'molecule': #ignore ligand, fragment building
 			continue
-		size = min(len(ind1[i]), len(ind2[i]))
+		size = min(len(ind1[key]), len(ind2[key]))
 		if size > 1:
 			cxpoint = random.randint(1, size - 1)
-			ind1[i][cxpoint:], ind2[i][cxpoint:] = ind2[i][cxpoint:], ind1[i][cxpoint:]
+			ind1[key][cxpoint:], ind2[key][cxpoint:] = \
+			ind2[key][cxpoint:], ind1[key][cxpoint:]
 
 	return ind1, ind2
 
 def hetMutation(ind, indpb):
-	for i, row in enumerate(ind):
+	for key, row in ind.items():
 		if random.random() < ind:
-			if not i: 
+			j = random.randint(0,len(row)-1)
+			if key == 'molecule': 
 				continue
-			elif i == 1:
-				j = random.randint(0,len(row)-1)
-				ind[i][j] = random.randint(0,3)
-				
-			elif i == 2:
-				j = random.randint(0,len(row)-1)
-				ind[i][j] = random.uniform(0,360)
-			elif i == 3:
-				j = random.randint(0,len(row)-1)
-				ind[i][j] = random.randint(0,len(aminoacids)-1)
-			elif i == 4:
-				j = random.randint(0,len(row)-1)
-				ind[i][j] = random.randint(0,8)
-							
+			elif key == 'h':
+				ind[key][j] = random.randint(0,3)	
+			elif key == 'linker_rots':
+				ind[key][j] = random.uniform(0,360)
+			elif key == 'mutamers':
+				ind[key][j] = random.randint(0,len(aminoacids)-1)
+			elif key == 'rotamers':
+				ind[key][j] = random.randint(0,8)		
 	return ind,
-
 
 aminoacids = ['ALA', 'ARG', 'ASN', 'ASP', 'CYS', 'GLU', 'GLN',
 			  'GLY', 'HIS', 'ILE', 'LEU', 'LYS', 'MET', 'PHE',
@@ -156,7 +151,7 @@ fragments = lego.getMol2Files(wd + '/mol2/fragments/')
 ####
 # define individual, population, etc
 deap.creator.create("FitnessMax", deap.base.Fitness, weights=(1.0, -1.0, -1.0))
-deap.creator.create("Individual", list, fitness=deap.creator.FitnessMax)
+deap.creator.create("Individual", dict, fitness=deap.creator.FitnessMax)
 
 # Operators
 toolbox = deap.base.Toolbox()
@@ -180,11 +175,14 @@ toolbox.register("mutamers", deap.tools.initRepeat, list,
 	toolbox.rand_aa, n=len(residues))
 toolbox.register("rotamers", deap.tools.initRepeat, list,
 	toolbox.rand_rotamer, n=len(residues))
+toolbox.register("toDict", 
+	(lambda ind, *fn: ind((f.__name__, f()) for f in fn)))
+
 
 # Individual and population
-toolbox.register("individual", deap.tools.initCycle, 
-	deap.creator.Individual, [toolbox.molecule, toolbox.h, toolbox.linker_rots,
-	toolbox.mutamers, toolbox.rotamers], n=1)
+toolbox.register("individual", toolbox.toDict, deap.creator.Individual, 
+	toolbox.molecule, toolbox.h, toolbox.linker_rots,
+	toolbox.mutamers, toolbox.rotamers)
 toolbox.register("population", deap.tools.initRepeat, 
 	list, toolbox.individual)
 
