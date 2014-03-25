@@ -15,7 +15,7 @@ ROADMAP
 * Benchmark the weights
 
 ## Known issues
-* Reported clashes and H bonds values < actual values!
+* Reported ~~clashes~~ and H bonds values < actual values!
 
 
 ## Coding
