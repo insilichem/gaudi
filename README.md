@@ -5,11 +5,11 @@ ROADMAP
 =======
 ## New feats
 * ~~Mutamers instead of rotamers~~
-	- Add one more gene to individual
+	- ~~Add one more gene to individual~~
 * Choose a random H of insertion
 
 ## Performance
-* Render all possible molecules at the beginning, rather than every iteration
+* Render all possible molecules at the beginning, rather than every iteration [GHOST branch]
 * Review insertMol() looping. It may be redundant
 * Add multithreading support
 * Benchmark the weights
