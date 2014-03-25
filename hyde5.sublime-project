@@ -1,0 +1,17 @@
+{
+	"folders":
+	[
+		{
+			"path": "/home/jrodriguez/x",
+			"name": "HYDE project",
+			"file_exclude_patterns":[
+                ".*",
+                "*.sublime*"
+            ],
+            "folder_exclude_patterns": [
+                "ses",
+                "output"
+            ]
+		}
+	]
+}

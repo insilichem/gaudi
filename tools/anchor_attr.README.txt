@@ -1,0 +1,9 @@
+0 = null
+1 = axis_start
+2 = axis_end
+3 = donor_anchor
+4 = acceptor_anchor
+5 = axis_start + donor_anchor
+6 = axis_start + acceptor_anchor
+7 = axis_end + donor_anchor
+8 = axis_end + acceptor_anchor

@@ -35,6 +35,7 @@ recipient: atoms
 """.format(attr))
 
 for a in atoms:
-	f.write("\t@{0}\t0\n".format(a))
+	if not a.startswith('H'):
+		f.write("\t@{0}\t0\n".format(a))
 
 f.close()
