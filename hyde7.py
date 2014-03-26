@@ -13,22 +13,21 @@
 # - Avoid ligand rebuilding every step! Use 'ghost' library instead
 # - Better crossover and mutations functions
 
-import chimera, Rotamers, random, numpy, deap, argparse, sys, os
-from deap import creator, tools, base, algorithms
+# Chimera
+import chimera, Rotamers, SwapRes
 from chimera import UserError
-import hyde5, lego # the scripts!
+# Python
+import random, numpy, deap, argparse, sys, os
+from deap import creator, tools, base, algorithms
+# Custom
+import hyde5, lego
 import fragment3 as frag
 
 ### CUSTOM FUNCTIONS
-#
 def evalCoord(ind):
 
 	## 1 - Build ligand
-	# 'base' has to be selected in Chimera
-	# 'anchor' should be generated on the fly
-	cbase, anchor = lego.getBase()
-	lego.clearBase(cbase, anchor)
-
+	lego.clearBase(cbase)
 	linker = frag.insertMol(linkers[ind['molecule'][0]], target=anchor, join=True, 
 		inplace=True, h=ind['h'][0])
 	linker_anchor = [ a for a in linker if a.anchor in (4,6,8) ]
@@ -37,20 +36,10 @@ def evalCoord(ind):
 	seen = { } # Used to remove duplicate entries in `bonds`
 	bonds = [ seen.setdefault(b, b) for a in linker for b in a.bonds if b not in seen ]
 
-	#Ligand atoms are new entities now
-	ligand = cbase[0].residue.atoms
-	static = cbase[0]
-
 	## 2 - Set rotations
-	for i, degrees in enumerate(ind['linker_rots']):
-		try: 
-			hyde5.createRotation(bonds[i], static)
-			hyde5.rotate(bonds[i], degrees, absolute=True)
-		except IndexError:
-			break
-	hbonds = hyde5.countHBonds(model, cache=False)
-	clashes, num_of_clashes = hyde5.countClashes(atoms=ligand)
-	hyde5.clearRotation(allbonds=True)
+	# Direct access to BondRot, instead of BondRotMgr
+	for i, bond in enumerate(bonds):
+		hyde5.bondrot(bond, anchor=cbase[0], delta=ind['linker_rots'][i])
 
 	## 3 - Set mutamers/rotamers
 	for i, aa in enumerate(ind['mutamers']):
@@ -58,18 +47,22 @@ def evalCoord(ind):
 			rotamers = Rotamers.getRotamers(residues[i], resType=aminoacids[aa])[1] 
 			rotId = ind['rotamers'][i]
 			Rotamers.useRotamer(residues[i],[rotamers[rotId]])
-		except Rotamers.NoResidueRotamersError:
-			from SwapRes import swap, BackboneError
-			swap(residues[i], aminoacids[aa], bfactor=None)
+		except Rotamers.NoResidueRotamersError: # ALA, GLY...
+			SwapRes.swap(residues[i], aminoacids[aa], bfactor=None)
 		except IndexError:
 			Rotamers.useRotamer(residues[i],[rotamers[-1]])
 
-	# Rotamer atoms are new entities now!
-	#ligand_atoms = [ a for r in ligand for a in r.atoms ]
-	all_atoms = [ a for m in chimera.openModels.list() for a in m.atoms]
+	## 4 - Score
+	# Inserted atoms become new entities
+	all_atoms = [ a for m in chimera.openModels.list() for a in m.atoms ]
 	res_atoms = [ a for r in residues for a in r.atoms ]
-	not_ligand = list(set(all_atoms) - set(ligand) - set(res_atoms))
-	
+	ligand_atoms = cbase[0].residue.atoms
+	not_ligand = list(set(all_atoms) - set(ligand_atoms))
+
+	# TODO: Restrict donor and acceptors to smaller selection
+	hbonds = hyde5.countHBonds(model, sel=ligand_atoms, cache=False)
+	clashes, num_of_clashes = hyde5.countClashes(atoms=ligand_atoms, 
+		test=all_atoms) # TODO: Restrict test to smaller selection
 	clashes_r, num_of_clashes_r = hyde5.countClashes(atoms=res_atoms,
 		test=not_ligand)
 
@@ -78,7 +71,7 @@ def evalCoord(ind):
 def hetCxOnePoint(ind1, ind2):
 
 	for key in ind1:
-		if key == 'molecule': #ignore ligand, fragment building
+		if key == 'molecule': #ignore building blocks
 			continue
 		size = min(len(ind1[key]), len(ind2[key]))
 		if size > 1:
@@ -110,8 +103,14 @@ aminoacids = ['ALA', 'ARG', 'ASN', 'ASP', 'CYS', 'GLU', 'GLN',
 ##/ FUNCTIONS
 
 # Initial checks
-if "base" not in chimera.selection.savedSels:
-	raise UserError("Define a selection with the static part, named 'base'.")
+required_sels = 'base', 'anchor', 'rotamers'
+if not set(required_sels) <= set(chimera.selection.savedSels):
+	raise UserError("""You have to define three selections with 'namesel'
+'base': Single atom. Terminal end of the static part of the ligand
+'anchor': Single atom. Together with 'base', it will define the static part.
+	It's also the insertion point for the linker.
+'mutable': Residues to be swapped and mutated.
+""")
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-p', '--population',
@@ -131,15 +130,15 @@ parser.add_argument('-g', '--generation',
 args = parser.parse_args()
 #### /ARGUMENT PARSING
 
-# Set Chimera params
-chimera.selection.saveSel("initial")
-model = chimera.openModels.list()
-residues = chimera.selection.savedSels['rotamers'].residues()
-res_atoms = [a for res in residues for a in res.atoms]
-rotamers = [ Rotamers.getRotamers(res)[1] for res in residues ]
-
-# building blocks
 wd = os.path.dirname(os.path.realpath(sys.argv[0]))
+# Get Chimera params
+model = chimera.openModels.list()
+residues = chimera.selection.savedSels['mutable'].residues()
+base_at = chimera.selection.savedSels['base'].atoms()[0]
+anchor = chimera.selection.savedSels['anchor'].atoms()[0]
+
+# Get building blocks
+cbase = [base_at] + list(hyde5.atomsBetween(base_at, anchor)) + [anchor]
 linkers = lego.getMol2Files(wd +'/mol2/linkers/')
 fragments = lego.getMol2Files(wd + '/mol2/fragments/')
 
@@ -151,10 +150,10 @@ deap.creator.create("Individual", dict, fitness=deap.creator.FitnessMax)
 
 # Operators
 toolbox = deap.base.Toolbox()
-toolbox.register("rand_angle", random.randint, 0, 359)
+toolbox.register("rand_angle", random.uniform, 0, 360)
 toolbox.register("rand_h", random.randint, 1, 3)
 toolbox.register("rand_aa", random.randint, 0, len(aminoacids)-1)
-toolbox.register("rand_rotamer", random.randint, 0, 5)
+toolbox.register("rand_rotamer", random.randint, 0, 8)
 toolbox.register("rand_linker", random.randint, 0, len(linkers)-1)
 toolbox.register("rand_fragment", random.randint, 0, len(fragments)-1)
 
@@ -190,7 +189,7 @@ toolbox.register("select", deap.tools.selNSGA2)
 def main():
 	pop = toolbox.population(n=args.pop-1)
 	hof = deap.tools.HallOfFame(1)
-	stats = deap.tools.Statistics(lambda ind: ind.fitness.values[2])
+	stats = deap.tools.Statistics(lambda ind: ind.fitness.values[1])
 	stats.register("avg", numpy.mean)
 	stats.register("std", numpy.std)
 	stats.register("min", numpy.min)
@@ -201,13 +200,12 @@ def main():
 	return pop, log, hof
 
 if __name__ == "__main__":
-    pop, log, hof = main()
-    chimera.selection.setCurrent(chimera.selection.savedSels["initial"])
-    evalCoord(hof[0])
-    print("Best individual is: %s\nwith fitness: %s" % (hof[0], hof[0].fitness))
-    # test = {'h': [3, 3], 
-	   #  'rotamers': [4, 5], 
-	   #  'mutamers': [12, 9], 
-	   #  'linker_rots': [268, 44, 207, 298, 248, 355, 200, 297], 
-	   #  'molecule': [2, 0]}
-	# print "Fitness: " + str(evalcoord(test))
+	pop, log, hof = main()
+	evalCoord(hof[0])
+	print("Best individual is: %s\nwith fitness: %s" % (hof[0], hof[0].fitness))
+	# test = {'h': [3, 3], 
+	# 	'rotamers': [4, 5], 
+	# 	'mutamers': [12, 9], 
+	# 	'linker_rots': [268, 44, 207, 298, 248, 355, 200, 297], 
+	# 	'molecule': [2, 0]}
+	# print "Individual:\n{0}\nFitness:\n{1}".format(test, evalCoord(test))
