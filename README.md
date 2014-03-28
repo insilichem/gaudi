@@ -12,7 +12,7 @@ Given an anchored ligand, explores conformational space of randomly generated su
 ## Performance optimization
 * Reduce search scope of clashes and H bonds detection (within `n` angstroms of ligand)
 	- Maybe something like ```n = sum(bond.length in ligand)```
-* Render all possible molecules at the beginning, rather than every iteration
+* ~~Render all possible molecules at the beginning, rather than every iteration~~
 * Review insertMol() looping. It may be redundant / too recursive
 * Add multithreading support
 * Benchmark the weights
