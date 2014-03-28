@@ -6,7 +6,8 @@ runscript fragment.py <SMILES string>
 import chimera
 import sys
 
-def insertMol(mol2, target=None, join=True, inplace=True, alpha=120.0, h=1):
+def insertMol(mol2, target=None, join=True, inplace=True, h=1,
+	p2b=True, alpha=120.0, dihedral=None):
 	from chimera import UserError
 
 	if not target:
@@ -49,50 +50,114 @@ def insertMol(mol2, target=None, join=True, inplace=True, alpha=120.0, h=1):
 			except KeyError:
 				geometry = 4
 			try:
-				target, newH = changeAtom(target, target.element, geometry, 
-					target.numBonds+1)
-				#newH = [a for a in target.neighbors if a.numBonds == 1][h-1]
+				newAtom = changeAtom(target, target.element, geometry, 
+					geometry) # TODO should be `geometry - target.numBonds`
+				target = newAtom[0]
+				newHs = newAtom[1:] # TODO consider all possible H -> newAtom[1:]
+				newH = newAtom[1]
+				#[tmpl.deleteAtom(a) for a in newHs if a != newH ]
 			except IndexError:
 				newH = [a for a in target.neighbors if a.numBonds == 1][-1]
-				
-				
+				print "Warning, arbitrary H"
+			
+			# fix bond length
+			from BuildStructure import elementRadius
+			dv = newH.coord() - target.coord()
+			dv.length = elementRadius[anchor.element] + elementRadius[target.element]
+			diff = dv - (newH.coord() - target.coord())
+			newH.setCoord(newH.coord() + diff)
 			H_coord = newH.coord()
 			target.molecule.deleteAtom(newH)
-
+			
 		# align target+anchor
 		dv = H_coord - anchor.coord()  # translation vector
 		t = x.translation(dv) # translation xform matrix
+		#print "posi: ", anchor.coord()
 		for a in tmpl.atoms: 
 			a.setCoord(t.apply(a.coord()))
 
-		# rotate params
+		# # rotate params for angle
 		zero = chimera.Point(0.0, 0.0, 0.0)
-		bond_axis = target.coord() - anchor.coord()
-		mol_axis = axis_end.coord() - axis_start.coord()
-		delta = chimera.angle(mol_axis,bond_axis) - alpha
-		axis = chimera.cross(mol_axis, bond_axis)
-		if axis.data() == (0.0,0.0,0.0):
-			axis = chimera.cross(mol_axis, bond_axis + chimera.Vector(1,0,0))
+		if not dihedral:
+			bond_axis = target.coord() - anchor.coord()
+			mol_axis = axis_end.coord() - axis_start.coord()
+			delta = chimera.angle(mol_axis,bond_axis) - 120.0
+			axis = chimera.cross(mol_axis, bond_axis)
+			#print "vector: ", mol_axis, " + ", bond_axis, mol2
+			if axis.data() == (0.0,0.0,0.0):
+				axis = chimera.cross(mol_axis, bond_axis + chimera.Vector(0.1,0.1,0))
+				print "Warning, had to choose arbitrary normal vector"
+			try: #actual rotation
+				r = x.translation(anchor.coord() - zero) # move to origin
+				r.multiply(x.rotation(axis, delta)) # rotate
+				r.multiply(x.translation(zero -  anchor.coord())) # return to orig pos
+				for a in tmpl.atoms:
+					a.setCoord(r.apply(a.coord()))
+			except ValueError: #this means rot vector is null  (already parallel)
+				raise ValueError("Normal vector is null")
 
-		try: #actual rotation
-			r = x.translation(anchor.coord() - zero) # move to origin
-			r.multiply(x.rotation(axis, delta)) # rotate
-			r.multiply(x.translation(zero -  anchor.coord())) # return to orig pos
-			for a in tmpl.atoms:
-				a.setCoord(r.apply(a.coord()))
 
-		except ValueError: #this means rot vector is null  (already parallel)
-			pass
+		# Critical atoms for rotation
+		d5 = anchor.neighbors[0]
+		d4 = anchor
+		d3 = target
+		d2 = [ a for a in target.neighbors if a.element.number != 1 ][0]
+		d1 = [ a for a in d2.neighbors if a != target ][0]
+
+		if alpha:
+			# rotate params for angle
+			axis_a = d2.coord() - d3.coord()
+			axis_b = d4.coord() - d3.coord()
+			delta = chimera.angle(d2.coord(),d3.coord(),d4.coord()) - alpha
+			axis = chimera.cross(axis_a, axis_b)
+			#print "vector: ", mol_axis, " + ", bond_axis, mol2
+			if axis.data() == (0.0,0.0,0.0):
+				axis = chimera.cross(axis_a, axis_b + chimera.Vector(0.1,0.1,0))
+				print "Warning, had to choose arbitrary normal vector"
+			try: #actual rotation
+				r = x.translation(target.coord() - zero) # move to origin
+				r.multiply(x.rotation(axis, - delta)) # rotate
+				r.multiply(x.translation(zero -  target.coord())) # return to orig pos
+				for a in tmpl.atoms:
+					a.setCoord(r.apply(a.coord()))
+			except ValueError: #this means rot vector is null  (already parallel)
+				raise ValueError("Normal vector is null")
+
+		if dihedral:
+			# rotate params for dihedral
+			axis = d3.coord() - d2.coord()
+			delta = chimera.dihedral(d1.coord(), d2.coord(), d3.coord(), d4.coord()) - dihedral
+			try: #actual rotation
+				r = x.translation(target.coord() - zero) # move to origin
+				r.multiply(x.rotation(axis, - delta)) # rotate
+				r.multiply(x.translation(zero - target.coord())) # return to orig pos
+				for a in tmpl.atoms:
+					a.setCoord(r.apply(a.coord()))
+			except ValueError: #this means rot vector is null  (already parallel)
+				raise ValueError("Normal vector is null")
+
+			# axis = d4.coord() - d3.coord()
+			# delta = chimera.dihedral(d2.coord(), d3.coord(), d4.coord(), d5.coord()) - 180.0
+			# try: #actual rotation
+			# 	r = x.translation(anchor.coord() - zero) # move to origin
+			# 	r.multiply(x.rotation(axis, - delta)) # rotate
+			# 	r.multiply(x.translation(zero - anchor.coord())) # return to orig pos
+			# 	for a in tmpl.atoms:
+			# 		a.setCoord(r.apply(a.coord()))
+			# except ValueError: #this means rot vector is null  (already parallel)
+			# 	raise ValueError("Normal vector is null")
 
 		if join:
 			from chimera.molEdit import addAtom, addBond
-			from chimera.misc import getPseudoBondGroup 
-			# convert PseudoBonds to regular bonds
-			pseudobonds = getPseudoBondGroup("coordination complexes of %s (%s)" % 
-				(tmpl.name, tmpl), associateWith=[tmpl]).pseudoBonds
-			if pseudobonds:
-				for pb in pseudobonds:
-					addBond(pb.atoms[0],pb.atoms[1])
+			if p2b: # convert PseudoBonds to regular bonds
+				pbgroup = chimera.misc.getPseudoBondGroup(
+					"coordination complexes of %s (%s)" % 
+					(tmpl.name, tmpl), associateWith=[tmpl])
+				if pbgroup.pseudoBonds:
+					for pb in pbgroup.pseudoBonds:
+						addBond(pb.atoms[0],pb.atoms[1])
+					pbm = tmpl.pseudoBondMgr()
+					pbm.deletePseudoBondGroup(pbgroup)
 
 			# rename atoms accordingly
 			oldRes = target.residue
@@ -119,6 +184,7 @@ def insertMol(mol2, target=None, join=True, inplace=True, alpha=120.0, h=1):
 					built_atoms.append(built)
 
 				for a in sprout.neighbors: # get neighbors (maybe sprout.neighbors works too)
+					if a.element.number == 1: continue
 					if a.name not in oldRes.atomsMap:
 						needBuild = True
 					else:

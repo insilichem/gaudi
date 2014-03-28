@@ -113,7 +113,7 @@ def countHBonds(model=None, sel=None, selRestrict=True,cache=False):
 	
 	return hbonds
 
-def countClashes(atoms=None, test='others', intraRes=True,interSubmodel=False):
+def countClashes(atoms=None, test='others', intraRes=True,interSubmodel=True):
 	#calculate clashes
 	import DetectClash as dc
 	if not atoms: 

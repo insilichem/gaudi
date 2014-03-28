@@ -31,14 +31,16 @@ def clearBase(base, get_coords=False, xform=False):
 
 
 #####
-base, anchor = getBase()
-wd = os.path.dirname(os.path.realpath(sys.argv[0]))
-linkers = getMol2Files(wd +'/mol2/linkers/')
-fragments = getMol2Files(wd + '/mol2/fragments/')
+if __name__ == '__main__':
+		
+	base, anchor = getBase()
+	wd = os.path.dirname(os.path.realpath(sys.argv[0]))
+	linkers = getMol2Files(wd +'/mol2/linkers/')
+	fragments = getMol2Files(wd + '/mol2/fragments/')
 
-l = random.randint(0, len(linkers)-1)
-f = random.randint(0, len(fragments)-1)
-clearBase(base,anchor)
-linker = frag.insertMol(linkers[l], target=anchor, join=True, inplace=True)
-linker_anchor = [ a for a in linker if a.anchor in (4,6,8) ]
-fragment = frag.insertMol(fragments[f], target=linker_anchor[0], alpha=-120.)
+	l = random.randint(0, len(linkers)-1)
+	f = random.randint(0, len(fragments)-1)
+	clearBase(base,anchor)
+	linker = frag.insertMol(linkers[l], target=anchor, join=True, inplace=True)
+	linker_anchor = [ a for a in linker if a.anchor in (4,6,8) ]
+	fragment = frag.insertMol(fragments[f], target=linker_anchor[0], alpha=-120.)
