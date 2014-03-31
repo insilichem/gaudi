@@ -39,15 +39,20 @@ def molLibrary(cbase, linkers, fragments, link_end=3, dihedral=120.0, alpha=120.
 		target = new.atoms[-1]
 		linker = frag.insertMol(linkers[i], target=target, h=h1, 
 			alpha=alpha, dihedral=dihedral)
-		linker_anchor = [ a for a in linker if a.anchor in (4,6,8)]
-		frag.insertMol(fragments[j], target=linker_anchor[0], h=h2, alpha=-120.0)
-
-		bonds = getSequentialBonds(linker[:],target)
+		linker_anchor = [ a for a in linker if a.anchor in (4,6,8)][0]
+		frag.insertMol(fragments[j], target=linker_anchor, h=h2, alpha=-120.0)
+		
+		fragment_anchor = [ a for a in linker_anchor.neighbors if a.element.number != 1
+			and a not in linker ]
+		# chimera.openModels.add([new], shareXform=True)
+		# chimera.selection.setCurrent([target]+linker[:]+fragment_anchor)
+		bonds = getSequentialBonds(linker[:]+fragment_anchor,target)
+		
 		bondrots = []
 		for b in bonds:
 			br = chimera.BondRot(b)
 			br.myanchor = hyde5.findNearest(new.atoms[0], b.atoms)
-			bondrots.append([br])
+			bondrots.append(br)
 
 		# Include h1, h2 in the future
 		# library[i,j,h1,h2] = [new, bonds]
@@ -56,7 +61,7 @@ def molLibrary(cbase, linkers, fragments, link_end=3, dihedral=120.0, alpha=120.
 
 def getSequentialBonds(atoms,s):
 	if s not in atoms: atoms.append(s)
-	bonds = list(set([ b for a in atoms for b in a.bonds if set(b.atoms)<=set(atoms)]))
+	bonds = list(set([ b for a in atoms for b in a.bonds if set(b.atoms)<=set(atoms) ]))
 	nbonds = []
 	while bonds:
 		b = bonds.pop(0)
@@ -94,10 +99,9 @@ def evalCoord(ind, close=True):
 
 	## 2 - Set rotations
 	# Direct access to BondRot, instead of BondRotMgr
-	chimera.selection.setCurrent(bonds)
-	for i, bond in enumerate(bonds):
+	for i, br in enumerate(bondrots):
 		#hyde5.bondrot(bond, anchor=ligand.atoms[0], delta=ind['linker_rots'][i])
-		br = bondrots[i][0]
+		#br = bondrots[i]
 		br.adjustAngle(ind['linker_rots'][i] - br.angle, br.myanchor)
 
 	## 3 - Set mutamers/rotamers

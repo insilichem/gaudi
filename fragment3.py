@@ -55,7 +55,7 @@ def insertMol(mol2, target=None, join=True, inplace=True, h=1,
 				target = newAtom[0]
 				newHs = newAtom[1:] # TODO consider all possible H -> newAtom[1:]
 				newH = newAtom[1]
-				#[tmpl.deleteAtom(a) for a in newHs if a != newH ]
+				[newAtom[0].molecule.deleteAtom(a) for a in newHs if a != newH ]
 			except IndexError:
 				newH = [a for a in target.neighbors if a.numBonds == 1][-1]
 				print "Warning, arbitrary H"
