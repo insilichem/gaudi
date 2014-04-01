@@ -8,13 +8,15 @@ Given an anchored ligand, explores conformational space of randomly generated su
 * Switch genes on or off on user request
 * Improve mutation and crossover functions
 	- Allow building blocks evolution (?)
+	- Use built-in functions inside our custom hetMut/Cx
+* Parse clashes into positive and negative interactions
 
 ## Performance optimization
 * Reduce search scope of clashes and H bonds detection (within `n` angstroms of ligand)
 	- Maybe something like ```n = sum(bond.length in ligand)```
 * ~~Render all possible molecules at the beginning, rather than every iteration~~
 * Review insertMol() looping. It may be redundant / too recursive
-* Add multithreading support
+* Consider rotating the anchor bond too?
 * Benchmark the weights
 
 ## Known issues
@@ -24,3 +26,4 @@ Given an anchored ligand, explores conformational space of randomly generated su
 * Clean the code
 * Use hierarchical modules
 * Convert to OOP
+* Add multithreading support

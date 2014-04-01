@@ -23,7 +23,6 @@ from deap import creator, tools, base, algorithms
 import hyde5, lego
 import fragment3 as frag
 from itertools import product
-reload(frag)
 ### CUSTOM FUNCTIONS
 
 def molLibrary(cbase, linkers, fragments, link_end=3, dihedral=120.0, alpha=120.0):
@@ -278,12 +277,12 @@ toolbox.register("select", deap.tools.selNSGA2)
 
 def main():
 	pop = toolbox.population(n=args.pop)
-	hof = deap.tools.HallOfFame(1)
-	stats = deap.tools.Statistics(lambda ind: ind.fitness.values[1])
-	stats.register("avg", numpy.mean)
-	stats.register("std", numpy.std)
-	stats.register("min", numpy.min)
-	stats.register("max", numpy.max)
+	hof = deap.tools.ParetoFront()
+	stats = deap.tools.Statistics(lambda ind: ind.fitness.values)
+	stats.register("avg", numpy.mean, axis=0)
+	stats.register("std", numpy.std, axis=0)
+	stats.register("min", numpy.min, axis=0)
+	stats.register("max", numpy.max, axis=0)
 	pop, log = deap.algorithms.eaMuPlusLambda(pop, toolbox, 
 		mu = int(args.pop/2), lambda_= int(args.pop/2), cxpb=0.5, 
 		mutpb=0.2, ngen=args.ngen, stats=stats, halloffame=hof)
@@ -293,7 +292,8 @@ if __name__ == "__main__":
 	pop, log, hof = main()
 	evalCoord(hof[0], close=False)
 	print("Best individual is: %s\nwith fitness: %s" % (hof[0], hof[0].fitness))
-
+	print("More possible solutions to assess: ")
+	print [ str(h)+"\n" for h in hof[1:] ]
 	# test =  {'mutamers': [0, 12], 'h2': [1], 'h1': [0], 'molecule': [0, 0], 
 	# 'rotamers': [5, 1], 'linker_rots': [85, 342, 103, 240, 171, 215, 328, 159]}
 	# print "Individual:\n{0}\nFitness:\n{1}".format(test, evalCoord(test, close=False))

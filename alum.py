@@ -21,7 +21,7 @@ parser.add_argument('-g', '--generation',
 					help="Number of generations to calculate" )
 args = parser.parse_args()
 
-random.seed(64)
+#random.seed(64)
 
 mol = chimera.openModels.list()[0]
 residues = chimera.selection.savedSels['rotamers'].residues()
@@ -42,23 +42,25 @@ def evalCoord(ind):
 	for r in residues:
 		oxygens = [ a for a in r.atoms if a.element.number == 8]
 		d = [ ox.xformCoord().distance(al.xformCoord()) for ox in oxygens ]
-		if all([d_ > 2.0 for d_ in d]):
-			distances.append(min(d, key = lambda x: abs(x-2.0)))
-		else:
-			distances.append(10.0)
-	
+		# if all([d_ > 2.0 for d_ in d]):
+		# 	distances.append(min(d, key = lambda x: abs(x-2.0)))
+		# else:
+		# 	distances.append(10.0)
+		distances.append(min(d, key = lambda x: abs(x-2.0)))
+		
 	avg_dist = numpy.mean(distances)
 	clashes, num_of_clashes = hyde5.countClashes(atoms=r_atoms, 
 		test=[ a for a in mol.atoms if a != al ])
 
 	return avg_dist, num_of_clashes
+
 # Genetic Algorithm
 # define individual, population, etc
 deap.creator.create("FitnessMin", deap.base.Fitness, weights=(-1.0, -1.0))
 deap.creator.create("Individual", list, fitness=deap.creator.FitnessMin)
 
 toolbox = deap.base.Toolbox()
-toolbox.register("randrot", random.randint, 0, 9)
+toolbox.register("randrot", random.randint, 0, 8)
 toolbox.register("individual", deap.tools.initRepeat, deap.creator.Individual,
 	toolbox.randrot, n=len(residues))
 toolbox.register("population", deap.tools.initRepeat, 
@@ -67,7 +69,7 @@ toolbox.register("population", deap.tools.initRepeat,
 toolbox.register("evaluate", evalCoord)
 toolbox.register("mate", deap.tools.cxTwoPoint)
 toolbox.register("mutate", deap.tools.mutUniformInt, 
-	low=0., up=9., indpb=0.05)
+	low=0., up=8., indpb=0.05)
 toolbox.register("select", deap.tools.selNSGA2)
 
 def main():
