@@ -55,4 +55,4 @@ docs/_build/
 # Linux & Sublime
 .directory
 *~
-.sublime-workspace
+*.sublime-workspace

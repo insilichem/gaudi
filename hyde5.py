@@ -109,11 +109,14 @@ def countHBonds(model=None, sel=None, selRestrict=True,cache=False):
 	import FindHBond as fhb
 	hbonds = fhb.findHBonds(model, cacheDA=cache)
 	if selRestrict:
-		hbonds = fhb.base._filterBySel(hbonds, sel, 'any')
+		try:
+			hbonds = fhb.base._filterBySel(hbonds, sel, 'any')
+		except AttributeError: #renamed in daily builds!
+			hbonds = fhb.base.filterHBondsBySel(hbonds, sel, 'any')
 	
 	return hbonds
 
-def countClashes(atoms=None, test='others', intraRes=True,interSubmodel=False):
+def countClashes(atoms=None, test='others', intraRes=True,interSubmodel=True):
 	#calculate clashes
 	import DetectClash as dc
 	if not atoms: 
