@@ -19,6 +19,19 @@ parser.add_argument('-g', '--generation',
 					dest="ngen",
 					metavar="<number of generations>",
 					help="Number of generations to calculate" )
+parser.add_argument('-t', '--threshold',
+					required=False,
+					type=float,
+					default=2.0, 
+					dest="threshold",
+					metavar="<distance in angstroms>",
+					help="Target distance for rotamers" )
+parser.add_argument('-w', '--wall',
+					required=False,
+					default=False, 
+					dest="wall",
+					action="store_true",
+					help="Wether to allow distances < threshold or not" )
 args = parser.parse_args()
 
 #random.seed(64)
@@ -39,14 +52,21 @@ def evalCoord(ind):
 	r_atoms = [ a for r in residues for a in r.atoms ]
 	
 	distances = []
-	for r in residues:
-		oxygens = [ a for a in r.atoms if a.element.number == 8]
-		d = [ ox.xformCoord().distance(al.xformCoord()) for ox in oxygens ]
-		# if all([d_ > 2.0 for d_ in d]):
-		# 	distances.append(min(d, key = lambda x: abs(x-2.0)))
-		# else:
-		# 	distances.append(10.0)
-		distances.append(min(d, key = lambda x: abs(x-2.0)))
+	if args.wall: 
+		for r in residues:
+			if r.type == "GLU":
+				oxygens = [ a for a in r.atoms if a.element.number == 8]
+				d = [ ox.xformCoord().distance(al.xformCoord()) for ox in oxygens ]
+				if all([d_ > args.threshold for d_ in d]):
+					distances.append(min(d, key = lambda x: abs(x-args.threshold)))
+				else:
+					distances.append(1000.)
+	else:
+		for r in residues:
+			if r.type == "GLU":
+				oxygens = [ a for a in r.atoms if a.element.number == 8]
+				d = [ ox.xformCoord().distance(al.xformCoord()) for ox in oxygens ]
+				distances.append(min(d, key = lambda x: abs(x-args.threshold)))
 		
 	avg_dist = numpy.mean(distances)
 	clashes, num_of_clashes = hyde5.countClashes(atoms=r_atoms, 
