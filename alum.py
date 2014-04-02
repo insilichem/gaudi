@@ -94,7 +94,7 @@ toolbox.register("select", deap.tools.selNSGA2)
 
 def main():
 	pop = toolbox.population(n=args.pop)
-	hof = deap.tools.HallOfFame(1)
+	hof = deap.tools.HallOfFame(10)
 	stats = deap.tools.Statistics(lambda ind: ind.fitness.values[0])
 	stats.register("avg", numpy.mean, axis=0)
 	stats.register("min", numpy.min, axis=0)
@@ -109,3 +109,6 @@ if __name__ == "__main__":
 	pop, log, hof = main()
 	evalCoord(hof[0])
 	print("Best individual is: %s\nwith fitness: %s" % (hof[0], hof[0].fitness))
+	print("More possible solutions to assess: ")
+	for h in hof[1:]:
+		print h, h.fitness
