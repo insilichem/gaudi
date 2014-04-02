@@ -6,8 +6,8 @@ runscript fragment.py <SMILES string>
 import chimera
 import sys
 
-def insertMol(mol2, target=None, join=True, inplace=True, h=1,
-	p2b=True, alpha=120.0, dihedral=None):
+def insertMol(mol2, target=None, join=True, inplace=True,
+	p2b=True, alpha=None, alpha2=None, dihedral=None):
 	from chimera import UserError
 
 	if not target:
@@ -15,9 +15,6 @@ def insertMol(mol2, target=None, join=True, inplace=True, h=1,
 			target = chimera.selection.currentAtoms()[0]
 		except KeyError:
 			raise UserError("Please, select an H atom")
-
-	# if not target.element.name == 'H':
-	# 	raise UserError("Selected target must be an H atom")
 
 	tmpl = chimera.openModels.open(mol2, type="Mol2", hidden=False)[0]
 
@@ -36,7 +33,6 @@ def insertMol(mol2, target=None, join=True, inplace=True, h=1,
 			if a.anchor in (1,5,6): axis_start = a 
 			if a.anchor in (2,7,8): axis_end = a 
 
-
 		#discard H atom and set actual target
 		if target.element.number == 1:
 			H_coord = target.coord()
@@ -50,12 +46,11 @@ def insertMol(mol2, target=None, join=True, inplace=True, h=1,
 			except KeyError:
 				geometry = 4
 			try:
-				newAtom = changeAtom(target, target.element, geometry, 
-					geometry) # TODO should be `geometry - target.numBonds`
-				target = newAtom[0]
-				newHs = newAtom[1:] # TODO consider all possible H -> newAtom[1:]
-				newH = newAtom[1]
-				[newAtom[0].molecule.deleteAtom(a) for a in newHs if a != newH ]
+				target, newH = changeAtom(target, target.element, geometry, 
+					target.numBonds + 1) # TODO should be `geometry - target.numBonds`
+				# target = newAtom[0]
+				# newHs = newAtom[1:] # TODO consider all possible H -> newAtom[1:]
+				# newH = newAtom[1]
 			except IndexError:
 				newH = [a for a in target.neighbors if a.numBonds == 1][-1]
 				print "Warning, arbitrary H"
@@ -72,30 +67,11 @@ def insertMol(mol2, target=None, join=True, inplace=True, h=1,
 		# align target+anchor
 		dv = H_coord - anchor.coord()  # translation vector
 		t = x.translation(dv) # translation xform matrix
-		#print "posi: ", anchor.coord()
 		for a in tmpl.atoms: 
 			a.setCoord(t.apply(a.coord()))
 
 		# # rotate params for angle
 		zero = chimera.Point(0.0, 0.0, 0.0)
-		if not dihedral:
-			bond_axis = target.coord() - anchor.coord()
-			mol_axis = axis_end.coord() - axis_start.coord()
-			delta = chimera.angle(mol_axis,bond_axis) - 120.0
-			axis = chimera.cross(mol_axis, bond_axis)
-			#print "vector: ", mol_axis, " + ", bond_axis, mol2
-			if axis.data() == (0.0,0.0,0.0):
-				axis = chimera.cross(mol_axis, bond_axis + chimera.Vector(0.1,0.1,0))
-				print "Warning, had to choose arbitrary normal vector"
-			try: #actual rotation
-				r = x.translation(anchor.coord() - zero) # move to origin
-				r.multiply(x.rotation(axis, delta)) # rotate
-				r.multiply(x.translation(zero -  anchor.coord())) # return to orig pos
-				for a in tmpl.atoms:
-					a.setCoord(r.apply(a.coord()))
-			except ValueError: #this means rot vector is null  (already parallel)
-				raise ValueError("Normal vector is null")
-
 
 		# Critical atoms for rotation
 		d5 = anchor.neighbors[0]
@@ -110,9 +86,8 @@ def insertMol(mol2, target=None, join=True, inplace=True, h=1,
 			axis_b = d4.coord() - d3.coord()
 			delta = chimera.angle(d2.coord(),d3.coord(),d4.coord()) - alpha
 			axis = chimera.cross(axis_a, axis_b)
-			#print "vector: ", mol_axis, " + ", bond_axis, mol2
 			if axis.data() == (0.0,0.0,0.0):
-				axis = chimera.cross(axis_a, axis_b + chimera.Vector(0.1,0.1,0))
+				axis = chimera.cross(axis_a, axis_b + chimera.Vector(1,0,0))
 				print "Warning, had to choose arbitrary normal vector"
 			try: #actual rotation
 				r = x.translation(target.coord() - zero) # move to origin
@@ -121,10 +96,26 @@ def insertMol(mol2, target=None, join=True, inplace=True, h=1,
 				for a in tmpl.atoms:
 					a.setCoord(r.apply(a.coord()))
 			except ValueError: #this means rot vector is null  (already parallel)
-				raise ValueError("Normal vector is null")
+				raise ValueError("Rotation 1 failed. Normal vector is null")
 
-		if dihedral:
-			# rotate params for dihedral
+		if alpha2:
+			axis_a = d3.coord() - d4.coord()
+			axis_b = d5.coord() - d4.coord()
+			delta = chimera.angle(d3.coord(),d4.coord(),d5.coord()) - alpha2
+			axis = chimera.cross(axis_a, axis_b)
+			if axis.data() == (0.0,0.0,0.0):
+				axis = chimera.cross(axis_a, axis_b + chimera.Vector(1,0,0))
+				print "Warning, had to choose arbitrary normal vector"
+			try: #actual rotation
+				r = x.translation(anchor.coord() - zero) # move to origin
+				r.multiply(x.rotation(axis, - delta)) # rotate
+				r.multiply(x.translation(zero - anchor.coord())) # return to orig pos
+				for a in tmpl.atoms:
+					a.setCoord(r.apply(a.coord()))
+			except ValueError: #this means rot vector is null  (already parallel)
+				raise ValueError("Rotation 2 failed. Normal vector is null")
+
+		if dihedral: # rotate params for dihedral
 			axis = d3.coord() - d2.coord()
 			delta = chimera.dihedral(d1.coord(), d2.coord(), d3.coord(), d4.coord()) - dihedral
 			try: #actual rotation
@@ -134,18 +125,7 @@ def insertMol(mol2, target=None, join=True, inplace=True, h=1,
 				for a in tmpl.atoms:
 					a.setCoord(r.apply(a.coord()))
 			except ValueError: #this means rot vector is null  (already parallel)
-				raise ValueError("Normal vector is null")
-
-			# axis = d4.coord() - d3.coord()
-			# delta = chimera.dihedral(d2.coord(), d3.coord(), d4.coord(), d5.coord()) - 180.0
-			# try: #actual rotation
-			# 	r = x.translation(anchor.coord() - zero) # move to origin
-			# 	r.multiply(x.rotation(axis, - delta)) # rotate
-			# 	r.multiply(x.translation(zero - anchor.coord())) # return to orig pos
-			# 	for a in tmpl.atoms:
-			# 		a.setCoord(r.apply(a.coord()))
-			# except ValueError: #this means rot vector is null  (already parallel)
-			# 	raise ValueError("Normal vector is null")
+				raise ValueError("Dihedral rotation failed. Normal vector is null")
 
 		if join:
 			from chimera.molEdit import addAtom, addBond
@@ -224,7 +204,6 @@ def getHighestAtomIndices(r):
 			num = int(a.name[2:])
 			if atom not in results:
 				results[atom] = num
-				
 			elif results[atom] < num:
 				results[atom] = num
 	return results

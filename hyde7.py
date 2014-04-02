@@ -23,28 +23,23 @@ from deap import creator, tools, base, algorithms
 import hyde5, lego
 import fragment3 as frag
 from itertools import product
+reload(frag)
 ### CUSTOM FUNCTIONS
 
 def molLibrary(cbase, linkers, fragments, link_end=3, dihedral=120.0, alpha=120.0):
 	
 	explore = product(range(len(linkers)), range(len(fragments)))
-		#range(base_geom), range(link_end))
-	
-	h1, h2 = 1, 2 #this will be part of GA
 	library = {}
 	for x in explore:
 		i, j = x
 		new = SplitMolecule.split.molecule_from_atoms(mol, cbase.atoms)
 		target = new.atoms[-1]
-		linker = frag.insertMol(linkers[i], target=target, h=h1, 
-			alpha=alpha, dihedral=dihedral)
+		linker = frag.insertMol(linkers[i], target=target, alpha=alpha, alpha2=120.0)
 		linker_anchor = [ a for a in linker if a.anchor in (4,6,8)][0]
-		frag.insertMol(fragments[j], target=linker_anchor, h=h2, alpha=-120.0)
+		frag.insertMol(fragments[j], target=linker_anchor, alpha2=114.125)
 		
 		fragment_anchor = [ a for a in linker_anchor.neighbors if a.element.number != 1
 			and a not in linker ]
-		# chimera.openModels.add([new], shareXform=True)
-		# chimera.selection.setCurrent([target]+linker[:]+fragment_anchor)
 		bonds = getSequentialBonds(linker[:]+fragment_anchor,target)
 		
 		bondrots = []
@@ -53,8 +48,6 @@ def molLibrary(cbase, linkers, fragments, link_end=3, dihedral=120.0, alpha=120.
 			br.myanchor = hyde5.findNearest(new.atoms[0], b.atoms)
 			bondrots.append(br)
 
-		# Include h1, h2 in the future
-		# library[i,j,h1,h2] = [new, bonds]
 		library[i,j] = [new, bonds, bondrots]
 	return library
 
@@ -73,16 +66,6 @@ def getSequentialBonds(atoms,s):
 
 def evalCoord(ind, close=True):
 
-	# # 1 - Build ligand (DEPRECATED; It built the ligand every time
-	# lego.clearBase(cbase)
-	# linker = frag.insertMol(linkers[ind['molecule'][0]], target=anchor, join=True, 
-	# 	inplace=True, h=ind['h1'][0])
-	# linker_anchor = [ a for a in linker if a.anchor in (4,6,8) ]
-	# frag.insertMol(fragments[ind['molecule'][1]], target=linker_anchor[0], 
-	# 	alpha=-120., h=ind['h2'][0])		
-	# seen = { } # Used to remove duplicate entries in `bonds`
-	# bonds = [ seen.setdefault(b, b) for a in linker for b in a.bonds if b not in seen ]
-
 	## 1 - Choose ligand from pre-built mol library
 	ligand, bonds, bondrots = mol_library[ind['molecule'][0],ind['molecule'][1]]#,ind['h1'][0],ind['h2'][0]]
 	chimera.openModels.add([ligand], shareXform=True)
@@ -99,8 +82,6 @@ def evalCoord(ind, close=True):
 	## 2 - Set rotations
 	# Direct access to BondRot, instead of BondRotMgr
 	for i, br in enumerate(bondrots):
-		#hyde5.bondrot(bond, anchor=ligand.atoms[0], delta=ind['linker_rots'][i])
-		#br = bondrots[i]
 		br.adjustAngle(ind['linker_rots'][i] - br.angle, br.myanchor)
 
 	## 3 - Set mutamers/rotamers
@@ -150,10 +131,6 @@ def hetMutation(ind, indpb):
 			j = random.randint(0,len(row)-1)
 			if key == 'molecule': 
 				continue
-			elif key == 'h1':
-				ind[key][j] = toolbox.rand_h1()
-			elif key == 'h2':
-				ind[key][j] = toolbox.rand_h2()
 			elif key == 'linker_rots':
 				ind[key][j] = toolbox.rand_angle()
 			elif key == 'mutamers':
@@ -202,7 +179,6 @@ base_at = chimera.selection.savedSels['base'].atoms()[0]
 mol = base_at.molecule
 ligand = base_at.residue
 anchor = chimera.selection.savedSels['anchor'].atoms()[0]
-base_geom = chimera.idatm.typeInfo[anchor.idatmType].geometry - 1
 cbase = [base_at] + list(hyde5.atomsBetween(base_at, anchor)) + [anchor]
 
 #dihedral
@@ -237,8 +213,6 @@ deap.creator.create("Individual", dict, fitness=deap.creator.FitnessMax)
 # Operators
 toolbox = deap.base.Toolbox()
 toolbox.register("rand_angle", random.randint, 0, 359)
-toolbox.register("rand_h1", random.randint, 0, base_geom-1)
-toolbox.register("rand_h2", random.randint, 0, 2)
 toolbox.register("rand_aa", random.randint, 0, len(aminoacids)-1)
 toolbox.register("rand_rotamer", random.randint, 0, 8)
 toolbox.register("rand_linker", random.randint, 0, len(linkers)-1)
@@ -247,10 +221,6 @@ toolbox.register("rand_fragment", random.randint, 0, len(fragments)-1)
 # Genes
 toolbox.register("molecule", deap.tools.initCycle, list,
 	[toolbox.rand_linker, toolbox.rand_fragment], n=1)
-toolbox.register("h1", deap.tools.initRepeat, list,
-	toolbox.rand_h1, n=1)
-toolbox.register("h2", deap.tools.initRepeat, list,
-	toolbox.rand_h2, n=1)
 toolbox.register("linker_rots", deap.tools.initRepeat, list,
 	toolbox.rand_angle, n=8)
 # toolbox.register("fragment_rots", deap.tools.initRepeat, list,
@@ -264,8 +234,7 @@ toolbox.register("toDict",
 
 # Individual and population
 toolbox.register("individual", toolbox.toDict, deap.creator.Individual, 
-	toolbox.molecule, toolbox.h1, toolbox.h2, toolbox.linker_rots,
-	toolbox.mutamers, toolbox.rotamers)
+	toolbox.molecule, toolbox.linker_rots, toolbox.mutamers, toolbox.rotamers)
 toolbox.register("population", deap.tools.initRepeat, 
 	list, toolbox.individual)
 
@@ -293,7 +262,8 @@ if __name__ == "__main__":
 	evalCoord(hof[0], close=False)
 	print("Best individual is: %s\nwith fitness: %s" % (hof[0], hof[0].fitness))
 	print("More possible solutions to assess: ")
-	print [ str(h)+"\n" for h in hof[1:] ]
-	# test =  {'mutamers': [0, 12], 'h2': [1], 'h1': [0], 'molecule': [0, 0], 
+	for h in hof[1:11]:
+		print h, h.fitness
+	# test =  {'mutamers': [0, 12], 'molecule': [0, 0], 
 	# 'rotamers': [5, 1], 'linker_rots': [85, 342, 103, 240, 171, 215, 328, 159]}
 	# print "Individual:\n{0}\nFitness:\n{1}".format(test, evalCoord(test, close=False))
