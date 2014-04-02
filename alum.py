@@ -96,9 +96,9 @@ def main():
 	pop = toolbox.population(n=args.pop)
 	hof = deap.tools.HallOfFame(1)
 	stats = deap.tools.Statistics(lambda ind: ind.fitness.values[0])
-	stats.register("avg", numpy.mean)
-	stats.register("min", numpy.min)
-	stats.register("max", numpy.max)
+	stats.register("avg", numpy.mean, axis=0)
+	stats.register("min", numpy.min, axis=0)
+	stats.register("max", numpy.max, axis=0)
 	pop, log = deap.algorithms.eaMuPlusLambda(pop, toolbox, 
 		mu = int(args.pop/2), lambda_= int(args.pop/2), cxpb=0.5, 
 		mutpb=0.2, ngen=args.ngen, stats=stats, halloffame=hof)
