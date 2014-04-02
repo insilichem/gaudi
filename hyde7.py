@@ -40,7 +40,9 @@ def molLibrary(cbase, linkers, fragments, link_end=3, dihedral=120.0, alpha=120.
 		
 		fragment_anchor = [ a for a in linker_anchor.neighbors if a.element.number != 1
 			and a not in linker ]
-		bonds = getSequentialBonds(linker[:]+fragment_anchor,target)
+		target_neighbor = [ a for a in target.neighbors if a.element.number != 1
+			and a not in linker ][0]
+		bonds = getSequentialBonds(linker[:]+fragment_anchor+[target],target_neighbor)
 		
 		bondrots = []
 		for b in bonds:
@@ -107,7 +109,9 @@ def evalCoord(ind, close=True):
 	clashes_r, num_of_clashes_r = hyde5.countClashes(atoms=res_atoms,
 		test=mol.atoms)
 	
-	if close:
+	if not close:
+		chimera.selection.setCurrent(bonds)
+	else:
 		chimera.openModels.remove([ligand])
 
 	return len(hbonds), num_of_clashes, num_of_clashes_r
