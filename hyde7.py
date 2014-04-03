@@ -23,10 +23,9 @@ from deap import creator, tools, base, algorithms
 import hyde5, lego
 import fragment3 as frag
 from itertools import product
-reload(frag)
 ### CUSTOM FUNCTIONS
 
-def molLibrary(cbase, linkers, fragments, link_end=3, dihedral=120.0, alpha=120.0):
+def molLibrary(cbase, linkers, fragments, dihedral=None, alpha=None):
 	
 	explore = product(range(len(linkers)), range(len(fragments)))
 	library = {}
@@ -42,7 +41,7 @@ def molLibrary(cbase, linkers, fragments, link_end=3, dihedral=120.0, alpha=120.
 			and a not in linker ]
 		target_neighbor = [ a for a in target.neighbors if a.element.number != 1
 			and a not in linker ][0]
-		bonds = getSequentialBonds(linker[:]+fragment_anchor+[target],target_neighbor)
+		bonds = getSequentialBonds([target]+linker[:]+fragment_anchor,target_neighbor)
 		
 		bondrots = []
 		for b in bonds:
@@ -50,7 +49,7 @@ def molLibrary(cbase, linkers, fragments, link_end=3, dihedral=120.0, alpha=120.
 			br.myanchor = hyde5.findNearest(new.atoms[0], b.atoms)
 			bondrots.append(br)
 
-		library[i,j] = [new, bonds, bondrots]
+		library[i,j] = [new, bondrots]
 	return library
 
 def getSequentialBonds(atoms,s):
@@ -66,11 +65,10 @@ def getSequentialBonds(atoms,s):
 			bonds.append(b)
 	return nbonds
 
-def evalCoord(ind, close=True):
-
+def evalCoord(ind, close=True, hidden=False):
 	## 1 - Choose ligand from pre-built mol library
-	ligand, bonds, bondrots = mol_library[ind['molecule'][0],ind['molecule'][1]]#,ind['h1'][0],ind['h2'][0]]
-	chimera.openModels.add([ligand], shareXform=True)
+	ligand, bondrots = mol_library[ind['molecule'][0],ind['molecule'][1]]
+	chimera.openModels.add([ligand], shareXform=True, hidden=hidden)
 	# Chimera converts metal bonds to pseudoBonds all the time
 	pbgroup = chimera.misc.getPseudoBondGroup(
 					"coordination complexes of %s (%s)" % 
@@ -110,37 +108,57 @@ def evalCoord(ind, close=True):
 		test=mol.atoms)
 	
 	if not close:
-		chimera.selection.setCurrent(bonds)
+		chimera.selection.setCurrent([ br.bond for br in bondrots ])
 	else:
 		chimera.openModels.remove([ligand])
 
 	return len(hbonds), num_of_clashes, num_of_clashes_r
 
 def hetCxOnePoint(ind1, ind2):
-
+	
 	for key in ind1:
-		if key in ('molecule', 'h1', 'h2'): #ignore building blocks FOR NOW ;)
+		# if key == 'molecule': #ignore building blocks FOR NOW ;)
+		# 	continue
+		# size = min(len(ind1[key]), len(ind2[key]))
+		# if size > 1:
+		# 	cxpoint = random.randint(1, size - 1)
+		# 	ind1[key][cxpoint:], ind2[key][cxpoint:] = \
+		# 	ind2[key][cxpoint:], ind1[key][cxpoint:]
+		if key == 'molecule': 
 			continue
-		size = min(len(ind1[key]), len(ind2[key]))
-		if size > 1:
-			cxpoint = random.randint(1, size - 1)
-			ind1[key][cxpoint:], ind2[key][cxpoint:] = \
-			ind2[key][cxpoint:], ind1[key][cxpoint:]
-
+		elif key == 'linker_rots':
+			ind1[key][:], ind2[key][:] = deap.tools.cxSimulatedBinaryBounded(
+				ind1[key], ind2[key], eta=10., low=0., up=360.)
+		elif key == 'mutamers':
+			ind1[key], ind2[key] = deap.tools.cxTwoPoint(ind1[key], ind2[key])
+		elif key == 'rotamers':
+			ind1[key], ind2[key] = deap.tools.cxTwoPoint(ind1[key], ind2[key])
 	return ind1, ind2
 
 def hetMutation(ind, indpb):
-	for key, row in ind.items():
-		if random.random() < ind:
-			j = random.randint(0,len(row)-1)
-			if key == 'molecule': 
-				continue
-			elif key == 'linker_rots':
-				ind[key][j] = toolbox.rand_angle()
-			elif key == 'mutamers':
-				ind[key][j] = toolbox.rand_aa()
-			elif key == 'rotamers':
-				ind[key][j] = toolbox.rand_rotamer()		
+	
+	for key in ind:
+		# if random.random() < ind:
+		# 	j = random.randint(0,len(row)-1)
+		# 	if key == 'molecule': 
+		# 		continue
+		# 	elif key == 'linker_rots':
+		# 		ind[key][j] = toolbox.rand_angle()
+		# 	elif key == 'mutamers':
+		# 		ind[key][j] = toolbox.rand_aa()
+		# 	elif key == 'rotamers':
+		# 		ind[key][j] = toolbox.rand_rotamer()
+		if key == 'molecule': 
+			continue
+		elif key == 'linker_rots':
+			ind[key] = deap.tools.mutPolynomialBounded(ind[key], 
+				eta=10., low=0., up=360., indpb=indpb)[0]
+		elif key == 'mutamers':
+			ind[key] = deap.tools.mutUniformInt(ind[key], 
+				low=0, up=len(residues)-1, indpb=indpb)[0]
+		elif key == 'rotamers':
+			ind[key] = deap.tools.mutUniformInt(ind[key], 
+				low=0, up=8, indpb=indpb)[0]
 	return ind,
 
 # Couple of constants
@@ -174,11 +192,25 @@ parser.add_argument('-g', '--generation',
 					dest="ngen",
 					metavar="<number of generations>",
 					help="Number of generations to calculate" )
+parser.add_argument('-e', '--eval',
+					required=False,
+					type=str,
+					default='', 
+					dest="eval",
+					metavar="<individual>",
+					help="Paste individual data to evaluate" )
+parser.add_argument('-pf', '--pareto',
+					required=False,
+					default=False, 
+					dest="pareto",
+					action="store_true",
+					help="Wether to report Pareto Front rank or not" )
 args = parser.parse_args()
 wd = os.path.dirname(os.path.realpath(sys.argv[0]))
 
 # Get Chimera params
-residues = chimera.selection.savedSels['mutable'].residues()
+residues = [ r for r in sorted(chimera.selection.savedSels['mutable'].residues(), 
+	key= lambda r: (r.id.chainId, r.id.position)) ]
 base_at = chimera.selection.savedSels['base'].atoms()[0]
 mol = base_at.molecule
 ligand = base_at.residue
@@ -216,7 +248,7 @@ deap.creator.create("Individual", dict, fitness=deap.creator.FitnessMax)
 
 # Operators
 toolbox = deap.base.Toolbox()
-toolbox.register("rand_angle", random.randint, 0, 359)
+toolbox.register("rand_angle", random.uniform, 0, 360)
 toolbox.register("rand_aa", random.randint, 0, len(aminoacids)-1)
 toolbox.register("rand_rotamer", random.randint, 0, 8)
 toolbox.register("rand_linker", random.randint, 0, len(linkers)-1)
@@ -239,8 +271,7 @@ toolbox.register("toDict",
 # Individual and population
 toolbox.register("individual", toolbox.toDict, deap.creator.Individual, 
 	toolbox.molecule, toolbox.linker_rots, toolbox.mutamers, toolbox.rotamers)
-toolbox.register("population", deap.tools.initRepeat, 
-	list, toolbox.individual)
+toolbox.register("population", deap.tools.initRepeat, list, toolbox.individual)
 
 # Aliases for algorithm
 toolbox.register("evaluate", evalCoord)
@@ -250,7 +281,10 @@ toolbox.register("select", deap.tools.selNSGA2)
 
 def main():
 	pop = toolbox.population(n=args.pop)
-	hof = deap.tools.ParetoFront()
+	if args.pareto:
+		hof = deap.tools.ParetoFront()
+	else: 
+		hof = deap.tools.HallOfFame(20)
 	stats = deap.tools.Statistics(lambda ind: ind.fitness.values)
 	stats.register("avg", numpy.mean, axis=0)
 	stats.register("std", numpy.std, axis=0)
@@ -262,12 +296,12 @@ def main():
 	return pop, log, hof
 
 if __name__ == "__main__":
-	pop, log, hof = main()
-	evalCoord(hof[0], close=False)
-	print("Best individual is: %s\nwith fitness: %s" % (hof[0], hof[0].fitness))
-	print("More possible solutions to assess: ")
-	for h in hof[1:11]:
-		print h, h.fitness
-	# test =  {'mutamers': [0, 12], 'molecule': [0, 0], 
-	# 'rotamers': [5, 1], 'linker_rots': [85, 342, 103, 240, 171, 215, 328, 159]}
-	# print "Individual:\n{0}\nFitness:\n{1}".format(test, evalCoord(test, close=False))
+	if args.eval:
+		print "Fitness: ", evalCoord(eval(args.eval), close=False)
+	else:
+		pop, log, hof = main()
+		evalCoord(hof[0], close=False)
+		print("Best individual is: %s\nwith fitness: %s" % (hof[0], hof[0].fitness))
+		print("More possible solutions to assess:")
+		for h in hof[1:11]:
+			print h, h.fitness
