@@ -14,7 +14,7 @@
 # - Better crossover and mutations functions
 
 # Chimera
-import chimera, Rotamers, SwapRes, SplitMolecule
+import chimera, Rotamers, SwapRes, SplitMolecule, ChemGroup
 from chimera import UserError
 # Python
 import random, numpy, deap, argparse, sys, os
@@ -66,15 +66,14 @@ def getSequentialBonds(atoms,s):
 	return nbonds
 
 def parseClashes(clashes):
-	import ChemGroup as cg 
-	aromatoms = set( a for g in cg.findGroup("aromatic ring", [mol]) for a in g )
+	aromatoms = set( a for g in ChemGroup.findGroup("aromatic ring", [mol]) for a in g )
 	positive, negative = [], []
 	for a1, c in clashes.items():
-		for a2, dist in c:
-			if a1 in aromatoms and a2 in aromatoms and dist <=0:
-				positive.append(a1, a2, dist)
-			else:
-				negative.append(a1, a2, dist)
+		for a2, dist in c.items():
+			if a1 in aromatoms and a2 in aromatoms and dist<=0.4:
+				positive.append([a1, a2, dist])
+			elif dist >= 0.6:
+				negative.append([a1, a2, dist])
 
 	return positive, negative
 
@@ -114,11 +113,10 @@ def evalCoord(ind, close=True, hidden=False):
 	res_atoms = [ a for r in residues for a in r.atoms ]
 	# TODO: Restrict donor and acceptors to smaller selection
 	model = chimera.openModels.list()
-	hbonds = hyde5.countHBonds(model, sel=ligand.atoms, cache=False)
+	hbonds = hyde5.countHBonds(
+				model, cache=False,
+				sel=[ a for a in ligand.atoms if a not in ("C", "CA", "N", "O") ])
 	# TODO: Restrict test to smaller selection
-	# clashes, num_of_clashes = hyde5.countClashes(
-	# 								atoms=ligand.atoms, 
-	# 								test=mol.atoms + ligand.atoms)
 	contacts, num_of_contacts =  hyde5.countClashes(
 									atoms=ligand.atoms, 
 									test=mol.atoms + ligand.atoms, 
@@ -135,7 +133,7 @@ def evalCoord(ind, close=True, hidden=False):
 	else:
 		chimera.openModels.remove([ligand])
 
-	return len(hbonds), positive_interactions, negative_interactions, num_of_clashes_r
+	return len(hbonds), negative_interactions, positive_interactions, num_of_clashes_r
 
 def hetCxOnePoint(ind1, ind2):
 	
@@ -266,7 +264,7 @@ mol_library = molLibrary(cbasecopy, linkers, fragments, dihedral=dihedral, alpha
 ###
 # Genetic Algorithm
 # define individual, population, etc
-deap.creator.create("FitnessMax", deap.base.Fitness, weights=(1.0, -1.0, -1.0))
+deap.creator.create("FitnessMax", deap.base.Fitness, weights=(1.0, -1.0, 1.0, -1.0))
 deap.creator.create("Individual", dict, fitness=deap.creator.FitnessMax)
 
 # Operators
