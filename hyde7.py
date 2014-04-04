@@ -65,6 +65,20 @@ def getSequentialBonds(atoms,s):
 			bonds.append(b)
 	return nbonds
 
+def parseClashes(clashes):
+	import ChemGroup as cg 
+	aromatoms = set( a for g in cg.findGroup("aromatic ring", [mol]) for a in g )
+	positive, negative = [], []
+	for a1, c in clashes.items():
+		for a2, dist in c:
+			if a1 in aromatoms and a2 in aromatoms and dist <=0:
+				positive.append(a1, a2, dist)
+			else:
+				negative.append(a1, a2, dist)
+
+	return positive, negative
+
+
 def evalCoord(ind, close=True, hidden=False):
 	## 1 - Choose ligand from pre-built mol library
 	ligand, bondrots = mol_library[ind['molecule'][0],ind['molecule'][1]]
@@ -102,17 +116,26 @@ def evalCoord(ind, close=True, hidden=False):
 	model = chimera.openModels.list()
 	hbonds = hyde5.countHBonds(model, sel=ligand.atoms, cache=False)
 	# TODO: Restrict test to smaller selection
-	clashes, num_of_clashes = hyde5.countClashes(atoms=ligand.atoms, 
-		test=mol.atoms + ligand.atoms) 
-	clashes_r, num_of_clashes_r = hyde5.countClashes(atoms=res_atoms,
-		test=mol.atoms)
+	# clashes, num_of_clashes = hyde5.countClashes(
+	# 								atoms=ligand.atoms, 
+	# 								test=mol.atoms + ligand.atoms)
+	contacts, num_of_contacts =  hyde5.countClashes(
+									atoms=ligand.atoms, 
+									test=mol.atoms + ligand.atoms, 
+									intraRes=False, clashThreshold=-0.4, 
+									hbondDef=0.0)
+	clashes_r, num_of_clashes_r = hyde5.countClashes(
+									atoms=res_atoms,
+									test=mol.atoms)
 	
+	positive_interactions, negative_interactions = parseClashes(contacts)
+
 	if not close:
 		chimera.selection.setCurrent([ br.bond for br in bondrots ])
 	else:
 		chimera.openModels.remove([ligand])
 
-	return len(hbonds), num_of_clashes, num_of_clashes_r
+	return len(hbonds), positive_interactions, negative_interactions, num_of_clashes_r
 
 def hetCxOnePoint(ind1, ind2):
 	

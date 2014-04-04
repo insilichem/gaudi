@@ -116,13 +116,17 @@ def countHBonds(model=None, sel=None, selRestrict=True,cache=False):
 	
 	return hbonds
 
-def countClashes(atoms=None, test='others', intraRes=True,interSubmodel=True):
+def countClashes(atoms=None, test='others', clashThreshold=0.6,
+		hbondAllowance=0.4, assumedMaxVdw=2.1,
+		bondSeparation=4, intraRes=True, interSubmodel=True):
 	#calculate clashes
 	import DetectClash as dc
 	if not atoms: 
 		atoms = chimera.selection.currentResidues()[0].atoms
 	clashes = dc.detectClash(atoms, test=test, intraRes=intraRes,
-		interSubmodel=interSubmodel)
+		interSubmodel=interSubmodel, clashThreshold=clashThreshold,
+		hbondAllowance=hbondAllowance, assumedMaxVdw=assumedMaxVdw,
+		bondSeparation=bondSeparation)
 	num_of_clashes = 0
 	if clashes:
 		for clashList in clashes.values():
