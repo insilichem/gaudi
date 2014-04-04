@@ -12,9 +12,9 @@ def parseClashes(clashes):
 	positive, negative = [], []
 	for a1, c in clashes.items():
 		for a2, dist in c.items():
-			if a1 in aromatoms and a2 in aromatoms and dist <=0.4:
+			if a1 in aromatoms and a2 in aromatoms and dist<=0.4:
 				positive.append([a1, a2, dist])
-			elif dist >= 0.4:
+			elif dist >= 0.6:
 				negative.append([a1, a2, dist])
 
 	return positive, negative
@@ -28,14 +28,15 @@ def evalCoord(ind):
 	## 2 - Score
 	# TODO: Restrict donor and acceptors to smaller selection
 
-	hbonds = hyde5.countHBonds([mol], sel=ligand_atoms, cache=True)
+	hbonds_atoms = [ a for a in ligand_atoms if a.name not in ("C", "CA", "N", "O") ]
+	hbonds = hyde5.countHBonds([mol], sel=hbonds_atoms, cache=True)
 	contacts, num_of_contacts =  hyde5.countClashes(
 								atoms=ligand_atoms, test=mol.atoms, 
 								intraRes=True, clashThreshold=-0.4, 
 								hbondAllowance=0.0)
 
 	positive_contacts, negative_contacts = parseClashes(contacts)
-	chimera.selection.setCurrent([ a for l in positive_contacts for a in l if not isinstance(a, float)])
+	chimera.selection.setCurrent([ l[0] for l in positive_contacts if l[0] in ligand_atoms ])
 	return len(negative_contacts)/2, len(positive_contacts)/2, len(hbonds)
 
 
