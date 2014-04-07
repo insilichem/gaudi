@@ -8,11 +8,15 @@ import hyde5
 import ChemGroup as cg 
 reload(hyde5)
 def parseClashes(clashes):
-	aromatoms = set( a for g in cg.findGroup("aromatic ring", [mol]) for a in g )
+
 	positive, negative = [], []
 	for a1, c in clashes.items():
 		for a2, dist in c.items():
-			if a1 in aromatoms and a2 in aromatoms and dist<=0.4:
+			if a1 in AROMATIC and a2 in AROMATIC and dist<=0.4:
+				positive.append([a1, a2, dist])
+			elif a1 in AROMATIC and a2 in ALIPHATIC and dist<=0.4:
+				positive.append([a1, a2, dist])
+			elif a1 in ALIPHATIC and a2 in AROMATIC and dist<=0.4:
 				positive.append([a1, a2, dist])
 			elif dist >= 0.6:
 				negative.append([a1, a2, dist])
@@ -77,6 +81,10 @@ for b in chimera.selection.savedSels['bonds2'].bonds():
 mol = chimera.openModels.list()[0]
 ligands = chimera.selection.savedSels['ligands'].residues()
 ligand_atoms = [ a for r in ligands for a in r.atoms ]
+
+aliph = ['C3', [[cg.C, [cg.C, [cg.C , [cg.R, cg.R, cg.R, cg.R]], cg.R, cg.R] ], cg.R, cg.R, cg.R] ], [ 1, 1, 1, 1, 1, 0, 0] 
+ALIPHATIC = set( a for g in cg.findGroup(aliph, [mol]) for a in g )
+AROMATIC = set( a for g in cg.findGroup("aromatic ring", [mol]) for a in g )
 
 ###
 # Genetic Algorithm
