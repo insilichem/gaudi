@@ -14,8 +14,9 @@
 # - Better crossover and mutations functions
 
 # Chimera
-import chimera, Rotamers, SwapRes, SplitMolecule, ChemGroup
+import chimera, Rotamers, SwapRes, SplitMolecule, ChemGroup as cg
 from chimera import UserError
+
 # Python
 import random, numpy, deap, argparse, sys, os
 from deap import creator, tools, base, algorithms
@@ -66,17 +67,42 @@ def getSequentialBonds(atoms,s):
 	return nbonds
 
 def parseClashes(clashes):
-	aromatoms = set( a for g in ChemGroup.findGroup("aromatic ring", [mol]) for a in g )
+	aliph = ['C3', [[cg.C, [cg.C, [cg.C , [cg.R, cg.R, cg.R, cg.R]], cg.R, cg.R] ], cg.R, cg.R, cg.R] ], [ 1, 1, 1, 1, 1, 0, 0] 
+	AROMATIC = set( a for g in cg.findGroup("aromatic ring", [mol]) for a in g )
+	ALIPHATIC = set( a for g in cg.findGroup(aliph, [mol]) for a in g if a not in AROMATIC )
+
 	positive, negative = [], []
 	for a1, c in clashes.items():
 		for a2, dist in c.items():
-			if a1 in aromatoms and a2 in aromatoms and dist<=0.4:
-				positive.append([a1, a2, dist])
-			elif dist >= 0.6:
-				negative.append([a1, a2, dist])
+			if dist <= 0.4 and a1.residue != a2.residue:
+				if a1 in AROMATIC and a2 in AROMATIC:
+					positive.append([a1, a2, dist, lj(a1, a2)])
+				elif a1 in AROMATIC and a2 in ALIPHATIC:
+					positive.append([a1, a2, dist, lj(a1, a2)])
+				elif a1 in ALIPHATIC and a2 in AROMATIC:
+					positive.append([a1, a2, dist, lj(a1, a2)])
+			elif dist > 0.4:
+				negative.append([a1, a2, dist, vdw_overlap(a1,a2)])
 
 	return positive, negative
 
+def lj(a1, a2):
+	dist = a1.xformCoord().distance(a2.xformCoord())
+	zero = 0.98*(a1.radius + a2.radius)
+	x = zero/dist
+	return (x**12 - 2*x**6)
+
+def vdw_overlap(a1, a2):
+	# Adapted from Eran Eyal, Comput Chem 25: 712-724, 2004
+	d = a1.xformCoord().distance(a2.xformCoord())
+	h_a, h_b = 0, 0
+	if d < a1.radius+a2.radius:
+		h_a = (a2.radius**2 - (d- a1.radius)**2)/(2*d)
+		h_b = (a1.radius**2 - (d- a2.radius)**2)/(2*d)
+	v = (numpy.pi/3) * (h_a**2) * (3*a1.radius - h_a) + \
+		(numpy.pi/3) * (h_b**2) * (3*a2.radius - h_b)
+	#maxv = (4/3.)*numpy.pi*(min(a1.radius, a2.radius)**3)
+	return v
 
 def evalCoord(ind, close=True, hidden=False):
 	## 1 - Choose ligand from pre-built mol library
@@ -120,31 +146,40 @@ def evalCoord(ind, close=True, hidden=False):
 	contacts, num_of_contacts =  hyde5.countClashes(
 									atoms=ligand.atoms, 
 									test=mol.atoms + ligand.atoms, 
-									intraRes=False, clashThreshold=-0.4, 
-									hbondDef=0.0)
+									intraRes=True, clashThreshold=-0.4, 
+									hbondAllowance=0.0)
 	clashes_r, num_of_clashes_r = hyde5.countClashes(
 									atoms=res_atoms,
 									test=mol.atoms)
 	
-	positive_interactions, negative_interactions = parseClashes(contacts)
+	positive_vdw, negative_vdw = parseClashes(contacts)
 
 	if not close:
-		chimera.selection.setCurrent([ br.bond for br in bondrots ])
+		pbpos = chimera.misc.getPseudoBondGroup("hydrophobic interactions")
+		pbneg = chimera.misc.getPseudoBondGroup("clashes")
+		if positive_vdw: 
+			max_pos= max(abs(_[3]) for _ in positive_vdw)
+			for p in positive_vdw:
+				np = pbpos.newPseudoBond(p[0], p[1])
+				intensity = (max_pos - abs(p[3]))/(max_pos)
+				opacity = 1 - 0.7*intensity
+				np.color = chimera.MaterialColor(intensity,1,0,opacity)
+		if negative_vdw:
+			max_neg, min_neg = max(_[2] for _ in negative_vdw), min(_[2] for _ in negative_vdw)
+			for p in negative_vdw:
+				np = pbneg.newPseudoBond(p[0], p[1])
+				if max_neg != min_neg:
+					opacity = 1 - 0.7*abs(max_neg - p[2])/(max_neg - min_neg)
+				np.color = chimera.MaterialColor(1,0,0,opacity)
 	else:
 		chimera.openModels.remove([ligand])
 
-	return len(hbonds), negative_interactions, positive_interactions, num_of_clashes_r
+	return  len(hbonds), sum(abs(a[3]) for a in negative_vdw)/2, \
+			sum(1-a[3] for a in positive_vdw)/2, num_of_clashes_r
 
 def hetCxOnePoint(ind1, ind2):
 	
 	for key in ind1:
-		# if key == 'molecule': #ignore building blocks FOR NOW ;)
-		# 	continue
-		# size = min(len(ind1[key]), len(ind2[key]))
-		# if size > 1:
-		# 	cxpoint = random.randint(1, size - 1)
-		# 	ind1[key][cxpoint:], ind2[key][cxpoint:] = \
-		# 	ind2[key][cxpoint:], ind1[key][cxpoint:]
 		if key == 'molecule': 
 			continue
 		elif key == 'linker_rots':
@@ -159,16 +194,6 @@ def hetCxOnePoint(ind1, ind2):
 def hetMutation(ind, indpb):
 	
 	for key in ind:
-		# if random.random() < ind:
-		# 	j = random.randint(0,len(row)-1)
-		# 	if key == 'molecule': 
-		# 		continue
-		# 	elif key == 'linker_rots':
-		# 		ind[key][j] = toolbox.rand_angle()
-		# 	elif key == 'mutamers':
-		# 		ind[key][j] = toolbox.rand_aa()
-		# 	elif key == 'rotamers':
-		# 		ind[key][j] = toolbox.rand_rotamer()
 		if key == 'molecule': 
 			continue
 		elif key == 'linker_rots':
@@ -308,7 +333,6 @@ def main():
 		hof = deap.tools.HallOfFame(20)
 	stats = deap.tools.Statistics(lambda ind: ind.fitness.values)
 	stats.register("avg", numpy.mean, axis=0)
-	stats.register("std", numpy.std, axis=0)
 	stats.register("min", numpy.min, axis=0)
 	stats.register("max", numpy.max, axis=0)
 	pop, log = deap.algorithms.eaMuPlusLambda(pop, toolbox, 
@@ -317,6 +341,7 @@ def main():
 	return pop, log, hof
 
 if __name__ == "__main__":
+	numpy.set_printoptions(precision=2)
 	if args.eval:
 		print "Fitness: ", evalCoord(eval(args.eval), close=False)
 	else:

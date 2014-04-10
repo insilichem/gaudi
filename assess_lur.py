@@ -65,11 +65,11 @@ def evalCoord(ind, final=False):
 		pbpos = chimera.misc.getPseudoBondGroup("hydrophobic interactions")
 		pbneg = chimera.misc.getPseudoBondGroup("clashes")
 		if positive_vdw: 
-			max_pos, min_pos = max(abs(_[3]) for _ in positive_vdw), min(abs(_[3]) for _ in positive_vdw)
+			max_pos = max(abs(_[3]) for _ in positive_vdw)
 			out = open('/home/jr/x/positive_clashes.txt', 'w+')
 			for p in positive_vdw:
 				np = pbpos.newPseudoBond(p[0], p[1])
-				intensity = (max_pos - abs(p[3]))/(max_pos - min_pos)
+				intensity = (max_pos - abs(p[3]))/(max_pos)
 				opacity = 1 - 0.7*intensity
 				np.color = chimera.MaterialColor(intensity,1,0,opacity)
 				out.write("{0}\t{1}\n".format(p[2],p[3]))
@@ -79,7 +79,8 @@ def evalCoord(ind, final=False):
 			max_neg, min_neg = max(_[2] for _ in negative_vdw), min(_[2] for _ in negative_vdw)
 			for p in negative_vdw:
 				np = pbneg.newPseudoBond(p[0], p[1])
-				opacity = 1 - 0.7*abs(max_neg - p[2])/(max_neg - min_neg)
+				if max_neg != min_neg:
+					opacity = 1 - 0.7*abs(max_neg - p[2])/(max_neg - min_neg)
 				np.color = chimera.MaterialColor(1,0,0,opacity)
 				out.write("{0}\t{1}\n".format(p[2],p[3]))
 			out.close()	
