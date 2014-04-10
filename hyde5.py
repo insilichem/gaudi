@@ -159,9 +159,9 @@ def atomsBetween(atom1, atom2):
 def findNearest(anchor, atoms):
 	# return atom with mininum through-bond distance
 	nearest = atoms[0]
-	minimum = 10000
+	minimum = len(atomsBetween(anchor, nearest))
 
-	for a in atoms:
+	for a in atoms[1:]:
 		distance = len(atomsBetween(anchor, a))
 		if distance < minimum:
 			minimum = distance
