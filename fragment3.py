@@ -100,17 +100,17 @@ def insertMol(mol2, target=None, join=True, inplace=True,
 
 		if alpha3:
 			# rotate params for angle
-			axis_a = d3.coord() - d4.coord()
-			axis_b = axis_end.coord() - d4.coord()
-			delta = chimera.angle(d3.coord(),d4.coord(),axis_end.coord()) - alpha3
+			axis_a = d3.coord() - axis_start.coord()
+			axis_b = axis_end.coord() - axis_start.coord()
+			delta = chimera.angle(d3.coord(),axis_start.coord(),axis_end.coord()) - alpha3
 			axis = chimera.cross(axis_a, axis_b)
 			if axis.data() == (0.0,0.0,0.0):
 				axis = chimera.cross(axis_a, axis_b + chimera.Vector(1,0,0))
 				print "Warning, had to choose arbitrary normal vector"
 			try: #actual rotation
-				r = x.translation(d4.coord() - zero) # move to origin
+				r = x.translation(axis_start.coord() - zero) # move to origin
 				r.multiply(x.rotation(axis, - delta)) # rotate
-				r.multiply(x.translation(zero -  d4.coord())) # return to orig pos
+				r.multiply(x.translation(zero -  axis_start.coord())) # return to orig pos
 				for a in tmpl.atoms:
 					a.setCoord(r.apply(a.coord()))
 			except ValueError: #this means rot vector is null  (already parallel)

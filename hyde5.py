@@ -19,7 +19,7 @@
 
 import os
 import sys
-from itertools import tee, islice, chain, izip, product
+from itertools import tee, chain, izip, product
 import argparse
 import chimera
 from chimera import runCommand as rc #cmd line features
