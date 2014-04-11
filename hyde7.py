@@ -8,15 +8,12 @@
 # Implement genetic algorithm
 
 # TODO
-# - Consider Von Mises Distribution for random angle
 # - Calculate h bonds only if clashes < threshold?
-# - Avoid ligand rebuilding every step! Use 'ghost' library instead
-# - Better crossover and mutations functions
+
 
 # Chimera
 import chimera, Rotamers, SwapRes, SplitMolecule, ChemGroup as cg
 from chimera import UserError
-
 # Python
 import random, numpy, deap, argparse, sys, os
 from deap import creator, tools, base, algorithms
@@ -137,17 +134,22 @@ def evalCoord(ind, close=True, hidden=False):
 	## 4 - Score
 	# Inserted atoms become new entities
 	res_atoms = [ a for r in residues for a in r.atoms ]
-	# TODO: Restrict donor and acceptors to smaller selection
-	model = chimera.openModels.list()
+	models = chimera.openModels.list(all=True,modelTypes=[chimera.Molecule])
+	ligand_env.clear()
+	ligand_env.add(ligand)
+	ligand_env.merge(chimera.selection.REPLACE, 
+					chimera.specifier.zone(ligand_env, 'atom', None, 15.0, models))
+
 	hbonds = hyde5.countHBonds(
-				model, cache=False,
+				models, cache=False, test=ligand_env.atoms(),
 				sel=[ a for a in ligand.atoms if a not in ("C", "CA", "N", "O") ])
 	# TODO: Restrict test to smaller selection
 	contacts, num_of_contacts =  hyde5.countClashes(
 									atoms=ligand.atoms, 
-									test=mol.atoms + ligand.atoms, 
+									test=ligand_env.atoms(), 
 									intraRes=True, clashThreshold=-0.4, 
 									hbondAllowance=0.0)
+	chimera.selection.setCurrent(ligand_env.atoms())
 	clashes_r, num_of_clashes_r = hyde5.countClashes(
 									atoms=res_atoms,
 									test=mol.atoms)
@@ -167,6 +169,7 @@ def evalCoord(ind, close=True, hidden=False):
 		if negative_vdw:
 			max_neg, min_neg = max(_[2] for _ in negative_vdw), min(_[2] for _ in negative_vdw)
 			for p in negative_vdw:
+				opacity = 1
 				np = pbneg.newPseudoBond(p[0], p[1])
 				if max_neg != min_neg:
 					opacity = 1 - 0.7*abs(max_neg - p[2])/(max_neg - min_neg)
@@ -262,7 +265,7 @@ mol = base_at.molecule
 ligand = base_at.residue
 anchor = chimera.selection.savedSels['anchor'].atoms()[0]
 cbase = [base_at] + list(hyde5.atomsBetween(base_at, anchor)) + [anchor]
-
+ligand_env = chimera.selection.ItemizedSelection()
 #dihedral
 d3 = anchor
 d4 = [a for a in anchor.neighbors if a not in cbase][0]
