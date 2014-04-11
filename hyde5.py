@@ -99,7 +99,7 @@ def bondrot(bond, anchor, delta):
 	br.angle = (delta, anchor)
 	br.destroy()
 
-def countHBonds(model=None, sel=None, selRestrict=True,cache=False):
+def countHBonds(model=None, sel=None, selRestrict=True,cache=False, test=None):
 	## Calculates H bonds in `model` given `sel` atoms
 	if not model:
 		model = chimera.openModels.list(modelTypes=[chimera.Molecule])
@@ -107,7 +107,7 @@ def countHBonds(model=None, sel=None, selRestrict=True,cache=False):
 		sel = chimera.selection.currentAtoms()
 	#calculate H bonds
 	import FindHBond as fhb
-	hbonds = fhb.findHBonds(model, cacheDA=cache)
+	hbonds = fhb.findHBonds(model, cacheDA=cache, donors=test, acceptors=test)
 	if selRestrict:
 		try:
 			hbonds = fhb.base._filterBySel(hbonds, sel, 'any')
