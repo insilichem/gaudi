@@ -1,6 +1,6 @@
 # aluminium optimization
 # Rotamer optimization
-import chimera, deap, Rotamers, hyde5
+import chimera, deap, Rotamers, fetra
 from deap import creator, algorithms, tools, base
 import random, argparse, numpy
 
@@ -69,7 +69,7 @@ def evalCoord(ind):
 				distances.append(min(d, key = lambda x: abs(x-args.threshold)))
 		
 	avg_dist = numpy.mean(distances)
-	clashes, num_of_clashes = hyde5.countClashes(atoms=r_atoms, 
+	clashes, num_of_clashes = fetra.score.chem.clashes(atoms=r_atoms, 
 		test=[ a for a in mol.atoms if a != al ])
 
 	return avg_dist, num_of_clashes
