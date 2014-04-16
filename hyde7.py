@@ -18,7 +18,7 @@ from chimera import UserError
 import random, numpy, deap, argparse, sys, os
 from deap import creator, tools, base, algorithms
 # Custom
-import fetra
+import mof3d
 ### CUSTOM FUNCTIONS
 
 def evalCoord(ind, close=True, hidden=False):
@@ -26,7 +26,7 @@ def evalCoord(ind, close=True, hidden=False):
 	ligand, bondrots = mol_library[ind['molecule'][0],ind['molecule'][1]]
 	chimera.openModels.add([ligand], shareXform=True, hidden=hidden)
 	# Chimera converts metal bonds to pseudoBonds all the time
-	fetra.utils.box.pseudobond_to_bond(ligand)
+	mof3d.utils.box.pseudobond_to_bond(ligand)
 
 	## 2 - Set rotations
 	# Direct access to BondRot, instead of BondRotMgr
@@ -53,24 +53,24 @@ def evalCoord(ind, close=True, hidden=False):
 	ligand_env.merge(chimera.selection.REPLACE, 
 					chimera.specifier.zone(ligand_env, 'atom', None, 15.0, models))
 
-	hbonds = fetra.score.chem.hbonds(
+	hbonds = mof3d.score.chem.hbonds(
 				models, cache=False, test=ligand_env.atoms(),
 				sel=[ a for a in ligand.atoms if a not in ("C", "CA", "N", "O") ])
 	# TODO: Restrict test to smaller selection
 	contacts, num_of_contacts, positive_vdw, negative_vdw =\
-		fetra.score.chem.clashes(atoms=ligand.atoms, 
+		mof3d.score.chem.clashes(atoms=ligand.atoms, 
 								test=ligand_env.atoms(), 
 								intraRes=True, clashThreshold=-0.4, 
 								hbondAllowance=0.0, parse=True)
-	clashes_r, num_of_clashes_r = fetra.score.chem.clashes(atoms=res_atoms,
+	clashes_r, num_of_clashes_r = mof3d.score.chem.clashes(atoms=res_atoms,
 														test=mol.atoms)
 	
 	if not close:
 		if positive_vdw: 
-			fetra.score.chem.draw_clashes(positive_vdw, startCol="FFFF00", endCol="00FF00",
+			mof3d.score.chem.draw_clashes(positive_vdw, startCol="FFFF00", endCol="00FF00",
 				key=3, name="Hydrophobic interactions")
 		if negative_vdw:
-			fetra.score.chem.draw_clashes(negative_vdw, startCol="FF0000", endCol="FF0000",
+			mof3d.score.chem.draw_clashes(negative_vdw, startCol="FF0000", endCol="FF0000",
 				key=3, name="Bad clashes")
 	else:
 		chimera.openModels.remove([ligand])
@@ -160,7 +160,7 @@ base_at = chimera.selection.savedSels['base'].atoms()[0]
 mol = base_at.molecule
 ligand = base_at.residue
 anchor = chimera.selection.savedSels['anchor'].atoms()[0]
-cbase = [base_at] + list(fetra.utils.box.atoms_between(base_at, anchor)) + [anchor]
+cbase = [base_at] + list(mof3d.utils.box.atoms_between(base_at, anchor)) + [anchor]
 ligand_env = chimera.selection.ItemizedSelection()
 #dihedral
 d3 = anchor
@@ -179,12 +179,12 @@ cbasecopy = SplitMolecule.split.molecule_from_atoms(mol, cbase)
 [mol.deleteAtom(a) for a in ligand.atoms]
 
 # Get building blocks
-linkers = sorted(fetra.utils.box.files_in(wd +'/mol2/linkers/', 'mol2'))
-fragments = sorted(fetra.utils.box.files_in(wd +'/mol2/fragments/', 'mol2'))
+linkers = sorted(mof3d.utils.box.files_in(wd +'/mol2/linkers/', 'mol2'))
+fragments = sorted(mof3d.utils.box.files_in(wd +'/mol2/fragments/', 'mol2'))
 
 # Build library
-mol_library = fetra.molecule.library(cbasecopy, linkers, fragments, \
-									dihedral=dihedral, alpha=alpha)
+mol_library = mof3d.molecule.library(cbasecopy, linkers, fragments)
+									#dihedral=dihedral, alpha=alpha)
 
 ###
 # Genetic Algorithm

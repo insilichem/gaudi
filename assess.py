@@ -4,25 +4,22 @@ import chimera
 import deap
 from deap import creator, algorithms, tools, base
 import random, argparse, numpy
-import hyde5
+import mof3d
 
-def evalCoord(ind):
-
+def evalCoord(individual):
 	## 1 - Set rotations
-	for i, br in enumerate(bondrots):
-		#print i, br.bond, br.myanchor
+	for alpha, br in zip(individual, bondrots):
 		chimera.selection.setCurrent(br.myanchor)
-		br.adjustAngle(ind[i] - br.angle, br.myanchor)
+		br.adjustAngle(alpha - br.angle, br.myanchor)
 
 	## 2 - Score
 	# TODO: Restrict donor and acceptors to smaller selection
 	model = chimera.openModels.list()
-	hbonds = hyde5.countHBonds(model, sel=ligand.atoms, cache=True)
-	clashes, num_of_clashes = hyde5.countClashes(atoms=ligand.atoms, 
+	hbonds = mof3d.score.chem.hbonds(model, sel=ligand.atoms, cache=True)
+	clashes, num_of_clashes = mof3d.score.chem.clashes(atoms=ligand.atoms, 
 		test=mol.atoms)
 
 	return num_of_clashes, len(hbonds)
-
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-p', '--population',
@@ -48,7 +45,7 @@ anchor = chimera.selection.currentAtoms()[0]
 bondrots = []
 for b in chimera.selection.currentBonds():
 	br = chimera.BondRot(b)
-	br.myanchor = hyde5.findNearest(anchor, b.atoms)
+	br.myanchor = mof3d.utis.box.find_nearest(anchor, b.atoms)
 	bondrots.append(br)
 
 mol = chimera.selection.currentMolecules()[0]

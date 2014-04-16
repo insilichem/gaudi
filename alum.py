@@ -1,6 +1,6 @@
 # aluminium optimization
 # Rotamer optimization
-import chimera, deap, Rotamers, fetra
+import chimera, deap, Rotamers, mof3d
 from deap import creator, algorithms, tools, base
 import random, argparse, numpy
 
@@ -21,11 +21,10 @@ parser.add_argument('-g', '--generation',
 					help="Number of generations to calculate" )
 parser.add_argument('-t', '--threshold',
 					required=False,
-					type=float,
 					default=2.0, 
 					dest="threshold",
-					metavar="<distance in angstroms>",
-					help="Target distance for rotamers" )
+					metavar="<distance in angstroms | covalent>",
+					help="Target distance for rotamers. If `covalent`, distance will be inferred from atom types." )
 parser.add_argument('-w', '--wall',
 					required=False,
 					default=False, 
@@ -43,33 +42,19 @@ r_atoms = [ a for r in residues for a in r.atoms ]
 al = chimera.selection.savedSels['al'].atoms()[0]
 
 def evalCoord(ind):
-	for i, r in enumerate(ind):
+	# rotamers
+	for res, rot, i in zip(residues, rotamers, ind):
 		try:
-			Rotamers.useRotamer(residues[i], [rotamers[i][r]])
+			Rotamers.useRotamer(res, [rot[i]])
 		except IndexError:
-			Rotamers.useRotamer(residues[i], [rotamers[i][-1]])
-	# distance
-	r_atoms = [ a for r in residues for a in r.atoms ]
+			Rotamers.useRotamer(res, [rot[-1]])
 	
-	distances = []
-	if args.wall: 
-		for r in residues:
-			if r.type == "GLU":
-				oxygens = [ a for a in r.atoms if a.element.number == 8]
-				d = [ ox.xformCoord().distance(al.xformCoord()) for ox in oxygens ]
-				if all([d_ > args.threshold for d_ in d]):
-					distances.append(min(d, key = lambda x: abs(x-args.threshold)))
-				else:
-					distances.append(1000.)
-	else:
-		for r in residues:
-			if r.type == "GLU":
-				oxygens = [ a for a in r.atoms if a.element.number == 8]
-				d = [ ox.xformCoord().distance(al.xformCoord()) for ox in oxygens ]
-				distances.append(min(d, key = lambda x: abs(x-args.threshold)))
-		
-	avg_dist = numpy.mean(distances)
-	clashes, num_of_clashes = fetra.score.chem.clashes(atoms=r_atoms, 
+	# distance
+	avg_dist = mof3d.score.target.distance(residues, "O", al, args.threshold, \
+		wall=args.wall, avg=True)
+	# clashes
+	r_atoms = [ a for r in residues for a in r.atoms ]
+	clashes, num_of_clashes = mof3d.score.chem.clashes(atoms=r_atoms, 
 		test=[ a for a in mol.atoms if a != al ])
 
 	return avg_dist, num_of_clashes
