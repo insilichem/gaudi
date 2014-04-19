@@ -7,25 +7,30 @@
 
 import chimera
 import os
+
 def atoms_between(atom1, atom2):
 	''' Finds all connected atoms between two given atoms '''
-	chain1 = atom1.neighbors
-	chain2 = atom2.neighbors
+	chain1 = [atom1]
+	chain2 = [atom2]
 	i = 0
 	while i < len(chain1):
 		a1 = chain1[i]
 		if atom2 not in a1.neighbors:
-			chain1.extend( [ a for a in a1.neighbors if a not in chain1 ])
+			chain1.extend([ a for a in a1.neighbors if a not in chain1 ])
 		i += 1
 	j = 0
 	while j < len(chain2):
 		a2 = chain2[j]
 		if atom1 not in a2.neighbors:
-			chain2.extend( [ a for a in a2.neighbors if a not in chain2 ])
+			chain2.extend([ a for a in a2.neighbors if a not in chain2 ])
 		j += 1
 	
-	chain = set(chain1) & set(chain2)
-	return chain
+	return set(chain1) & set(chain2)
+
+def atoms_by_serial(*serials, **kw):
+	if not kw['atoms']:
+		kw['atoms'] = [ a for m in chimera.openModels.list() for a in m.atoms ]
+	return [a for a in kw['atoms'] if a.serialNumber in serials]
 
 def files_in(path, ext=None):
 	if ext:
@@ -34,16 +39,9 @@ def files_in(path, ext=None):
 
 def find_nearest(anchor, atoms):
 	''' Returns closer atom from `atoms` to `anchor` '''
-	nearest = atoms[0]
-	minimum = len(atoms_between(anchor, nearest))
-
-	for a in atoms[1:]:
-		distance = len(atoms_between(anchor, a))
-		if distance < minimum:
-			minimum = distance
-			nearest = a
-
-	return nearest
+	try: return next(a for a in atoms if a is anchor)
+	except StopIteration: #oops, didn't find it...
+		return min(atoms, key= lambda a:len(atoms_between(anchor, a)))
 
 def highest_atom_indices(r):
 	''' Returns a dictionary with highest atom indices in given residue 
@@ -68,14 +66,15 @@ def highest_atom_indices(r):
 				results[atom] = num
 	return results
 
-def pseudobond_to_bond(molecule):
+def pseudobond_to_bond(molecule, remove=False):
 	''' Transforms every pseudobond in `molecule` to a covalent bond '''
 	pbgroup = chimera.misc.getPseudoBondGroup(
 				"coordination complexes of %s (%s)" % 
-				(molecule.name, molecule), associateWith=[molecule])
+				(molecule.name, molecule))#, associateWith=[molecule])
 	if pbgroup.pseudoBonds:
 		for pb in pbgroup.pseudoBonds:
 			chimera.molEdit.addBond(*pb.atoms)
+			if remove: pbgroup.deletePseudoBond(pb)
 		pbm = molecule.pseudoBondMgr()
 		pbm.deletePseudoBondGroup(pbgroup)
 

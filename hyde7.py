@@ -7,95 +7,111 @@
 ## VERSION 7
 # Implement genetic algorithm
 
-# TODO
-# - Calculate h bonds only if clashes < threshold?
-
-
 # Chimera
-import chimera, Rotamers, SwapRes, SplitMolecule, ChemGroup as cg
+import chimera, Rotamers, SwapRes
 from chimera import UserError
 # Python
-import random, numpy, deap, argparse, sys, os
+import random, numpy, deap, sys
 from deap import creator, tools, base, algorithms
 # Custom
 import mof3d
+from mof3d.utils import box
+reload(mof3d)
 ### CUSTOM FUNCTIONS
 
 def evalCoord(ind, close=True, hidden=False):
+
 	## 1 - Choose ligand from pre-built mol library
-	ligand, bondrots = mol_library[ind['molecule'][0],ind['molecule'][1]]
+	ligand, bondrots = ligands[ind['ligand']]
 	chimera.openModels.add([ligand], shareXform=True, hidden=hidden)
 	# Chimera converts metal bonds to pseudoBonds all the time
-	mof3d.utils.box.pseudobond_to_bond(ligand)
+	box.pseudobond_to_bond(ligand)
 
-	## 2 - Set rotations
-	# Direct access to BondRot, instead of BondRotMgr
-	for i, br in enumerate(bondrots):
-		br.adjustAngle(ind['linker_rots'][i] - br.angle, br.myanchor)
+	if 'rotable_bonds' in ind:
+		for alpha, br in zip(ind['rotable_bonds'], bondrots):
+			chimera.selection.addCurrent([br.bond, br.rotanchor])
+			br.adjustAngle(alpha - br.angle, br.rotanchor)
+	
+	if 'rotamers' in ind:
+		if 'mutamers' in ind:
+			aas = [ AA[i] for i in ind['mutamers'] ]
+		else:
+			aas = [ r.type for r in residues ]
+		
+		for res, rot, mut in map(None, residues, ind['rotamers'], aas):
+			try: 
+				rotamers = Rotamers.getRotamers(res, resType=mut, 
+												lib=cfg.rotamers.library.title())[1]
+				Rotamers.useRotamer(residues[i],[rotamers[rot]])
+			except Rotamers.NoResidueRotamersError: # ALA, GLY...
+				if 'mutamers' in ind:
+					SwapRes.swap(residues[i], AA[mut], bfactor=None)
+			except IndexError:
+				Rotamers.useRotamer(residues[i],rotamers[-1:])
 
-	## 3 - Set mutamers/rotamers
-	for i, aa in enumerate(ind['mutamers']):
-		try: 
-			rotamers = Rotamers.getRotamers(residues[i], resType=aminoacids[aa])[1] 
-			rotId = ind['rotamers'][i]
-			Rotamers.useRotamer(residues[i],[rotamers[rotId]])
-		except Rotamers.NoResidueRotamersError: # ALA, GLY...
-			SwapRes.swap(residues[i], aminoacids[aa], bfactor=None)
-		except IndexError:
-			Rotamers.useRotamer(residues[i],[rotamers[-1]])
-
-	## 4 - Score
-	# Inserted atoms become new entities
-	res_atoms = [ a for r in residues for a in r.atoms ]
-	models = chimera.openModels.list(all=True,modelTypes=[chimera.Molecule])
 	ligand_env.clear()
 	ligand_env.add(ligand)
 	ligand_env.merge(chimera.selection.REPLACE, 
-					chimera.specifier.zone(ligand_env, 'atom', None, 15.0, models))
+					chimera.specifier.zone( ligand_env, 'atom', None, 15.0, 
+											[protein,ligand]))
+	score = []
+	for obj in cfg.objective:
+		if obj.type == 'hbonds':
+			hbonds = mof3d.score.chem.hbonds(
+						[protein, ligand], cache=False, test=ligand_env.atoms(),
+						sel=[ a for a in ligand.atoms if a not in ("C", "CA", "N", "O") ])
 
-	hbonds = mof3d.score.chem.hbonds(
-				models, cache=False, test=ligand_env.atoms(),
-				sel=[ a for a in ligand.atoms if a not in ("C", "CA", "N", "O") ])
-	# TODO: Restrict test to smaller selection
-	contacts, num_of_contacts, positive_vdw, negative_vdw =\
-		mof3d.score.chem.clashes(atoms=ligand.atoms, 
-								test=ligand_env.atoms(), 
-								intraRes=True, clashThreshold=-0.4, 
-								hbondAllowance=0.0, parse=True)
-	clashes_r, num_of_clashes_r = mof3d.score.chem.clashes(atoms=res_atoms,
-														test=mol.atoms)
-	
-	if not close:
-		if positive_vdw: 
-			mof3d.score.chem.draw_clashes(positive_vdw, startCol="FFFF00", endCol="00FF00",
-				key=3, name="Hydrophobic interactions")
-		if negative_vdw:
-			mof3d.score.chem.draw_clashes(negative_vdw, startCol="FF0000", endCol="FF0000",
-				key=3, name="Bad clashes")
-	else:
+			score.append(len(hbonds))
+		
+		elif obj.type in ('clashes', 'contacts'):
+			contacts, num_of_contacts, positive_vdw, negative_vdw =\
+				mof3d.score.chem.clashes(atoms=ligand.atoms, 
+										test=ligand_env.atoms(), 
+										intraRes=True, clashThreshold=obj.threshold, 
+										hbondAllowance=0.0, parse=True)
+			if obj.type == 'clashes':
+				score.append(sum(abs(a[3]) for a in negative_vdw)/2)
+			else:
+				score.append(sum(1-a[3] for a in positive_vdw)/2)
+			
+			if not close:
+				if obj.type == 'contacts' and positive_vdw: 
+					mof3d.score.chem.draw_clashes(positive_vdw, startCol=obj.color[0],
+						endCol=obj.color[1], key=3, name="Hydrophobic interactions")
+				if obj.type == 'clashes' and negative_vdw:
+					mof3d.score.chem.draw_clashes(negative_vdw, startCol=obj.color[0], 
+						endCol=obj.color[1], key=3, name="Clashes")
+		
+		elif obj.type == 'distance' :
+			probes = box.atoms_by_serial(*obj.probes, atoms=ligand.atoms)
+			target, = box.atoms_by_serial(obj.target, atoms=protein.atoms)
+			dist = mof3d.score.target.distance(probes, target, obj.threshold, \
+				wall=obj.wall)
+			score.append(dist)
+	if close:
 		chimera.openModels.remove([ligand])
 
-	return  len(hbonds), sum(abs(a[3]) for a in negative_vdw)/2, \
-			sum(1-a[3] for a in positive_vdw)/2, num_of_clashes_r
+	return score
 
 def hetCrossover(ind1, ind2):
 	for key in ind1:
 		if key == 'molecule': 
 			continue
-		elif key == 'linker_rots':
+		elif key == 'rotable_bonds':
 			ind1[key][:], ind2[key][:] = deap.tools.cxSimulatedBinaryBounded(
 				ind1[key], ind2[key], eta=10., low=0., up=360.)
 		elif key == 'mutamers':
 			ind1[key], ind2[key] = deap.tools.cxTwoPoint(ind1[key], ind2[key])
 		elif key == 'rotamers':
 			ind1[key], ind2[key] = deap.tools.cxTwoPoint(ind1[key], ind2[key])
+	
 	return ind1, ind2
 
 def hetMutation(ind, indpb,):
 	for key in ind:
 		if key == 'molecule': 
 			continue
-		elif key == 'linker_rots':
+		elif key == 'rotable_bonds':
 			ind[key] = deap.tools.mutPolynomialBounded(ind[key], 
 				eta=10., low=0., up=360., indpb=indpb)[0]
 		elif key == 'mutamers':
@@ -104,117 +120,65 @@ def hetMutation(ind, indpb,):
 		elif key == 'rotamers':
 			ind[key] = deap.tools.mutUniformInt(ind[key], 
 				low=0, up=8, indpb=indpb)[0]
+	
 	return ind,
 
-# Couple of constants
-aminoacids = ['ALA', 'ARG', 'ASN', 'ASP', 'CYS', 'GLU', 'GLN',
-			  'GLY', 'HIS', 'ILE', 'LEU', 'LYS', 'MET', 'PHE',
-			  'PRO', 'SER', 'THR', 'TRP', 'TYR', 'VAL' ]
 ##/ FUNCTIONS
 
-# Initial checks
-required_sels = 'base', 'anchor', 'mutable'
-if not set(required_sels) <= set(chimera.selection.savedSels):
-	raise UserError("""You have to define three selections with 'namesel'
----
-- 'base': Single atom. Terminal end of the static part of the ligand
-- 'anchor': Single atom. Together with 'base', it will define the static part. It's also the insertion point for the linker.
-- 'mutable': Residues to be swapped and mutated.
-""")
-
-parser = argparse.ArgumentParser()
-parser.add_argument('-p', '--population',
-					required=False,
-					type=int,
-					default=100, 
-					dest="pop",
-					metavar="<number of individuals>",
-					help="Number of individuals in each population" )
-parser.add_argument('-g', '--generation',
-					required=False,
-					type=int,
-					default=30, 
-					dest="ngen",
-					metavar="<number of generations>",
-					help="Number of generations to calculate" )
-parser.add_argument('-e', '--eval',
-					required=False,
-					type=str,
-					default='', 
-					dest="eval",
-					metavar="<individual>",
-					help="Paste individual data to evaluate" )
-parser.add_argument('-pf', '--pareto',
-					required=False,
-					default=False, 
-					dest="pareto",
-					action="store_true",
-					help="Wether to report Pareto Front rank or not" )
-args = parser.parse_args()
-wd = os.path.dirname(os.path.realpath(sys.argv[0]))
-
-# Get Chimera params
-residues = [ r for r in sorted(chimera.selection.savedSels['mutable'].residues(), 
-	key= lambda r: (r.id.chainId, r.id.position)) ]
-base_at = chimera.selection.savedSels['base'].atoms()[0]
-mol = base_at.molecule
-ligand = base_at.residue
-anchor = chimera.selection.savedSels['anchor'].atoms()[0]
-cbase = [base_at] + list(mof3d.utils.box.atoms_between(base_at, anchor)) + [anchor]
-ligand_env = chimera.selection.ItemizedSelection()
-#dihedral
-d3 = anchor
-d4 = [a for a in anchor.neighbors if a not in cbase][0]
-d2 = [a for a in d3.neighbors if a in cbase][0]
-d1 = [a for a in d2.neighbors if a != anchor ]
-if len(d1)>1: 
-	d1 = [a for a in d1 if a.numBonds>1]
-d1 = d1[0]
-dihedral = chimera.dihedral(d1.coord(),d2.coord(),d3.coord(),d4.coord())
-#angle
-alpha = chimera.angle(d2.coord(),d3.coord(),d4.coord())
-
-# Save cbase in ghost molecule
-cbasecopy = SplitMolecule.split.molecule_from_atoms(mol, cbase)
-[mol.deleteAtom(a) for a in ligand.atoms]
-
-# Get building blocks
-linkers = sorted(mof3d.utils.box.files_in(wd +'/mol2/linkers/', 'mol2'))
-fragments = sorted(mof3d.utils.box.files_in(wd +'/mol2/fragments/', 'mol2'))
-
-# Build library
-mol_library = mof3d.molecule.library(cbasecopy, linkers, fragments)
-									#dihedral=dihedral, alpha=alpha)
-
-###
-# Genetic Algorithm
-# define individual, population, etc
-deap.creator.create("FitnessMax", deap.base.Fitness, weights=(1.0, -1.0, 1.0, -1.0))
+## Initialize workspace
+cfg = mof3d.utils.parse.Settings(sys.argv[1])
+deap.creator.create("FitnessMax", deap.base.Fitness, weights=cfg.weights())
 deap.creator.create("Individual", dict, fitness=deap.creator.FitnessMax)
 
-# Operators
-toolbox = deap.base.Toolbox()
-toolbox.register("rand_angle", random.uniform, 0, 360)
-toolbox.register("rand_aa", random.randint, 0, len(aminoacids)-1)
-toolbox.register("rand_rotamer", random.randint, 0, 8)
-toolbox.register("rand_linker", random.randint, 0, len(linkers)-1)
-toolbox.register("rand_fragment", random.randint, 0, len(fragments)-1)
+protein, = chimera.openModels.open(cfg.protein.path)
+ligand_env = chimera.selection.ItemizedSelection()
 
-# Genes
-toolbox.register("molecule", deap.tools.initCycle, list,
-	[toolbox.rand_linker, toolbox.rand_fragment], n=1)
-toolbox.register("linker_rots", deap.tools.initRepeat, list,
-	toolbox.rand_angle, n=8)
-toolbox.register("mutamers", deap.tools.initRepeat, list,
-	toolbox.rand_aa, n=len(residues))
-toolbox.register("rotamers", deap.tools.initRepeat, list,
-	toolbox.rand_rotamer, n=len(residues))
+if cfg.ligand.type == 'mol2':
+	ligand = chimera.openModels.open(cfg.ligand.path)
+	ligands = { id(ligand): ligand }
+elif cfg.ligand.type == 'blocks':
+	rotations = True if cfg.ligand.flexible else False
+	ligands = mof3d.molecule.library(cfg.ligand.path, 
+				bondto=box.atoms_by_serial(cfg.ligand.bondto, atoms=protein.atoms)[0],
+				rotations=rotations, join='dummy')
+
+# Operators and genes
+genes = []
+toolbox = deap.base.Toolbox()
+toolbox.register("ligand", random.choice, ligands.keys())
+genes.append(toolbox.ligand)
+
+if hasattr(cfg.ligand, 'rotable') or (hasattr(cfg.ligand, 'bondto') and cfg.ligand.bondto):
+	toolbox.register("rand_angle", random.uniform, 0, 360)
+	toolbox.register("rotable_bonds", deap.tools.initRepeat, list,
+						toolbox.rand_angle, n=20)
+	genes.append(toolbox.rotable_bonds) 
+
+if not hasattr(cfg.ligand, 'bondto') or not cfg.ligand.bondto:
+	pass #activate 3D global search
+
+if hasattr(cfg, 'rotamers'):
+	residues = [ r for r in protein.residues if r.id.position in cfg.rotamers.residues ]
+	toolbox.register("rand_rotamer", random.randint, 0, cfg.rotamers.top-1)
+	toolbox.register("rotamers", deap.tools.initRepeat, list,
+					toolbox.rand_rotamer, n=len(cfg.rotamers.residues))
+	genes.append(toolbox.rotamers)
+	if cfg.rotamers.mutate == "all" or isinstance(cfg.rotamers.mutate, list):
+		AA = ['ALA', 'ARG', 'ASN', 'ASP', 'CYS', 'GLU', 'GLN',
+			  'GLY', 'HIS', 'ILE', 'LEU', 'LYS', 'MET', 'PHE',
+			  'PRO', 'SER', 'THR', 'TRP', 'TYR', 'VAL' ]
+		if isinstance(cfg.rotamers.mutate, list):
+			AA = [ AA[i-1] for i in cfg.rotamers.mutate if i<=20 ]
+		toolbox.register("rand_aa", random.randint, 0, len(AA)-1)
+		toolbox.register("mutamers", deap.tools.initRepeat, list,
+						toolbox.rand_aa, n=len(cfg.rotamers.residues))
+		genes.append(toolbox.mutamers)
+
 toolbox.register("toDict", 
 	(lambda ind, *fn: ind((f.__name__, f()) for f in fn)))
 
 # Individual and population
-toolbox.register("individual", toolbox.toDict, deap.creator.Individual, 
-	toolbox.molecule, toolbox.linker_rots, toolbox.mutamers, toolbox.rotamers)
+toolbox.register("individual", toolbox.toDict, deap.creator.Individual, *genes)
 toolbox.register("population", deap.tools.initRepeat, list, toolbox.individual)
 
 # Aliases for algorithm
@@ -223,29 +187,28 @@ toolbox.register("mate", hetCrossover)
 toolbox.register("mutate", hetMutation, indpb=0.05)
 toolbox.register("select", deap.tools.selNSGA2)
 
+
 def main():
-	pop = toolbox.population(n=args.pop)
-	if args.pareto:
-		hof = deap.tools.ParetoFront()
-	else: 
-		hof = deap.tools.HallOfFame(20)
+	pop = toolbox.population(n=cfg.ga.pop)
+	hof = deap.tools.ParetoFront() if cfg.ga.pareto \
+			else deap.tools.HallOfFame(cfg.default.results)
 	stats = deap.tools.Statistics(lambda ind: ind.fitness.values)
+	numpy.set_printoptions(precision=cfg.default.precision)
 	stats.register("avg", numpy.mean, axis=0)
 	stats.register("min", numpy.min, axis=0)
 	stats.register("max", numpy.max, axis=0)
 	pop, log = deap.algorithms.eaMuPlusLambda(pop, toolbox, 
-		mu = int(args.pop/2), lambda_= int(args.pop/2), cxpb=0.5, 
-		mutpb=0.2, ngen=args.ngen, stats=stats, halloffame=hof)
+		mu = cfg.ga.mu, lambda_= cfg.ga.lambda_, cxpb=cfg.ga.cx_pb, 
+		mutpb=cfg.ga.mut_pb, ngen=cfg.ga.gens, stats=stats, halloffame=hof)
 	return pop, log, hof
 
-if __name__ == "__main__":
-	numpy.set_printoptions(precision=2)
-	if args.eval:
-		print "Fitness: ", evalCoord(eval(args.eval), close=False)
-	else:
-		pop, log, hof = main()
-		evalCoord(hof[0], close=False)
-		print("Best individual is: %s\nwith fitness: %s" % (hof[0], hof[0].fitness))
-		print("More possible solutions to assess:")
-		for h in hof[1:11]:
-			print h, h.fitness
+if __name__ == "__main__":	
+	print "Scores: " + ', '.join([o.type for o in cfg.objective])
+	pop, log, hof = main()
+	evalCoord(hof[0], close=False)
+	print("Best individual is: %s\nwith fitness: %s" % (hof[0], hof[0].fitness))
+	print("More possible solutions to assess:")
+	for h in hof[1:]:
+		print h, h.fitness
+	# for i, (ligand, br) in ligands.items():
+	# 	chimera.openModels.add([ligand])

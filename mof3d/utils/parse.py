@@ -16,6 +16,13 @@ class Settings(object):
 			for d_ in d:
 				self.__dict__.update(d_)
 
+		def __str__(self):
+			if hasattr(self, 'type'):
+				return str(self.type).title()
+
+	def weights(self):
+		return [o.weight for o in self.objective]
+
 	def _parse(self, asDict):
 		with open(self._path, 'r') as config:
 			s = None
@@ -26,12 +33,13 @@ class Settings(object):
 					continue
 				elif line.startswith('[') and line.endswith(']'):
 					s = line.strip('[]')
-					if s in parsed and isinstance(parsed[s], dict):
-						parsed[s] = [parsed[s]]
-					elif s in parsed and isinstance(parsed[s], list):
+					if s in parsed and isinstance(parsed[s], list):
+						parsed[s].append(dict())
+					elif s in parsed and isinstance(parsed[s], dict):
+						parsed[s] = [ parsed[s] ]
 						parsed[s].append({})
 					else:
-						parsed.setdefault(s, dict())
+						parsed[s] = {}
 				elif '=' in line:
 					line = line.split('#',1)[0]
 					k, v = [ _.strip() for _ in line.split('=',1) ]
@@ -39,6 +47,10 @@ class Settings(object):
 						v = [ self._num(x) for x in v.split(', ')]
 					else:
 						v = self._num(v)
+					if ', ' in k:
+						k = tuple(self._num(x) for x in k.split(', '))
+					else:
+						k = self._num(k)
 
 					if isinstance(parsed[s], dict):
 						parsed[s][k] = v
@@ -46,19 +58,19 @@ class Settings(object):
 						parsed[s][-1][k] = v	
 		if asDict:
 			self.parsed = parsed
-		self._to_object(parsed)
-		del parsed
+		else:
+			self._to_object(parsed)
+			del parsed
 
 	def _to_object(self, d):
 		for s, c in d.items():
 			if isinstance(c, dict):
 				setattr(self, s, self.Param(c))
-			if isinstance(c, list):
-				setattr(self, s, self.Param({'number': len(c)}))
+			if isinstance(c, list): 
+				setattr(self, s, [])
 				for i, l in enumerate(c):
-					l['priority'] = i
-					name = l['feature']
-					setattr(getattr(self, s), name, self.Param(l))
+					if s == 'objective':
+						getattr(self, s).append(self.Param(l))
 	def _num(self, n):
 		try:
 			if '.' in n or 'e' in n or 'E' in n:
@@ -66,39 +78,8 @@ class Settings(object):
 			else:
 				return int(n)
 		except ValueError:
-			return n
-
-#############################
-# def settings(path):
-# 	with open(path, 'r') as config:
-# 		s = None
-# 		parsed = {}
-# 		for line in config.readlines():
-# 			line = line.strip()
-# 			if line == '' or line.startswith('#'):
-# 				continue
-# 			elif line.startswith('[') and line.endswith(']'):
-# 				s = line.strip('[]')
-# 				if s in parsed and isinstance(parsed[s], dict):
-# 					parsed[s] = [parsed[s]]
-# 				elif s in parsed and isinstance(parsed[s], list):
-# 					parsed[s].append({})
-# 				else:
-# 					parsed.setdefault(s, dict())
-# 			elif '=' in line:
-# 				k, v = [ _.strip() for _ in line.split('=',1) ]
-# 				if ', ' in v:
-# 					v = [ _num(x) for x in v.split(', ')]
-# 				else:
-# 					v = _num(v)
-
-# 				if isinstance(parsed[s], dict):
-# 					parsed[s][k] = v
-# 				elif isinstance(parsed[s], list):
-# 					parsed[s][-1][k] = v
-# 	config.close()
-# 	return parsed				
-
+			return n			
+#####
 def _test_rebuild(cfg):
 	for s, c in cfg.items():
 		if isinstance(c, dict):
@@ -112,7 +93,6 @@ def _test_rebuild(cfg):
 					print k, "=", v
 
 if __name__ == '__main__':
-	#cfg = settings('/home/jr/x/hyde/mof3d.ini')
-	settings = Settings('/home/jr/x/hyde/mof3d.ini')
-	print (settings.rotamers.residues)
+	cfg = Settings('/home/jr/x/hyde/mof3d.ini')
+	print [o.type for o in cfg.objective]
 

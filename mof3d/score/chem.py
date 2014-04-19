@@ -105,8 +105,10 @@ def _parse_clashes(clashes, mol):
 def _vdw_vol_overlap(a1, a2):
 	# Adapted from Eran Eyal, Comput Chem 25: 712-724, 2004
 	d = a1.xformCoord().distance(a2.xformCoord())
+	if not d: 
+		return 1000
 	h_a, h_b = 0, 0
-	if d < a1.radius+a2.radius:
+	if d and d < a1.radius+a2.radius:
 		h_a = (a2.radius**2 - (d- a1.radius)**2)/(2*d)
 		h_b = (a1.radius**2 - (d- a2.radius)**2)/(2*d)
 	v = (PI/3) * (h_a**2) * (3*a1.radius - h_a) + \

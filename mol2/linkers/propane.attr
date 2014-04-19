@@ -1,8 +1,0 @@
-# Attr file generated with mol2_to_attr.py
-attribute: anchor
-match mode: any
-recipient: atoms
-# list of atoms
-	@C1	5
-	@C2	0
-	@C3	8

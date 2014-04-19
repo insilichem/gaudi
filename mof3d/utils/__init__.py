@@ -5,4 +5,4 @@
 # A docking module for UCSF Chimera
 # Jaime RGP <https://bitbucket.org/jrgp> @ UAB, 2014
 
-import box, ga
+import box, ga, parse

@@ -5,43 +5,51 @@
 # A docking module for UCSF Chimera
 # Jaime RGP <https://bitbucket.org/jrgp> @ UAB, 2014
 
-import chimera, BuildStructure, AddAttr, SplitMolecule
+import chimera, BuildStructure
 from chimera.molEdit import addAtom, addBond
 from itertools import product
+import os
 #custom
 import move, utils
 
-def insert(mol2, target=None, join=True, p2b=True, inplace=True,
-	alpha=None, alpha2=None, alpha3=None, dihedral=None):
-	
-	''' Expected parameters.
-	target=None, join=True, p2b=True, inplace=True,
-	alpha=None, alpha2=None, alpha3=None, dihedral=None
-	'''
+def library(folder, bondto=None, join=False, rotations=False):
 
-	tmpl = chimera.openModels.open(mol2, type="Mol2", hidden=False)[0]
-	AddAttr.addAttributes(mol2.replace('.mol2','.attr'), models=[tmpl],raiseTool=False)
-	
-	for p in ('alpha', 'alpha2', 'alpha3', 'dihedral'):
-		if not locals()[p] and hasattr(tmpl, p):
-			locals()[p] = getattr(tmpl, p)
+	default_bondto, default_join = bondto, join
+	folders = sorted([ os.path.join(folder, d) for d in os.listdir(folder) 
+				if os.path.isdir(os.path.join(folder,d)) and not d.startswith('.') ])
+	library, new = {}, []
+	for x in product(*[utils.box.files_in(f, ext='mol2') for f in folders]):
+		# Build ligands
+		bondto, join = default_bondto, default_join
+		for mol in x:
+			new = place(mol, target=bondto, join=join, inplace=True)
+			bondto, join = new.cfg.atoms['target'], True
+		# Add rotable bonds, if requested
+		if rotations: 
+			bondrots = []
+			rotanchor = min(new.atoms, key=lambda a:a.serialNumber)
+			for b, br in _rotable_bonds(new, sort=True):
+				br.rotanchor = utils.box.find_nearest(rotanchor, b.atoms)
+				bondrots.append(br)
+			library[id(new)] = [new, bondrots]
+		else:
+			library[id(new)] = [new]
+		chimera.openModels.remove([new])
+	return library
+
+def place(mol2, target=None, join=True, p2b=True, inplace=True, geom=None):
+
+	tmpl = chimera.openModels.open(mol2, type="Mol2", hidden=False, shareXform=True)[0]
+	_add_attr(mol2.replace('.mol2','.attr'), tmpl)
+
+	if not geom and hasattr(tmpl, 'cfg') and hasattr(tmpl.cfg, 'angles'):
+		geom = tmpl.cfg.angles
 	
 	# Place it nicely
 	if inplace:
-		if not target:
-			try: 
-				target = chimera.selection.currentAtoms()[0]
-			except KeyError:
-				raise chimera.UserError("Please, select an H atom")
-
-		# Read and parse anchor attributes
-		for a in tmpl.atoms:
-			if a.element.name == 'H':
-				tmpl.deleteAtom(a)
-				continue
-			if a.anchor in (3,5,7): anchor = a 
-			if a.anchor in (1,5,6): axis_start = a 
-			if a.anchor in (2,7,8): axis_end = a 
+		if not target: raise
+		anchor = tmpl.cfg.atoms['anchor']
+		axis_start, axis_end = tmpl.cfg.atoms['axis_start'], tmpl.cfg.atoms['axis_end']
 
 		#discard H atom and set actual target
 		if target.element.number == 1:
@@ -50,113 +58,172 @@ def insert(mol2, target=None, join=True, p2b=True, inplace=True,
 			try:
 				geometry = chimera.idatm.typeInfo[target.idatmType].geometry
 			except KeyError:
-				geometry = 4
+				print "Warning, had to accept arbitrary geometry with {}, {}, {}".format(target, geometry)
+				geometry = 3
 			try:
 				target, targetH = BuildStructure.changeAtom(
-								target, target.element, geometry, 
-								target.numBonds + 1)
-			except IndexError: #unpacking error; pick any terminal atom available
-				targetH = [a for a in target.neighbors if a.numBonds == 1][-1]
-				print "Warning, arbitrary H"
-			
+									target, target.element, geometry, 
+									target.numBonds + 1)[:2]
+			except ValueError: #unpacking error; pick any terminal atom available
+				print "Warning, arbitrary terminal atom with {}, {}, {}".format(target, geometry, target.numBonds)
+				targetH = next(a for a in target.neighbors if a.numBonds == 1)
+				
 		# fix bond length
 		dv = targetH.coord() - target.coord()
 		dv.length = chimera.Element.bondLength(anchor.element, target.element)
 		diff = dv - (targetH.coord() - target.coord())
 		targetH.setCoord(targetH.coord() + diff)
 		H_coord = targetH.coord()
-		target.molecule.deleteAtom(targetH)
-			
+		target.molecule.deleteAtom(targetH)	
 		# align target+anchor
 		move.translate(tmpl, anchor, H_coord)
-		# Critical atoms for rotation
-		d5 = anchor.neighbors[0]
-		d4 = anchor
-		d3 = target
-		d2 = [ a for a in target.neighbors if a.element.number != 1 ][0]
-		d1 = [ a for a in d2.neighbors if a != target ][0]
+		
+		if geom:
+			for atoms, alpha in geom.items():
+				new_atoms = []
+				for i, a in enumerate(atoms): #parse atoms
+					if isinstance(a, chimera.Atom):
+						continue
+					elif a == 'post':
+						new_atoms.append(anchor.neighbors[0])
+					elif a == 'anchor':
+						new_atoms.append(anchor)
+					elif a == 'target':
+						new_atoms.append(target)
+					elif a == 'pre':
+						new_atoms.append(next(a for a in target.neighbors if a.element.number!=1))
+					elif a == 'axis':
+						new_atoms.extend([axis_start, axis_end])
+					elif isinstance(a, str):
+						raise chimera.UserError("Atom descriptor {} not supported".format(a))
+				del geom[atoms]
+				geom[tuple(new_atoms)] = alpha
+				move.rotate(tmpl, new_atoms, alpha)
 
-		if alpha:
-			move.rotate(tmpl, [d2,d3,d4], alpha)
-		if alpha3:
-			move.rotate(tmpl, [d3, axis_start, axis_end], alpha3)
-		if alpha2:
-			move.rotate(tmpl, [d3,d4,d5], alpha2)
-		if dihedral:
-			move.rotate(tmpl, [d1, d2, d3, d4], dihedral)
-		if join:
-			if p2b: # convert PseudoBonds to regular bonds
-				utils.box.pseudobond_to_bond(tmpl)
-			# rename atoms accordingly
-			old_res = target.residue
-			index = utils.box.highest_atom_indices(old_res)
-			for a in tmpl.atoms:
-				try:
-					index[a.element.name] += 1
-					a.name = a.element.name + str(index[a.element.name])
-				except KeyError:
-					index[a.element.name] = 1
-			built_atoms = []
-			sprouts = [ anchor ] # start to grow from seed
-			while sprouts:
-				sprout = sprouts.pop(0) # get first atom
-				if sprout.name in old_res.atomsMap:
-					target = old_res.atomsMap[sprout.name][-1]
-				else:
-					built = addAtom(sprout.name, sprout.element, old_res,
-							sprout.coord(), None, bondedTo=target)
-					built.anchor = sprout.anchor
-					target = built
-					built_atoms.append(built)
+	if join: # the only way is to create a copy
+		return copy_atoms(tmpl.atoms, bondto=target, join=join, keepattr='cfg', close=True)
 
-				for a in sprout.neighbors:
-					if a.element.number == 1: continue
-					if a.name not in old_res.atomsMap:
-						needBuild = True
-					else:
-						# atom is already present, but it can be part of a cycle
-						# if we get to it it's because another atom is linking it
-						needBuild = False
-						built = old_res.atomsMap[a.name][-1]
-					if needBuild:
-						built = addAtom(a.name, a.element, old_res,
-							a.coord(), None, bondedTo=target)
-						built.anchor = a.anchor
-						built_atoms.append(built)
-						# if a has more than one neighbor:
-						if len(a.neighbors) > 1:
-							sprouts.append(a) # this new atom can be a new sprout
+	return tmpl
 
-					if built not in target.bondsMap: #link!
-						addBond(target, built)	
-			chimera.openModels.close([tmpl])
-			return built_atoms
-	return tmpl.atoms
+def copy_atoms(atoms, bondto=None, join=False, keepattr=None, close=False):
+	from collections import OrderedDict
 
-def library(cbase, linkers, fragments, rotations=True):
-	mol = cbase.atoms[0].molecule
-	explore = product(range(len(linkers)), range(len(fragments)))
-	library = {}
-	for i, j in explore:
-		#TODO: Create custom molecule_from_atoms()
-		new = SplitMolecule.split.molecule_from_atoms(mol, cbase.atoms)
-		target = new.atoms[-1]
-		linker = insert(linkers[i], target=target)
-		linker_anchor = [ a for a in linker if a.anchor in (4,6,8)][0]
-		insert(fragments[j], target=linker_anchor)
-		if rotations: 
-			fragment_anchor = [ a for a in linker_anchor.neighbors if a.element.number != 1
-				and a not in linker ]
-			target_neighbor = [ a for a in target.neighbors if a.element.number != 1
-				and a not in linker ][0]
-			bonds = utils.box.sequential_bonds([target]+linker[:]+fragment_anchor,target_neighbor)
-			
-			bondrots = []
-			for b in bonds:
-				br = chimera.BondRot(b)
-				br.myanchor = utils.box.find_nearest(new.atoms[0], b.atoms)
-				bondrots.append(br)
-			library[i,j] = [new, bondrots]
+	tmpl = atoms[0].molecule
+	utils.box.pseudobond_to_bond(tmpl, remove=True)
+	built_atoms = OrderedDict()
+
+	if bondto and join is True:
+		target = bondto
+		res = target.residue
+		mol = target.molecule
+		
+		i = max(a.serialNumber for a in res.molecule.atoms)
+		index = utils.box.highest_atom_indices(res)
+		for a in atoms:
+			try:
+				index[a.element.name] += 1
+				a.name = a.element.name + str(index[a.element.name])
+			except KeyError:
+				index[a.element.name] = 1
+				a.name = a.element.name + str(index[a.element.name])
+	else:
+		i = 0
+		res = _dummy_res('ligand')
+		mol = res.molecule
+		if join == 'dummy':
+			i += 1
+			built_atoms[bondto] = target = \
+				addAtom('DUM', chimera.Element('HE'), res,
+						bondto.coord(), bondedTo=None, serialNumber=i)
+	try:
+		sprouts = [ tmpl.cfg.atoms['anchor'] ] # start to grow from seed
+	except (AttributeError, KeyError):
+		print "Warning. Couldn't locate molecular anchor. Starting from arbitrary choice."
+		sprouts = atoms[:1]
+
+	res_atoms = res.atoms
+	while sprouts:
+		sprout = sprouts.pop(0) # get first atom
+		if sprout.name in res.atomsMap:
+			target = res.atomsMap[sprout.name][-1]
 		else:
-			library[i,j] = [new]
-	return library
+			i += 1
+			built = addAtom(sprout.name, sprout.element, res, sprout.coord(),
+							bondedTo=target, serialNumber=i)
+			target = built
+			built_atoms[sprout] = built
+		for a in sprout.neighbors:
+			if a.element.number == 1: continue
+			if a.name not in res.atomsMap:
+				needBuild = True
+			else:
+				# atom is already present, but it can be part of a cycle
+				# if we get to it it's because another atom is linking it
+				needBuild = False
+				built = res.atomsMap[a.name][-1]
+			if needBuild:
+				i +=1
+				built = addAtom(a.name, a.element, res,	a.coord(), 
+								bondedTo=target, serialNumber=i)
+				built_atoms[a] = built
+				# if a has more than one neighbor:
+				if len(a.neighbors) > 1:
+					sprouts.append(a) # this new atom can be a new sprout
+			if built not in target.bondsMap and built not in res_atoms: #link!
+				addBond(target, built)
+	
+	# Save requested attributes
+	if keepattr and hasattr(tmpl, str(keepattr)):
+		setattr(mol, keepattr, getattr(tmpl, keepattr))
+		if keepattr == 'cfg':
+			delattr(mol.cfg, 'angles') #not needed anymore, and outdated
+			for k, v in mol.cfg.atoms.items():
+				mol.cfg.atoms[k] = built_atoms[v]
+			if join == 'dummy':
+				mol.cfg.atoms['anchor'] = built_atoms[bondto]
+	elif isinstance(keepattr, chimera.Atom):
+		mol.kept = built_atoms[keepattr]
+
+	if close:
+		chimera.openModels.close(tmpl)
+	return mol
+
+#####################################
+def _add_attr(attr_file, mol):
+	cfg = utils.parse.Settings(attr_file, asDict=True)
+	for k, v in cfg.parsed['atoms'].items():
+		cfg.parsed['atoms'][k], = utils.box.atoms_by_serial(v, atoms=mol.atoms)
+	setattr(mol, 'cfg', utils.parse.Settings.Param(cfg.parsed))
+
+def _dummy_res(name, atom=None):
+	m = chimera.Molecule()
+	m.name = name
+	pos = 1
+	while m.findResidue(chimera.MolResId('het', pos)) \
+	or m.findResidue(chimera.MolResId('water', pos)):
+		pos += 1
+	r = m.newResidue(name, 'het', pos, ' ')
+	r.isHet = True
+	chimera.openModels.add([m])
+	return r
+
+def _rotable_bonds(mol, sort=False):
+	bonds = set(b for a in mol.atoms for b in a.bonds if not a.element.isMetal)
+	if sort:
+		bonds = sorted(bonds, key=lambda x: min(y.serialNumber for y in x.atoms))
+	for b in bonds:
+		if any(	a.idatmType in ('C3', 'N3') and
+				(all([b.otherAtom(a).numBonds > 1, a.numBonds > 1]) or
+				any([a.name == 'DUM', b.otherAtom(a).name == 'DUM'])) 
+				for a in b.atoms
+			):
+
+			try:
+				br = chimera.BondRot(b)
+			except (chimera.error, ValueError), v:
+				if "cycle" in str(v):
+					continue #discard bonds in cycles!
+				else: 
+					raise
+			else:
+				yield b, br
