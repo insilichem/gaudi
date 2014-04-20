@@ -9,7 +9,6 @@
 
 # Chimera
 import chimera, Rotamers, SwapRes
-from chimera import UserError
 # Python
 import random, numpy, deap, sys
 from deap import creator, tools, base, algorithms
@@ -21,17 +20,23 @@ reload(mof3d)
 
 def evalCoord(ind, close=True, hidden=False):
 
-	## 1 - Choose ligand from pre-built mol library
-	ligand, bondrots = ligands[ind['ligand']]
-	chimera.openModels.add([ligand], shareXform=True, hidden=hidden)
-	# Chimera converts metal bonds to pseudoBonds all the time
-	box.pseudobond_to_bond(ligand)
-
-	if 'rotable_bonds' in ind:
+	if 'rotable_bonds' not in ind:
+		ligand = ligands[ind['ligand']]
+		chimera.openModels.add([ligand], shareXform=True, hidden=hidden)
+		box.pseudobond_to_bond(ligand)
+	else: # rotate
+		ligand, bondrots = ligands[ind['ligand']]
+		chimera.openModels.add([ligand], shareXform=True, hidden=hidden)
+		box.pseudobond_to_bond(ligand)
 		for alpha, br in zip(ind['rotable_bonds'], bondrots):
-			chimera.selection.addCurrent([br.bond, br.rotanchor])
 			br.adjustAngle(alpha - br.angle, br.rotanchor)
-	
+
+	ligand_env.clear()
+	ligand_env.add(ligand.atoms)
+	ligand_env.merge(chimera.selection.REPLACE, 
+					chimera.specifier.zone( ligand_env, 'atom', None, 15.0, 
+											[protein,ligand]))
+
 	if 'rotamers' in ind:
 		if 'mutamers' in ind:
 			aas = [ AA[i] for i in ind['mutamers'] ]
@@ -49,11 +54,6 @@ def evalCoord(ind, close=True, hidden=False):
 			except IndexError:
 				Rotamers.useRotamer(residues[i],rotamers[-1:])
 
-	ligand_env.clear()
-	ligand_env.add(ligand)
-	ligand_env.merge(chimera.selection.REPLACE, 
-					chimera.specifier.zone( ligand_env, 'atom', None, 15.0, 
-											[protein,ligand]))
 	score = []
 	for obj in cfg.objective:
 		if obj.type == 'hbonds':
@@ -63,15 +63,15 @@ def evalCoord(ind, close=True, hidden=False):
 
 			score.append(len(hbonds))
 		
-		elif obj.type in ('clashes', 'contacts'):
+		elif obj.type == 'contacts':
 			contacts, num_of_contacts, positive_vdw, negative_vdw =\
 				mof3d.score.chem.clashes(atoms=ligand.atoms, 
 										test=ligand_env.atoms(), 
 										intraRes=True, clashThreshold=obj.threshold, 
 										hbondAllowance=0.0, parse=True)
-			if obj.type == 'clashes':
+			if obj.which == 'clashes':
 				score.append(sum(abs(a[3]) for a in negative_vdw)/2)
-			else:
+			elif obj.which == 'hydrophobic':
 				score.append(sum(1-a[3] for a in positive_vdw)/2)
 			
 			if not close:
@@ -82,7 +82,7 @@ def evalCoord(ind, close=True, hidden=False):
 					mof3d.score.chem.draw_clashes(negative_vdw, startCol=obj.color[0], 
 						endCol=obj.color[1], key=3, name="Clashes")
 		
-		elif obj.type == 'distance' :
+		elif obj.type == 'distance':
 			probes = box.atoms_by_serial(*obj.probes, atoms=ligand.atoms)
 			target, = box.atoms_by_serial(obj.target, atoms=protein.atoms)
 			dist = mof3d.score.target.distance(probes, target, obj.threshold, \
@@ -90,8 +90,8 @@ def evalCoord(ind, close=True, hidden=False):
 			score.append(dist)
 	if close:
 		chimera.openModels.remove([ligand])
-
-	return score
+		return score
+	return ligand
 
 def hetCrossover(ind1, ind2):
 	for key in ind1:
@@ -184,9 +184,8 @@ toolbox.register("population", deap.tools.initRepeat, list, toolbox.individual)
 # Aliases for algorithm
 toolbox.register("evaluate", evalCoord)
 toolbox.register("mate", hetCrossover)
-toolbox.register("mutate", hetMutation, indpb=0.05)
+toolbox.register("mutate", hetMutation, indpb=cfg.ga.mut_indpb)
 toolbox.register("select", deap.tools.selNSGA2)
-
 
 def main():
 	pop = toolbox.population(n=cfg.ga.pop)
@@ -205,10 +204,11 @@ def main():
 if __name__ == "__main__":	
 	print "Scores: " + ', '.join([o.type for o in cfg.objective])
 	pop, log, hof = main()
+	rank = box.write_individuals(hof, cfg.default.savepath, cfg.default.savename, evalCoord)
+	print 'Rank of results\n---------------\n\nFilename\tFitness'
+	for r in rank:
+		print "{}\t{}".format(*r)
+	print("\n\nCheck your results in {}".format(cfg.default.savepath))
+
+	#Display best individual
 	evalCoord(hof[0], close=False)
-	print("Best individual is: %s\nwith fitness: %s" % (hof[0], hof[0].fitness))
-	print("More possible solutions to assess:")
-	for h in hof[1:]:
-		print h, h.fitness
-	# for i, (ligand, br) in ligands.items():
-	# 	chimera.openModels.add([ligand])

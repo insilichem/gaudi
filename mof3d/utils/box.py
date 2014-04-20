@@ -78,6 +78,19 @@ def pseudobond_to_bond(molecule, remove=False):
 		pbm = molecule.pseudoBondMgr()
 		pbm.deletePseudoBondGroup(pbgroup)
 
+def write_individuals(inds, outpath, name, evalfn):
+	from WriteMol2 import writeMol2
+	if not os.path.isdir(outpath):
+		os.makedirs(outpath)
+	results = []
+	for i, ind in enumerate(inds):
+		ligand = evalfn(ind, close=False)
+		fullname = ''.join([outpath, name, str(i), '.mol2'])
+		writeMol2([ligand], fullname)
+		chimera.openModels.remove([ligand])
+		results.append([fullname, ind.fitness])
+	return results
+
 def sequential_bonds(atoms,s):
 	''' Returns bonds in `atoms` in sequential order, beginning at atom `s` '''
 	if s not in atoms: atoms.append(s)
