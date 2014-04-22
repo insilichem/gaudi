@@ -29,6 +29,9 @@ def evalCoord(ind, close=True, hidden=False):
 		chimera.openModels.add([ligand], shareXform=True, hidden=hidden)
 		box.pseudobond_to_bond(ligand)
 		for alpha, br in zip(ind['rotable_bonds'], bondrots):
+			# check amides!
+			if all([a.idatmType in ('C2', 'N2') for a in br.bond.atoms]):
+				alpha = 0. if alpha<180 else 180.
 			br.adjustAngle(alpha - br.angle, br.rotanchor)
 
 	ligand_env.clear()

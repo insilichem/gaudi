@@ -212,12 +212,11 @@ def _rotable_bonds(mol, sort=False):
 	if sort:
 		bonds = sorted(bonds, key=lambda x: min(y.serialNumber for y in x.atoms))
 	for b in bonds:
-		if any(	a.idatmType in ('C3', 'N3') and
+		if any(	a.idatmType in ('C3', 'N3', 'C2', 'N2') and
 				(all([b.otherAtom(a).numBonds > 1, a.numBonds > 1]) or
 				any([a.name == 'DUM', b.otherAtom(a).name == 'DUM'])) 
 				for a in b.atoms
 			):
-
 			try:
 				br = chimera.BondRot(b)
 			except (chimera.error, ValueError), v:
