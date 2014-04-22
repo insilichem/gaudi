@@ -131,10 +131,13 @@ def copy_atoms(atoms, bondto=None, join=False, keepattr=None, close=False):
 		res = _dummy_res('ligand')
 		mol = res.molecule
 		if join == 'dummy':
-			i += 1
 			built_atoms[bondto] = target = \
-				addAtom('DUM', chimera.Element('HE'), res,
-						bondto.coord(), bondedTo=None, serialNumber=i)
+				addAtom('DUM', bondto.element, res,
+						bondto.coord(), bondedTo=None, serialNumber=2)
+			built_atoms[bondto.neighbors[0]] = \
+				addAtom('DUM', bondto.neighbors[0].element, res,
+						bondto.neighbors[0].coord(), bondedTo=target, serialNumber=1)
+			i = 2
 	try:
 		sprouts = [ tmpl.cfg.atoms['anchor'] ] # start to grow from seed
 	except (AttributeError, KeyError):

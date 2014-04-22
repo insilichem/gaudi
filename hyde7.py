@@ -67,8 +67,12 @@ def evalCoord(ind, close=True, hidden=False):
 			score.append(len(hbonds))
 		
 		elif obj.type == 'contacts':
+			if cfg.ligand.type == 'blocks':
+				ligand_atoms = [a for a in ligand.atoms if a.serialNumber > 3]
+			else:
+				ligand_atoms = ligand.atoms
 			contacts, num_of_contacts, positive_vdw, negative_vdw =\
-				mof3d.score.chem.clashes(atoms=ligand.atoms, 
+				mof3d.score.chem.clashes(atoms=ligand_atoms, 
 										test=ligand_env.atoms(), 
 										intraRes=True, clashThreshold=obj.threshold, 
 										hbondAllowance=0.0, parse=True)
