@@ -204,8 +204,9 @@ def main():
 	stats.register("min", numpy.min, axis=0)
 	stats.register("max", numpy.max, axis=0)
 	pop, log = deap.algorithms.eaMuPlusLambda(pop, toolbox, 
-		mu = cfg.ga.mu, lambda_= cfg.ga.lambda_, cxpb=cfg.ga.cx_pb, 
-		mutpb=cfg.ga.mut_pb, ngen=cfg.ga.gens, stats=stats, halloffame=hof)
+		mu = int(cfg.ga.mu*cfg.ga.pop), lambda_= int(cfg.ga.lambda_*cfg.ga.pop), 
+		cxpb=cfg.ga.cx_pb, mutpb=cfg.ga.mut_pb, 
+		ngen=cfg.ga.gens, stats=stats, halloffame=hof)
 	return pop, log, hof
 
 if __name__ == "__main__":	
