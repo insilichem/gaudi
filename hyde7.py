@@ -137,17 +137,20 @@ cfg = mof3d.utils.parse.Settings(sys.argv[1])
 deap.creator.create("FitnessMax", deap.base.Fitness, weights=cfg.weights())
 deap.creator.create("Individual", dict, fitness=deap.creator.FitnessMax)
 
+# Open protein
 protein, = chimera.openModels.open(cfg.protein.path)
-ligand_env = chimera.selection.ItemizedSelection()
 
-if cfg.ligand.type == 'mol2':
-	ligand = chimera.openModels.open(cfg.ligand.path)
-	ligands = { id(ligand): ligand }
-elif cfg.ligand.type == 'blocks':
-	rotations = True if cfg.ligand.flexible else False
-	ligands = mof3d.molecule.library(cfg.ligand.path, 
-				bondto=box.atoms_by_serial(cfg.ligand.bondto, atoms=protein.atoms)[0],
-				rotations=rotations, join='dummy')
+# Set up ligands
+ligand_env = chimera.selection.ItemizedSelection()
+if cfg.ligand.bondto:
+	target = box.atoms_by_serial(cfg.ligand.bondto, atoms=protein.atoms)[0]
+	join = 'dummy'
+else: 
+	target = join = None
+
+rotations = True if cfg.ligand.flexible=='auto' else False
+ligands = mof3d.molecule.library(cfg.ligand.path,
+				bondto=target, rotations=rotations, join=join)
 
 # Operators and genes
 genes = []

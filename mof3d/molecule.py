@@ -12,13 +12,17 @@ import os
 #custom
 import move, utils
 
-def library(folder, bondto=None, join=False, rotations=False):
-
+def library(path, bondto=None, join=False, rotations=False):
 	default_bondto, default_join = bondto, join
-	folders = sorted([ os.path.join(folder, d) for d in os.listdir(folder) 
-				if os.path.isdir(os.path.join(folder,d)) and not d.startswith('.') ])
+	if os.path.isdir(path):
+		folders = sorted([ os.path.join(path, d) for d in os.listdir(path)
+					if os.path.isdir(os.path.join(path,d)) and not d.startswith('.') ])
+		explore = product(*[utils.box.files_in(f, ext='mol2') for f in folders])
+	elif path.endswith('.mol2'):
+		explore = [[path]]
+
 	library, new = {}, []
-	for x in product(*[utils.box.files_in(f, ext='mol2') for f in folders]):
+	for x in explore:
 		# Build ligands
 		bondto, join = default_bondto, default_join
 		for mol in x:
