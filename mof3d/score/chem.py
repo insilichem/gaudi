@@ -47,7 +47,7 @@ def clashes(atoms, test='others', clashThreshold=0.6,
 			pos, neg = _parse_clashes(clashes, atoms[0].molecule)
 			return clashes, num_of_clashes/2, pos, neg
 	#else
-	return clashes, num_of_clashes/2
+	return clashes, num_of_clashes/2, [], []
 
 def draw_clashes(clashes, startCol='FF0000', endCol='FFFF00', 
 		key=2, name="Custom pseudobonds"):
