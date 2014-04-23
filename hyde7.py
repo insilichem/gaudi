@@ -94,8 +94,8 @@ def evalCoord(ind, close=True, hidden=False):
 		
 		elif obj.type == 'distance':
 			probes = box.atoms_by_serial(*obj.probes, atoms=ligand.atoms)
-			target, = box.atoms_by_serial(obj.target, atoms=protein.atoms)
-			dist = mof3d.score.target.distance(probes, target, obj.threshold, \
+			dist_target, = box.atoms_by_serial(obj.target, atoms=protein.atoms)
+			dist = mof3d.score.target.distance(probes, dist_target, obj.threshold, \
 				wall=obj.wall)
 			score.append(dist)
 	if close:
