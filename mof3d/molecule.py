@@ -35,9 +35,10 @@ def library(path, bondto=None, join=False, rotations=False):
 			for b, br in _rotable_bonds(new, sort=True):
 				br.rotanchor = utils.box.find_nearest(rotanchor, b.atoms)
 				bondrots.append(br)
-			library[id(new)] = [new, bondrots]
+			library[id(new)] = new, bondrots
 		else:
-			library[id(new)] = [new]
+			library[id(new)] = new, None
+		new.initxform = chimera.Xform.coordFrame(*new.openState.xform.getCoordFrame())
 		chimera.openModels.remove([new])
 	return library
 

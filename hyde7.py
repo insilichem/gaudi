@@ -20,14 +20,10 @@ from mof3d.utils import box
 
 def evalCoord(ind, close=True, hidden=False):
 
-	if 'rotable_bonds' not in ind:
-		ligand = ligands[ind['ligand']]
-		chimera.openModels.add([ligand], shareXform=True, hidden=hidden)
-		box.pseudobond_to_bond(ligand)
-	else: # rotate
-		ligand, bondrots = ligands[ind['ligand']]
-		chimera.openModels.add([ligand], shareXform=True, hidden=hidden)
-		box.pseudobond_to_bond(ligand)
+	ligand, bondrots = ligands[ind['ligand']]
+	chimera.openModels.add([ligand], shareXform=True, hidden=hidden)
+	box.pseudobond_to_bond(ligand)
+	if 'rotable_bonds' in ind:
 		for alpha, br in zip(ind['rotable_bonds'], bondrots):
 			# check amides!
 			if all([a.idatmType in ('C2', 'N2') for a in br.bond.atoms]):
