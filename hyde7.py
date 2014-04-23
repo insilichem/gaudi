@@ -15,7 +15,7 @@ from deap import creator, tools, base, algorithms
 # Custom
 import mof3d
 from mof3d.utils import box
-reload(mof3d)
+
 ### CUSTOM FUNCTIONS
 
 def evalCoord(ind, close=True, hidden=False):
