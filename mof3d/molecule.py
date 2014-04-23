@@ -52,58 +52,62 @@ def place(mol2, target=None, join=True, p2b=True, inplace=True, geom=None):
 	
 	# Place it nicely
 	if inplace:
-		if not target: raise
 		anchor = tmpl.cfg.atoms['anchor']
-		axis_start, axis_end = tmpl.cfg.atoms['axis_start'], tmpl.cfg.atoms['axis_end']
+		if isinstance(target, chimera.Point):
+			move.translate(tmpl, anchor, target)
+		else: #is atom
+			axis_start, axis_end = tmpl.cfg.atoms['axis_start'],tmpl.cfg.atoms['axis_end']
 
-		#discard H atom and set actual target
-		if target.element.number == 1:
-			targetH, target = target, target.neighbors[0]
-		else: #add new H based on target atom geometry
-			try:
-				geometry = chimera.idatm.typeInfo[target.idatmType].geometry
-			except KeyError:
-				print "Warning, had to accept arbitrary geometry with {}, {}, {}".format(target, geometry)
-				geometry = 3
-			try:
-				target, targetH = BuildStructure.changeAtom(
-									target, target.element, geometry, 
-									target.numBonds + 1)[:2]
-			except ValueError: #unpacking error; pick any terminal atom available
-				print "Warning, arbitrary terminal atom with {}, {}, {}".format(target, geometry, target.numBonds)
-				targetH = next(a for a in target.neighbors if a.numBonds == 1)
-				
-		# fix bond length
-		dv = targetH.coord() - target.coord()
-		dv.length = chimera.Element.bondLength(anchor.element, target.element)
-		diff = dv - (targetH.coord() - target.coord())
-		targetH.setCoord(targetH.coord() + diff)
-		H_coord = targetH.coord()
-		target.molecule.deleteAtom(targetH)	
-		# align target+anchor
-		move.translate(tmpl, anchor, H_coord)
-		
-		if geom:
-			for atoms, alpha in geom.items():
-				new_atoms = []
-				for i, a in enumerate(atoms): #parse atoms
-					if isinstance(a, chimera.Atom):
-						continue
-					elif a == 'post':
-						new_atoms.append(anchor.neighbors[0])
-					elif a == 'anchor':
-						new_atoms.append(anchor)
-					elif a == 'target':
-						new_atoms.append(target)
-					elif a == 'pre':
-						new_atoms.append(next(a for a in target.neighbors if a.element.number!=1))
-					elif a == 'axis':
-						new_atoms.extend([axis_start, axis_end])
-					elif isinstance(a, str):
-						raise chimera.UserError("Atom descriptor {} not supported".format(a))
-				del geom[atoms]
-				geom[tuple(new_atoms)] = alpha
-				move.rotate(tmpl, new_atoms, alpha)
+			#discard H atom and set actual target
+			if target.element.number == 1:
+				targetH, target = target, target.neighbors[0]
+			else: #add new H based on target atom geometry
+				try:
+					geometry = chimera.idatm.typeInfo[target.idatmType].geometry
+				except KeyError:
+					print "Warning, arbitrary geometry with {}, {}, {}".format(
+															target, geometry)
+					geometry = 3
+				try:
+					target, targetH = BuildStructure.changeAtom(
+										target, target.element, geometry, 
+										target.numBonds + 1)[:2]
+				except ValueError: #unpacking error; pick any terminal atom available
+					print "Warning, arbitrary terminal atom with {}, {}, {}".format(
+												target, geometry, target.numBonds)
+					targetH = next(a for a in target.neighbors if a.numBonds == 1)
+					
+			# fix bond length
+			dv = targetH.coord() - target.coord()
+			dv.length = chimera.Element.bondLength(anchor.element, target.element)
+			diff = dv - (targetH.coord() - target.coord())
+			targetH.setCoord(targetH.coord() + diff)
+			H_coord = targetH.coord()
+			target.molecule.deleteAtom(targetH)	
+			# align target+anchor
+			move.translate(tmpl, anchor, H_coord)
+			
+			if geom:
+				for atoms, alpha in geom.items():
+					new_atoms = []
+					for i, a in enumerate(atoms): #parse atoms
+						if isinstance(a, chimera.Atom):
+							continue
+						elif a == 'post':
+							new_atoms.append(anchor.neighbors[0])
+						elif a == 'anchor':
+							new_atoms.append(anchor)
+						elif a == 'target':
+							new_atoms.append(target)
+						elif a == 'pre':
+							new_atoms.append(next(a for a in target.neighbors if a.element.number!=1))
+						elif a == 'axis':
+							new_atoms.extend([axis_start, axis_end])
+						elif isinstance(a, str):
+							raise chimera.UserError("Atom descriptor {} not supported".format(a))
+					del geom[atoms]
+					geom[tuple(new_atoms)] = alpha
+					move.rotate(tmpl, new_atoms, alpha)
 
 	if join: # the only way is to create a copy
 		return copy_atoms(tmpl.atoms, bondto=target, join=join, keepattr='cfg', close=True)
@@ -202,6 +206,16 @@ def _add_attr(attr_file, mol):
 	for k, v in cfg.parsed['atoms'].items():
 		cfg.parsed['atoms'][k], = utils.box.atoms_by_serial(v, atoms=mol.atoms)
 	setattr(mol, 'cfg', utils.parse.Settings.Param(cfg.parsed))
+
+def _center_of_mass(mol):
+	# COM = (1/total_mass)*sum(mass_i*coord_i)
+	sum_, center = 0, 0
+	for a in mol.atoms:
+		sum_ += a.element.mass
+		center += a.element.mass * chimera.Vector(*a.coord().data())
+	mol.com = sum_/center
+	return mol.com
+
 
 def _dummy_res(name, atom=None):
 	m = chimera.Molecule()

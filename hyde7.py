@@ -30,12 +30,20 @@ def evalCoord(ind, close=True, hidden=False):
 				alpha = 0. if alpha<180 else 180.
 			br.adjustAngle(alpha - br.angle, br.rotanchor)
 
+	if 'xform' in ind:
+		from PDBmatrices.matrices import chimera_xform
+		print ind['xform']
+		ligand.openState.xform = ligand.initxform
+		ligand.openState.localXform(chimera_xform(ind['xform']))
+		print "MOVE"
+		# FIXXXXXXX! 
+		# mof3d.move.shift(ligand, origin, cfg.protein.radius, )
+
 	ligand_env.clear()
 	ligand_env.add(ligand.atoms)
 	ligand_env.merge(chimera.selection.REPLACE, 
-					chimera.specifier.zone( ligand_env, 'atom', None, 15.0, 
+					chimera.specifier.zone( ligand_env, 'atom', None, 30.0, 
 											[protein,ligand]))
-
 	if 'rotamers' in ind:
 		if 'mutamers' in ind:
 			aas = [ AA[i] for i in ind['mutamers'] ]
@@ -59,7 +67,6 @@ def evalCoord(ind, close=True, hidden=False):
 			hbonds = mof3d.score.chem.hbonds(
 						[protein, ligand], cache=False, test=ligand_env.atoms(),
 						sel=[ a for a in ligand.atoms if a not in ("C", "CA", "N", "O") ])
-
 			score.append(len(hbonds))
 		
 		elif obj.type == 'contacts':
@@ -67,7 +74,7 @@ def evalCoord(ind, close=True, hidden=False):
 				ligand_atoms = [a for a in ligand.atoms if a.serialNumber > 3]
 			else:
 				ligand_atoms = ligand.atoms
-			contacts, num_of_contacts, positive_vdw, negative_vdw =\
+			contacts, num_of_contacts, positive_vdw, negative_vdw = \
 				mof3d.score.chem.clashes(atoms=ligand_atoms, 
 										test=ligand_env.atoms(), 
 										intraRes=True, clashThreshold=obj.threshold, 
@@ -98,23 +105,21 @@ def evalCoord(ind, close=True, hidden=False):
 
 def hetCrossover(ind1, ind2):
 	for key in ind1:
-		if key == 'molecule': 
-			continue
-		elif key == 'rotable_bonds':
+		if key == 'rotable_bonds':
 			ind1[key][:], ind2[key][:] = deap.tools.cxSimulatedBinaryBounded(
 				ind1[key], ind2[key], eta=10., low=0., up=360.)
 		elif key == 'mutamers':
 			ind1[key], ind2[key] = deap.tools.cxTwoPoint(ind1[key], ind2[key])
 		elif key == 'rotamers':
 			ind1[key], ind2[key] = deap.tools.cxTwoPoint(ind1[key], ind2[key])
+		elif key == 'xform':
+			continue
 	
 	return ind1, ind2
 
 def hetMutation(ind, indpb,):
 	for key in ind:
-		if key == 'molecule': 
-			continue
-		elif key == 'rotable_bonds':
+		if key == 'rotable_bonds':
 			ind[key] = deap.tools.mutPolynomialBounded(ind[key], 
 				eta=10., low=0., up=360., indpb=indpb)[0]
 		elif key == 'mutamers':
@@ -123,7 +128,9 @@ def hetMutation(ind, indpb,):
 		elif key == 'rotamers':
 			ind[key] = deap.tools.mutUniformInt(ind[key], 
 				low=0, up=8, indpb=indpb)[0]
-	
+		elif key == 'xform':
+			continue
+
 	return ind,
 
 ##/ FUNCTIONS
@@ -138,12 +145,16 @@ protein, = chimera.openModels.open(cfg.protein.path)
 
 # Set up ligands
 ligand_env = chimera.selection.ItemizedSelection()
-if cfg.ligand.bondto:
-	target = box.atoms_by_serial(cfg.ligand.bondto, atoms=protein.atoms)[0]
-	join = 'dummy'
-else: 
-	target = join = None
+if not hasattr(cfg.ligand, 'bondto') or not cfg.ligand.bondto:
+	target = origin = box.atoms_by_serial(cfg.protein.origin, atoms=protein.atoms)[0].coord()
+	search3D = True
+	join = False
 
+else:
+	target = box.atoms_by_serial(cfg.ligand.bondto, atoms=protein.atoms)[0]
+	search3D = False
+	join = 'dummy'
+	
 rotations = True if cfg.ligand.flexible=='auto' else False
 ligands = mof3d.molecule.library(cfg.ligand.path,
 				bondto=target, rotations=rotations, join=join)
@@ -154,14 +165,14 @@ toolbox = deap.base.Toolbox()
 toolbox.register("ligand", random.choice, ligands.keys())
 genes.append(toolbox.ligand)
 
+if search3D:
+	toolbox.register("xform", mof3d.move.rand_xform, ligands[toolbox.ligand()], origin, cfg.protein.radius)
+	genes.append(toolbox.xform)
 if hasattr(cfg.ligand, 'rotable') or (hasattr(cfg.ligand, 'bondto') and cfg.ligand.bondto):
 	toolbox.register("rand_angle", random.uniform, 0, 360)
 	toolbox.register("rotable_bonds", deap.tools.initRepeat, list,
 						toolbox.rand_angle, n=20)
 	genes.append(toolbox.rotable_bonds) 
-
-if not hasattr(cfg.ligand, 'bondto') or not cfg.ligand.bondto:
-	pass #activate 3D global search
 
 if hasattr(cfg, 'rotamers'):
 	residues = [ r for r in protein.residues if r.id.position in cfg.rotamers.residues ]
