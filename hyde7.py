@@ -9,6 +9,7 @@
 
 # Chimera
 import chimera, Rotamers, SwapRes
+from PDBmatrices.matrices import chimera_xform
 # Python
 import random, numpy, deap, sys
 from deap import creator, tools, base, algorithms
@@ -31,11 +32,8 @@ def evalCoord(ind, close=True, hidden=False):
 			br.adjustAngle(alpha - br.angle, br.rotanchor)
 
 	if 'xform' in ind:
-		from PDBmatrices.matrices import chimera_xform
-		print ind['xform']
 		ligand.openState.xform = ligand.initxform
 		ligand.openState.localXform(chimera_xform(ind['xform']))
-		print "MOVE"
 		# FIXXXXXXX! 
 		# mof3d.move.shift(ligand, origin, cfg.protein.radius, )
 
@@ -110,10 +108,8 @@ def hetCrossover(ind1, ind2):
 				ind1[key], ind2[key], eta=10., low=0., up=360.)
 		elif key == 'mutamers':
 			ind1[key], ind2[key] = deap.tools.cxTwoPoint(ind1[key], ind2[key])
-		elif key == 'rotamers':
-			ind1[key], ind2[key] = deap.tools.cxTwoPoint(ind1[key], ind2[key])
-		elif key == 'xform':
-			continue
+		# elif key == 'xform':
+		# 	continue
 	
 	return ind1, ind2
 
@@ -128,8 +124,9 @@ def hetMutation(ind, indpb,):
 		elif key == 'rotamers':
 			ind[key] = deap.tools.mutUniformInt(ind[key], 
 				low=0, up=8, indpb=indpb)[0]
-		elif key == 'xform':
-			continue
+		elif key == 'xform' and random.random() < indpb:
+			# Careful! Mutation generates a whole NEW position (similar to eta ~= 0)
+			ind[key] = mof3d.move.rand_xform(ind['ligand'], origin, cfg.protein.radius)
 
 	return ind,
 
@@ -166,9 +163,12 @@ toolbox.register("ligand", random.choice, ligands.keys())
 genes.append(toolbox.ligand)
 
 if search3D:
-	toolbox.register("xform", mof3d.move.rand_xform, ligands[toolbox.ligand()], origin, cfg.protein.radius)
+	toolbox.register("xform", mof3d.move.rand_xform,
+					ligands[toolbox.ligand()], origin, cfg.protein.radius)
 	genes.append(toolbox.xform)
-if hasattr(cfg.ligand, 'rotable') or (hasattr(cfg.ligand, 'bondto') and cfg.ligand.bondto):
+
+if hasattr(cfg.ligand, 'flexible') or \
+									(hasattr(cfg.ligand, 'bondto') and cfg.ligand.bondto):
 	toolbox.register("rand_angle", random.uniform, 0, 360)
 	toolbox.register("rotable_bonds", deap.tools.initRepeat, list,
 						toolbox.rand_angle, n=20)
