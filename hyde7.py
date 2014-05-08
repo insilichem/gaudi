@@ -19,7 +19,7 @@ from mof3d.utils import box
 
 ### CUSTOM FUNCTIONS
 
-def evalCoord(ind, close=True, hidden=False):
+def evaluate(ind, close=True, hidden=False, draw=False):
 
 	ligand, bondrots = ligands[ind['ligand']]
 	chimera.openModels.add([ligand], shareXform=True, hidden=hidden)
@@ -93,27 +93,28 @@ def evalCoord(ind, close=True, hidden=False):
 		elif obj.type == 'distance':
 			probes = box.atoms_by_serial(*obj.probes, atoms=ligand.atoms)
 			dist_target, = box.atoms_by_serial(obj.target, atoms=protein.atoms)
-			dist = mof3d.score.target.distance(probes, dist_target, obj.threshold, \
-				wall=obj.wall)
+			dist = mof3d.score.target.distance(probes, dist_target, obj.threshold, 
+						wall=obj.wall)
 			score.append(dist)
+
 	if close:
 		chimera.openModels.remove([ligand])
 		return score
 	return ligand
 
-def hetCrossover(ind1, ind2):
+def het_crossover(ind1, ind2):
 	for key in ind1:
 		if key == 'rotable_bonds':
 			ind1[key][:], ind2[key][:] = deap.tools.cxSimulatedBinaryBounded(
-				ind1[key], ind2[key], eta=10., low=0., up=360.)
-		elif key == 'mutamers':
+				ind1[key], ind2[key], eta=cfg.ga.cx_eta, low=0., up=360.)
+		elif key in ('mutamers', 'rotamers'):
 			ind1[key], ind2[key] = deap.tools.cxTwoPoint(ind1[key], ind2[key])
 		# elif key == 'xform':
 		# 	continue
 	
 	return ind1, ind2
 
-def hetMutation(ind, indpb,):
+def het_mutation(ind, indpb):
 	for key in ind:
 		if key == 'rotable_bonds':
 			ind[key] = deap.tools.mutPolynomialBounded(ind[key], 
@@ -178,7 +179,7 @@ if hasattr(cfg, 'rotamers'):
 	residues = [ r for r in protein.residues if r.id.position in cfg.rotamers.residues ]
 	toolbox.register("rand_rotamer", random.randint, 0, cfg.rotamers.top-1)
 	toolbox.register("rotamers", deap.tools.initRepeat, list,
-					toolbox.rand_rotamer, n=len(cfg.rotamers.residues))
+						toolbox.rand_rotamer, n=len(cfg.rotamers.residues))
 	genes.append(toolbox.rotamers)
 	if cfg.rotamers.mutate == "all" or isinstance(cfg.rotamers.mutate, list):
 		AA = ['ALA', 'ARG', 'ASN', 'ASP', 'CYS', 'GLU', 'GLN',
@@ -188,7 +189,7 @@ if hasattr(cfg, 'rotamers'):
 			AA = [ AA[i-1] for i in cfg.rotamers.mutate if i<=20 ]
 		toolbox.register("rand_aa", random.randint, 0, len(AA)-1)
 		toolbox.register("mutamers", deap.tools.initRepeat, list,
-						toolbox.rand_aa, n=len(cfg.rotamers.residues))
+							toolbox.rand_aa, n=len(cfg.rotamers.residues))
 		genes.append(toolbox.mutamers)
 
 toolbox.register("toDict", 
@@ -222,11 +223,11 @@ def main():
 if __name__ == "__main__":	
 	print "Scores: " + ', '.join([o.type for o in cfg.objective])
 	pop, log, hof = main()
-	rank = box.write_individuals(hof, cfg.default.savepath, cfg.default.savename, evalCoord)
-	print 'Rank of results\n---------------\n\nFilename\tFitness'
+	rank = box.write_individuals(hof, cfg.default.savepath,	cfg.default.savename, evaluate)
+	print '\nRank of results\n---------------\nFilename\tFitness'
 	for r in rank:
 		print "{}\t{}".format(*r)
-	print("\n\nCheck your results in {}".format(cfg.default.savepath))
+	print("\nCheck your results in {}".format(cfg.default.savepath))
 
 	#Display best individual
-	evalCoord(hof[0], close=False)
+	evaluate(hof[0], close=False, draw=True)
