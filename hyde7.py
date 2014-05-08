@@ -175,8 +175,8 @@ if search3D:
 					ligands[toolbox.ligand()], origin, cfg.protein.radius)
 	genes.append(toolbox.xform)
 
-if hasattr(cfg.ligand, 'flexible') or \
-									(hasattr(cfg.ligand, 'bondto') and cfg.ligand.bondto):
+if (hasattr(cfg.ligand, 'flexible') and cfg.ligand.flexible == 'auto') or \
+	 (hasattr(cfg.ligand, 'bondto') and cfg.ligand.bondto):
 	toolbox.register("rand_angle", random.uniform, 0, 360)
 	toolbox.register("rotable_bonds", deap.tools.initRepeat, list,
 						toolbox.rand_angle, n=20)
