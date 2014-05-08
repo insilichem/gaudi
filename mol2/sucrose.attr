@@ -1,30 +1,8 @@
-# Attributes for molecule
-# As of now, it defines the axis the bond should follow
-attribute: anchor
-match mode: any
-recipient: atoms
-none handling: string
-# list of atoms imported from mol2
-	@O1	0
-	@O2	0
-	@O3	0
-	@O4	0
-	@O5	0
-	@O6	0
-	@O7	0
-	@O8	0
-	@O9	0
-	@O10	0
-	@O11	0
-	@C1	2
-	@C2	0
-	@C3	0
-	@C4	1
-	@C5	0
-	@C6	0
-	@C7	0
-	@C8	0
-	@C9	0
-	@C10	0
-	@C11	0
-	@C12	0
+[atoms]
+anchor = 4
+target = 10
+axis_start = 4
+axis_end = 10
+
+[angles]
+target, anchor, post = 109.5
