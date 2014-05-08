@@ -28,27 +28,28 @@ class Settings(object):
 			s = None
 			parsed = {}
 			for line in config.readlines():
-				line = line.strip()
+				line = line.split('#',1)[0].strip()
 				if line == '' or line.startswith('#'):
 					continue
 				elif line.startswith('[') and line.endswith(']'):
 					s = line.strip('[]')
 					if s in parsed and isinstance(parsed[s], list):
-						parsed[s].append(dict())
+						parsed[s].append({})
 					elif s in parsed and isinstance(parsed[s], dict):
 						parsed[s] = [ parsed[s] ]
 						parsed[s].append({})
+					elif s not in parsed and s == 'objective':
+						parsed[s] = [{}]
 					else:
 						parsed[s] = {}
 				elif '=' in line:
-					line = line.split('#',1)[0]
 					k, v = [ _.strip() for _ in line.split('=',1) ]
-					if ', ' in v:
-						v = [ self._num(x) for x in v.split(', ')]
+					if ',' in v:
+						v = [ self._num(x) for x in v.split(',') if x ]
 					else:
 						v = self._num(v)
-					if ', ' in k:
-						k = tuple(self._num(x) for x in k.split(', '))
+					if ',' in k:
+						k = tuple(self._num(x) for x in k.split(',') if x)
 					else:
 						k = self._num(k)
 
