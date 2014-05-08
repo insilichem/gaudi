@@ -34,31 +34,30 @@ def evaluate(ind, close=True, hidden=False, draw=False):
 	if 'xform' in ind:
 		ligand.openState.xform = ligand.initxform
 		ligand.openState.localXform(chimera_xform(ind['xform']))
-		# FIXXXXXXX! 
+		# FIXXXXXXX!
 		# mof3d.move.shift(ligand, origin, cfg.protein.radius, )
 
-	ligand_env.clear()
-	ligand_env.add(ligand.atoms)
-	ligand_env.merge(chimera.selection.REPLACE, 
-					chimera.specifier.zone( ligand_env, 'atom', None, 30.0, 
-											[protein,ligand]))
 	if 'rotamers' in ind:
 		if 'mutamers' in ind:
 			aas = [ AA[i] for i in ind['mutamers'] ]
 		else:
 			aas = [ r.type for r in residues ]
-		
 		for res, rot, mut in map(None, residues, ind['rotamers'], aas):
-			try: 
-				rotamers = Rotamers.getRotamers(res, resType=mut, 
+			try:
+				rotamers = Rotamers.getRotamers(res, resType=mut,
 												lib=cfg.rotamers.library.title())[1]
 				Rotamers.useRotamer(residues[i],[rotamers[rot]])
 			except Rotamers.NoResidueRotamersError: # ALA, GLY...
 				if 'mutamers' in ind:
-					SwapRes.swap(residues[i], AA[mut], bfactor=None)
-			except IndexError:
-				Rotamers.useRotamer(residues[i],rotamers[-1:])
+					SwapRes.swap(res, mut, bfactor=None)
+			except IndexError: #use last available
+				Rotamers.useRotamer(res,rotamers[-1:])
 
+	ligand_env.clear()
+	ligand_env.add(ligand.atoms)
+	ligand_env.merge(chimera.selection.REPLACE,
+					chimera.specifier.zone( ligand_env, 'atom', None, 25.0,
+											[protein,ligand]))
 	score = []
 	for obj in cfg.objective:
 		if obj.type == 'hbonds':
