@@ -133,6 +133,10 @@ def het_mutation(ind, indpb):
 
 	return ind,
 
+def similarity(a, b):
+	if a['xform'] == b['xform']: return True
+	else: return False
+
 ##/ FUNCTIONS
 
 ## Initialize workspace
@@ -202,15 +206,15 @@ toolbox.register("individual", toolbox.toDict, deap.creator.Individual, *genes)
 toolbox.register("population", deap.tools.initRepeat, list, toolbox.individual)
 
 # Aliases for algorithm
-toolbox.register("evaluate", evalCoord)
-toolbox.register("mate", hetCrossover)
-toolbox.register("mutate", hetMutation, indpb=cfg.ga.mut_indpb)
+toolbox.register("evaluate", evaluate)
+toolbox.register("mate", het_crossover)
+toolbox.register("mutate", het_mutation, indpb=cfg.ga.mut_indpb)
 toolbox.register("select", deap.tools.selNSGA2)
 
 def main():
 	pop = toolbox.population(n=cfg.ga.pop)
-	hof = deap.tools.ParetoFront() if cfg.ga.pareto \
-			else deap.tools.HallOfFame(cfg.default.results)
+	hof = deap.tools.ParetoFront(similarity) if cfg.ga.pareto \
+			else deap.tools.HallOfFame(cfg.default.results, similarity)
 	stats = deap.tools.Statistics(lambda ind: ind.fitness.values)
 	numpy.set_printoptions(precision=cfg.default.precision)
 	stats.register("avg", numpy.mean, axis=0)
