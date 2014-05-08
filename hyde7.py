@@ -111,9 +111,10 @@ def het_crossover(ind1, ind2):
 				ind1[key], ind2[key], eta=cfg.ga.cx_eta, low=0., up=360.)
 		elif key in ('mutamers', 'rotamers'):
 			ind1[key], ind2[key] = deap.tools.cxTwoPoint(ind1[key], ind2[key])
-		# elif key == 'xform':
-		# 	continue
-	
+		elif key == 'xform': # swap rotation and translation
+			for i, (r1, r2) in enumerate(zip(ind1[key], ind2[key])):
+				ind1[key][i], ind2[key][i] = r1[:3]+r2[3:], r2[:3]+r1[3:]
+
 	return ind1, ind2
 
 def het_mutation(ind, indpb):
