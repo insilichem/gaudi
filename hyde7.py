@@ -120,7 +120,7 @@ def het_mutation(ind, indpb):
 	for key in ind:
 		if key == 'rotable_bonds':
 			ind[key] = deap.tools.mutPolynomialBounded(ind[key], 
-				eta=10., low=0., up=360., indpb=indpb)[0]
+				eta=cfg.ga.mut_eta, low=0., up=360., indpb=indpb)[0]
 		elif key == 'mutamers':
 			ind[key] = deap.tools.mutUniformInt(ind[key], 
 				low=0, up=len(residues)-1, indpb=indpb)[0]
