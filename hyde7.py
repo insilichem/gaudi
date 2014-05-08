@@ -81,15 +81,7 @@ def evaluate(ind, close=True, hidden=False, draw=False):
 				score.append(sum(abs(a[3]) for a in negative_vdw)/2)
 			elif obj.which == 'hydrophobic':
 				score.append(sum(1-a[3] for a in positive_vdw)/2)
-			
-			if not close:
-				if obj.type == 'contacts' and positive_vdw: 
-					mof3d.score.chem.draw_clashes(positive_vdw, startCol=obj.color[0],
-						endCol=obj.color[1], key=3, name="Hydrophobic interactions")
-				if obj.type == 'clashes' and negative_vdw:
-					mof3d.score.chem.draw_clashes(negative_vdw, startCol=obj.color[0], 
-						endCol=obj.color[1], key=3, name="Clashes")
-		
+
 		elif obj.type == 'distance':
 			probes = box.atoms_by_serial(*obj.probes, atoms=ligand.atoms)
 			dist_target, = box.atoms_by_serial(obj.target, atoms=protein.atoms)
@@ -100,6 +92,16 @@ def evaluate(ind, close=True, hidden=False, draw=False):
 	if close:
 		chimera.openModels.remove([ligand])
 		return score
+	if draw:
+		if 'positive_vdw' in locals() and positive_vdw: 
+			mof3d.score.chem.draw_interactions(positive_vdw, startCol='00FF00',
+				endCol='FFFF00', key=3, name="Hydrophobic interactions")
+		if 'negative_vdw' in locals() and negative_vdw:
+			mof3d.score.chem.draw_interactions(negative_vdw, startCol='FF0000', 
+				endCol='FF0000', key=3, name="Clashes")
+		if 'hbonds' in locals() and hbonds:
+			mof3d.score.chem.draw_interactions(hbonds, startCol='00FFFF', 
+				endCol='00FFFF', name="H Bonds")
 	return ligand
 
 def het_crossover(ind1, ind2):

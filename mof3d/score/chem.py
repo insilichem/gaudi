@@ -32,7 +32,7 @@ def hbonds(model=None, sel=None, selRestrict=True,cache=False, test=None):
 def clashes(atoms, test='others', clashThreshold=0.6,
 		hbondAllowance=0.4, assumedMaxVdw=2.1,
 		bondSeparation=4, intraRes=True, interSubmodel=True,
-		parse=False):
+		parse=False, parse_threshold=0.4):
 	#calculate clashes
 
 	clashes = DetectClash.detectClash(atoms, test=test, intraRes=intraRes,
@@ -44,24 +44,25 @@ def clashes(atoms, test='others', clashThreshold=0.6,
 		for clashList in clashes.values():
 			num_of_clashes += len(clashList)
 		if parse:
-			pos, neg = _parse_clashes(clashes, atoms[0].molecule)
+			pos, neg = _parse_clashes(clashes, atoms[0].molecule, parse_threshold)
 			return clashes, num_of_clashes/2, pos, neg
 	#else
 	return clashes, num_of_clashes/2, [], []
 
-def draw_clashes(clashes, startCol='FF0000', endCol='FFFF00', 
-		key=2, name="Custom pseudobonds"):
+def draw_interactions(interactions, startCol='FF0000', endCol='FFFF00',
+		key=None, name="Custom pseudobonds"):
 	pb = chimera.misc.getPseudoBondGroup(name)
-	max_ = max(abs(_[3]) for _ in clashes)
-	color = (0.5,0.5,0.5,1.0)
-	for c in clashes:
-		npb = pb.newPseudoBond(c[0], c[1])
-		intensity = (max_ - abs(c[key]))/(max_)
-		opacity = 1-0.7*intensity
-		if startCol != endCol:
-			color = _linear_color(intensity, startCol, endCol)+[opacity]
-		else:
-			color = _hex_to_rgb(startCol)+[opacity]
+	color = _hex_to_rgb(startCol)+[1.0]
+	if key != None:	max_ = max(abs(_[3]) for _ in interactions)
+	for i in interactions:
+		npb = pb.newPseudoBond(i[0], i[1])
+		if key != None:
+			intensity = (max_ - abs(i[key]))/(max_)
+			opacity = 1-0.7*intensity
+			if startCol != endCol:
+				color = _linear_color(intensity, startCol, endCol)+[opacity]
+			else:
+				color = _hex_to_rgb(startCol)+[opacity]
 		npb.color = chimera.MaterialColor(*color)
 
 ## Internal use
@@ -82,7 +83,7 @@ def _lennard_jones(a1, a2):
 	x = zero/dist
 	return (x**12 - 2*x**6)
 
-def _parse_clashes(clashes, mol):
+def _parse_clashes(clashes, mol, threshold):
 	AROMATIC = set(a for g in cg.findGroup("aromatic ring", [mol]) for a in g)
 	ALIPHATIC = set(a for g in cg.findGroup(ALIPH, [mol]) \
 					for a in g if a not in AROMATIC)
@@ -90,14 +91,14 @@ def _parse_clashes(clashes, mol):
 	positive, negative = [], []
 	for a1, c in clashes.items():
 		for a2, dist in c.items():
-			if dist <= 0.4 and a1.residue != a2.residue:
+			if dist <= threshold and a1.residue != a2.residue:
 				if a1 in AROMATIC and a2 in AROMATIC:
 					positive.append([a1, a2, dist, _lennard_jones(a1, a2)])
 				elif a1 in AROMATIC and a2 in ALIPHATIC:
 					positive.append([a1, a2, dist, _lennard_jones(a1, a2)])
 				elif a1 in ALIPHATIC and a2 in AROMATIC:
 					positive.append([a1, a2, dist, _lennard_jones(a1, a2)])
-			elif dist > 0.4:
+			elif dist > threshold:
 				negative.append([a1, a2, dist, _vdw_vol_overlap(a1,a2)])
 
 	return positive, negative
