@@ -32,10 +32,9 @@ def evaluate(ind, close=True, hidden=False, draw=False):
 			br.adjustAngle(alpha - br.angle, br.rotanchor)
 
 	if 'xform' in ind:
-		ligand.openState.xform = ligand.initxform
-		ligand.openState.localXform(chimera_xform(ind['xform']))
-		# FIXXXXXXX!
-		# mof3d.move.shift(ligand, origin, cfg.protein.radius, )
+		ligand.openState.xform = chimera_xform(ligand.initxform)
+		newxform = chimera_xform(ind['xform'])
+		ligand.openState.localXform(newxform.inverse())
 
 	if 'rotamers' in ind:
 		if 'mutamers' in ind:
@@ -129,7 +128,9 @@ def het_mutation(ind, indpb):
 				low=0, up=8, indpb=indpb)[0]
 		elif key == 'xform' and random.random() < indpb:
 			# Careful! Mutation generates a whole NEW position (similar to eta ~= 0)
-			ind[key] = mof3d.move.rand_xform(ind['ligand'], origin, cfg.protein.radius)
+			ind[key] = mof3d.move.rand_xform(ligands[ind['ligand']][0], 
+												origin, cfg.protein.radius)
+
 
 	return ind,
 
@@ -150,7 +151,7 @@ protein, = chimera.openModels.open(cfg.protein.path)
 # Set up ligands
 ligand_env = chimera.selection.ItemizedSelection()
 if not hasattr(cfg.ligand, 'bondto') or not cfg.ligand.bondto:
-	target = origin = box.atoms_by_serial(cfg.protein.origin, atoms=protein.atoms)[0].coord()
+	target = origin = box.atoms_by_serial(cfg.protein.origin, atoms=protein.atoms)[0].xformCoord()
 	search3D = True
 	join = False
 
@@ -171,7 +172,7 @@ genes.append(toolbox.ligand)
 
 if search3D:
 	toolbox.register("xform", mof3d.move.rand_xform,
-					ligands[toolbox.ligand()], origin, cfg.protein.radius)
+					ligands[toolbox.ligand()][0], origin, cfg.protein.radius)
 	genes.append(toolbox.xform)
 
 if (hasattr(cfg.ligand, 'flexible') and cfg.ligand.flexible == 'auto') or \

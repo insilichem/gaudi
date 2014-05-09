@@ -47,14 +47,12 @@ def rotate(molecule, at, alpha):
 		a.setCoord(r.apply(a.coord()))
 
 def rand_xform(mol, center, r):
-	xf = x.translation(center - ZERO)
+	has, bbox = mol.bbox()
+	centroid = bbox.center()
+	xf = x.translation(centroid - ZERO)
 	xf.multiply(X(random_rotation()))
 	randompos = random_translation_step(center, r)[:,3].tolist()
-	xf.multiply(x.translation(ZERO - chimera.Point(*randompos)))
-	vx, vy, vz, tl = xf.getCoordFrame()
-	rows = [[ _ for _ in vx.data()] + [tl[0]]]
-	rows.append([ _ for _ in vy.data()] + [tl[1]])
-	rows.append([ _ for _ in vz.data()] + [tl[2]])
-
-	return rows
+	xf.translate(ZERO - chimera.Point(*randompos))
+	return [xf.getOpenGLMatrix()[i::4] for i in range(3)]
+	
 

@@ -38,7 +38,7 @@ def library(path, bondto=None, join=False, rotations=False):
 			library[id(new)] = new, bondrots
 		else:
 			library[id(new)] = new, None
-		new.initxform = chimera.Xform.coordFrame(*new.openState.xform.getCoordFrame())
+		new.initxform = [new.openState.xform.getOpenGLMatrix()[i::4] for i in range(3)]
 		chimera.openModels.remove([new])
 	return library
 
