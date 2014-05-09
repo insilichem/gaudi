@@ -74,7 +74,7 @@ def evaluate(ind, close=True, hidden=False, draw=False):
 				mof3d.score.chem.clashes(atoms=ligand_atoms, 
 										test=ligand_env.atoms(), 
 										intraRes=True, clashThreshold=obj.threshold, 
-										hbondAllowance=0.0, parse=True)
+										hbondAllowance=obj.threshold_h, parse=True)
 			if obj.which == 'clashes':
 				score.append(sum(abs(a[3]) for a in negative_vdw)/2)
 			elif obj.which == 'hydrophobic':
