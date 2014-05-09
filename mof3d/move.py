@@ -54,5 +54,3 @@ def rand_xform(mol, center, r):
 	randompos = random_translation_step(center, r)[:,3].tolist()
 	xf.translate(ZERO - chimera.Point(*randompos))
 	return [xf.getOpenGLMatrix()[i::4] for i in range(3)]
-	
-
