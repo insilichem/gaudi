@@ -128,8 +128,11 @@ def het_mutation(ind, indpb):
 				low=0, up=8, indpb=indpb)[0]
 		elif key == 'xform' and random.random() < indpb:
 			# Careful! Mutation generates a whole NEW position (similar to eta ~= 0)
-			ind[key] = mof3d.move.rand_xform(ligands[ind['ligand']][0], 
-												origin, cfg.protein.radius)
+			ligand = ligands[ind['ligand']][0]
+			chimera.openModels.add([ligand], shareXform=True)
+			ligand.openState.xform = chimera_xform(ligand.initxform)
+			ind['xform'] = mof3d.move.rand_xform(ligand, origin, cfg.protein.radius)
+			chimera.openModels.remove([ligand])
 
 
 	return ind,
@@ -151,7 +154,7 @@ protein, = chimera.openModels.open(cfg.protein.path)
 # Set up ligands
 ligand_env = chimera.selection.ItemizedSelection()
 if not hasattr(cfg.ligand, 'bondto') or not cfg.ligand.bondto:
-	target = origin = box.atoms_by_serial(cfg.protein.origin, atoms=protein.atoms)[0].xformCoord()
+	target = origin = box.atoms_by_serial(cfg.protein.origin, atoms=protein.atoms)[0].coord()
 	search3D = True
 	join = False
 
@@ -228,7 +231,7 @@ def main():
 	return pop, log, hof
 
 if __name__ == "__main__":	
-	print "Scores: " + ', '.join([o.type for o in cfg.objective])
+	print "Scores:", ', '.join([o.type for o in cfg.objective])
 	pop, log, hof = main()
 	rank = box.write_individuals(hof, cfg.default.savepath,	cfg.default.savename, evaluate)
 	print '\nRank of results\n---------------\nFilename\tFitness'
