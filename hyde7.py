@@ -253,4 +253,8 @@ if __name__ == "__main__":
 	print("\nCheck your results in {}".format(cfg.default.savepath))
 
 	#Display best individual
-	evaluate(hof[0], close=False, draw=True)
+	if chimera.nogui:
+		# run gui interface
+		pass
+	else:
+		evaluate(hof[0], close=False, draw=True)
