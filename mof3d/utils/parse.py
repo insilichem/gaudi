@@ -21,7 +21,12 @@ class Settings(object):
 				return str(self.type).title()
 
 	def weights(self):
-		return [o.weight for o in self.objective]
+		w = []
+		for obj in self.objective:
+			if obj.type == 'hbonds' and hasattr(obj, 'targets') and len(obj.targets):
+				w.append(obj.weight)
+			w.append(obj.weight)
+		return w
 
 	def _parse(self, asDict):
 		with open(self._path, 'r') as config:

@@ -57,13 +57,19 @@ def evaluate(ind, close=True, hidden=False, draw=False):
 	ligand_env.merge(chimera.selection.REPLACE,
 					chimera.specifier.zone( ligand_env, 'atom', None, 25.0,
 											[protein,ligand]))
-	score = []
+	score, draw_list = [], {}
 	for obj in cfg.objective:
 		if obj.type == 'hbonds':
 			hbonds = mof3d.score.chem.hbonds(
 						[protein, ligand], cache=False, test=ligand_env.atoms(),
-						sel=[ a for a in ligand.atoms if a not in ("C", "CA", "N", "O") ])
+						sel=[ a for a in ligand.atoms if a not in ("C", "CA", "N", "O") ],
+						dist_slop=obj.distance_tolerance, angle_slop=obj.angle_tolerance)
+			if hasattr(obj, 'targets') and len(obj.targets):
+				hb_targets = box.atoms_by_serial(*obj.targets, atoms=ligand.atoms)
+				hb_targets_num = set(ha for hb in hbonds for ha in hb if ha in hb_targets)
+				score.append(len(hb_targets_num))
 			score.append(len(hbonds))
+			draw_list['hbonds'] = hbonds
 		
 		elif obj.type == 'contacts':
 			if cfg.ligand.type == 'blocks':

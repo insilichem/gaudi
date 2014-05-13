@@ -13,14 +13,16 @@ ALIPH = ['C3', [[cg.C, [cg.C, [cg.C , [cg.R, cg.R, cg.R, cg.R]], \
 PI = 3.14159265359
 
 # Callables
-def hbonds(model=None, sel=None, selRestrict=True,cache=False, test=None):
+def hbonds(models=None, sel=None, selRestrict=True, cache=False, test=None, 
+			dist_slop=0.4, angle_slop=20.0):
 	## Calculates H bonds in `model` given `sel` atoms
-	if not model:
-		model = chimera.openModels.list(modelTypes=[chimera.Molecule])
+	if not models:
+		models = chimera.openModels.list(modelTypes=[chimera.Molecule])
 	if not sel and selRestrict:
 		sel = chimera.selection.currentAtoms()
 	#calculate H bonds
-	hbonds = FindHBond.findHBonds(model, cacheDA=cache, donors=test, acceptors=test)
+	hbonds = FindHBond.findHBonds(models, cacheDA=cache, donors=test, acceptors=test,
+									distSlop=dist_slop, angleSlop=angle_slop)
 	if selRestrict:
 		try:
 			hbonds = FindHBond.base._filterBySel(hbonds, sel, 'any')
