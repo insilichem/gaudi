@@ -81,11 +81,18 @@ def evaluate(ind, close=True, hidden=False, draw=False):
 				mof3d.score.chem.clashes(atoms=ligand_atoms, 
 										test=ligand_env.atoms(), 
 										intraRes=True, clashThreshold=obj.threshold, 
-										hbondAllowance=obj.threshold_h, parse=True)
+										hbondAllowance=obj.threshold_h, parse=True,
+										parse_threshold=obj.threshold_c)
 			if obj.which == 'clashes':
-				score.append(sum(abs(a[3]) for a in negative_vdw)/2)
+				clashscore = sum(abs(a[3]) for a in negative_vdw)/2
+				if clashscore > obj.limit and close:
+					chimera.openModels.remove([ligand])
+					return [ -1000*w for w in weights ]
+				score.append(clashscore)
+				draw_list['negvdw'] = negative_vdw
 			elif obj.which == 'hydrophobic':
 				score.append(sum(1-a[3] for a in positive_vdw)/2)
+				draw_list['posvdw'] = positive_vdw
 
 		elif obj.type == 'distance':
 			probes = box.atoms_by_serial(*obj.probes, atoms=ligand.atoms)
@@ -97,15 +104,15 @@ def evaluate(ind, close=True, hidden=False, draw=False):
 	if close:
 		chimera.openModels.remove([ligand])
 		return score
-	if draw:
-		if 'positive_vdw' in locals() and positive_vdw: 
-			mof3d.score.chem.draw_interactions(positive_vdw, startCol='00FF00',
-				endCol='FFFF00', key=3, name="Hydrophobic interactions")
-		if 'negative_vdw' in locals() and negative_vdw:
-			mof3d.score.chem.draw_interactions(negative_vdw, startCol='FF0000', 
+	if draw and draw_list:
+		if 'negvdw' in draw_list:
+			mof3d.score.chem.draw_interactions(draw_list['negvdw'], startCol='FF0000', 
 				endCol='FF0000', key=3, name="Clashes")
-		if 'hbonds' in locals() and hbonds:
-			mof3d.score.chem.draw_interactions(hbonds, startCol='00FFFF', 
+		if 'posvdw' in draw_list: 
+			mof3d.score.chem.draw_interactions(draw_list['posvdw'], startCol='00FF00',
+				endCol='FFFF00', key=3, name="Hydrophobic interactions")
+		if 'hbonds' in draw_list:
+			mof3d.score.chem.draw_interactions(draw_list['hbonds'], startCol='00FFFF', 
 				endCol='00FFFF', name="H Bonds")
 	return ligand
 

@@ -43,19 +43,21 @@ def clashes(atoms, test='others', clashThreshold=0.6,
 		bondSeparation=bondSeparation)
 	num_of_clashes = 0
 	if clashes:
-		for clashList in clashes.values():
-			num_of_clashes += len(clashList)
+		num_of_clashes = sum(len(cl) for cl in clashes.values())/2
 		if parse:
-			pos, neg = _parse_clashes(clashes, atoms[0].molecule, parse_threshold)
+			pos, neg = _parse_clashes_c(clashes, parse_threshold)
 			return clashes, num_of_clashes/2, pos, neg
 	#else
-	return clashes, num_of_clashes/2, [], []
+	return clashes, num_of_clashes, [], []
 
 def draw_interactions(interactions, startCol='FF0000', endCol='FFFF00',
 		key=None, name="Custom pseudobonds"):
+	if not len(interactions):
+		return
 	pb = chimera.misc.getPseudoBondGroup(name)
 	color = _hex_to_rgb(startCol)+[1.0]
-	if key != None:	max_ = max(abs(_[3]) for _ in interactions)
+	if key != None:	
+		max_ = max(abs(_[3]) for _ in interactions)
 	for i in interactions:
 		npb = pb.newPseudoBond(i[0], i[1])
 		if key != None:
@@ -86,8 +88,9 @@ def _lennard_jones(a1, a2):
 	return (x**12 - 2*x**6)
 
 def _parse_clashes(clashes, mol, threshold):
-	AROMATIC = set(a for g in cg.findGroup("aromatic ring", [mol]) for a in g)
-	ALIPHATIC = set(a for g in cg.findGroup(ALIPH, [mol]) \
+	m = chimera.openModels.list(modelTypes=[chimera.Molecule])
+	AROMATIC = set(a for g in cg.findGroup("aromatic ring",m) for a in g)
+	ALIPHATIC = set(a for g in cg.findGroup(ALIPH, m) \
 					for a in g if a not in AROMATIC)
 
 	positive, negative = [], []
@@ -99,6 +102,21 @@ def _parse_clashes(clashes, mol, threshold):
 				elif a1 in AROMATIC and a2 in ALIPHATIC:
 					positive.append([a1, a2, dist, _lennard_jones(a1, a2)])
 				elif a1 in ALIPHATIC and a2 in AROMATIC:
+					positive.append([a1, a2, dist, _lennard_jones(a1, a2)])
+			elif dist > threshold:
+				negative.append([a1, a2, dist, _vdw_vol_overlap(a1,a2)])
+
+	return positive, negative
+
+def _parse_clashes_c(clashes, threshold=0.4):
+	mols = chimera.openModels.list(modelTypes=[chimera.Molecule])
+	vdwatoms = set(a for m in mols for a in m.atoms if a.element.name in ('C', 'S'))
+
+	positive, negative = [], []
+	for a1, c in clashes.items():
+		for a2, dist in c.items():
+			if dist <= threshold and a1.molecule != a2.molecule:
+				if a1 in vdwatoms and a2 in vdwatoms:
 					positive.append([a1, a2, dist, _lennard_jones(a1, a2)])
 			elif dist > threshold:
 				negative.append([a1, a2, dist, _vdw_vol_overlap(a1,a2)])
