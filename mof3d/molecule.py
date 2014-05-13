@@ -50,12 +50,11 @@ def place(mol2, target=None, join=True, p2b=True, inplace=True, geom=None):
 	if not geom and hasattr(tmpl, 'cfg') and hasattr(tmpl.cfg, 'angles'):
 		geom = tmpl.cfg.angles
 	
-	# Place it nicely
 	if inplace:
 		anchor = tmpl.cfg.atoms['anchor']
-		if isinstance(target, chimera.Point):
-			move.translate(tmpl, anchor, target)
-		else: #is atom
+		if isinstance(target, chimera.Point): # free docking mode
+			move.translate(tmpl, tmpl.bbox()[1].center(), target)
+		else: #is atom, covalent mode is on
 			axis_start, axis_end = tmpl.cfg.atoms['axis_start'],tmpl.cfg.atoms['axis_end']
 
 			#discard H atom and set actual target

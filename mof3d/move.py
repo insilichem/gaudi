@@ -8,7 +8,7 @@
 import chimera
 from chimera import Xform as x
 from FitMap.search import random_rotation, random_translation_step
-from PDBmatrices.matrices import chimera_xform as X
+from PDBmatrices.matrices import chimera_xform
 ZERO = chimera.Point(0.0, 0.0, 0.0)
 
 def translate(molecule, anchor, target):
@@ -46,11 +46,9 @@ def rotate(molecule, at, alpha):
 	for a in molecule.atoms:
 		a.setCoord(r.apply(a.coord()))
 
-def rand_xform(mol, center, r):
-	has, bbox = mol.bbox()
-	centroid = bbox.center()
-	xf = x.translation(centroid - ZERO)
-	xf.multiply(X(random_rotation()))
+def rand_xform(center, r):
+	xf = x.translation(center - ZERO)
+	xf.multiply(chimera_xform(random_rotation()))
 	randompos = random_translation_step(center, r)[:,3].tolist()
 	xf.translate(ZERO - chimera.Point(*randompos))
 	return [xf.getOpenGLMatrix()[i::4] for i in range(3)]

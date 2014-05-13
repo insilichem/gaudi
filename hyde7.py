@@ -32,9 +32,10 @@ def evaluate(ind, close=True, hidden=False, draw=False):
 			br.adjustAngle(alpha - br.angle, br.rotanchor)
 
 	if 'xform' in ind:
-		ligand.openState.xform = chimera_xform(ligand.initxform)
+		oldxform = ligand.openState.xform = chimera_xform(ligand.initxform)
 		newxform = chimera_xform(ind['xform'])
-		ligand.openState.localXform(newxform.inverse())
+		newxform.multiply(oldxform)
+		ligand.openState.xform = newxform
 
 	if 'rotamers' in ind:
 		if 'mutamers' in ind:
@@ -118,7 +119,6 @@ def het_crossover(ind1, ind2):
 		elif key == 'xform': # swap rotation and translation
 			for i, (r1, r2) in enumerate(zip(ind1[key], ind2[key])):
 				ind1[key][i], ind2[key][i] = r1[:3]+r2[3:], r2[:3]+r1[3:]
-
 	return ind1, ind2
 
 def het_mutation(ind, indpb):
@@ -137,7 +137,7 @@ def het_mutation(ind, indpb):
 			ligand = ligands[ind['ligand']][0]
 			chimera.openModels.add([ligand], shareXform=True)
 			ligand.openState.xform = chimera_xform(ligand.initxform)
-			ind['xform'] = mof3d.move.rand_xform(ligand, origin, cfg.protein.radius)
+			ind['xform'] = mof3d.move.rand_xform(origin, cfg.protein.radius)
 			chimera.openModels.remove([ligand])
 
 
@@ -151,7 +151,8 @@ def similarity(a, b):
 
 ## Initialize workspace
 cfg = mof3d.utils.parse.Settings(sys.argv[1])
-deap.creator.create("FitnessMax", deap.base.Fitness, weights=cfg.weights())
+weights = cfg.weights()
+deap.creator.create("FitnessMax", deap.base.Fitness, weights=weights)
 deap.creator.create("Individual", dict, fitness=deap.creator.FitnessMax)
 
 # Open protein
@@ -180,8 +181,7 @@ toolbox.register("ligand", random.choice, ligands.keys())
 genes.append(toolbox.ligand)
 
 if search3D:
-	toolbox.register("xform", mof3d.move.rand_xform,
-					ligands[toolbox.ligand()][0], origin, cfg.protein.radius)
+	toolbox.register("xform", mof3d.move.rand_xform, origin, cfg.protein.radius)
 	genes.append(toolbox.xform)
 
 if (hasattr(cfg.ligand, 'flexible') and cfg.ligand.flexible == 'auto') or \
