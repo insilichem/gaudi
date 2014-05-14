@@ -83,7 +83,7 @@ def evaluate(ind, close=True, hidden=False, draw=False):
 										parse_threshold=obj.threshold_c)
 			if obj.which == 'clashes':
 				clashscore = sum(abs(a[3]) for a in negative_vdw)/2
-				if clashscore > obj.limit and close:
+				if clashscore > obj.cutoff and close:
 					chimera.openModels.remove([ligand])
 					return [ -1000*w for w in weights ]
 				score.append(clashscore)
