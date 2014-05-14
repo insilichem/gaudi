@@ -99,6 +99,11 @@ def evaluate(ind, close=True, hidden=False, draw=False):
 						wall=obj.wall)
 			score.append(dist)
 
+		elif obj.type == 'solvation':
+			atoms, ses, sas = mof3d.score.chem.solvation(ligand_env.atoms())
+			ligand_ses = sum(s for (a,s) in zip(atoms, ses) if a in ligand.atoms)
+			score.append(ligand_ses)
+
 	if close:
 		chimera.openModels.remove([ligand])
 		return score

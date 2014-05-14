@@ -5,7 +5,7 @@
 # A docking module for UCSF Chimera
 # Jaime RGP <https://bitbucket.org/jrgp> @ UAB, 2014
 
-import chimera, FindHBond, DetectClash, ChemGroup as cg
+import chimera, FindHBond, DetectClash, Measure, MoleculeSurface, ChemGroup as cg
 from .. import utils
 
 ALIPH = ['C3', [[cg.C, [cg.C, [cg.C , [cg.R, cg.R, cg.R, cg.R]], \
@@ -49,6 +49,12 @@ def clashes(atoms, test='others', clashThreshold=0.6,
 			return clashes, num_of_clashes/2, pos, neg
 	#else
 	return clashes, num_of_clashes, [], []
+
+def solvation(atoms):
+	xyzr_data = Measure.measure.atom_xyzr(atoms)
+	surfaces = MoleculeSurface.xyzr_surface_geometry(xyzr_data)
+	# return atoms, ses, sas
+	return atoms, surfaces[3][:,0], surfaces[3][:,1]
 
 def draw_interactions(interactions, startCol='FF0000', endCol='FFFF00',
 		key=None, name="Custom pseudobonds"):
