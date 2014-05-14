@@ -8,8 +8,7 @@
 # Implement genetic algorithm
 
 # Chimera
-import chimera, Rotamers, SwapRes
-from PDBmatrices.matrices import chimera_xform
+import chimera, Rotamers, SwapRes, Matrix as M
 # Python
 import random, numpy, deap, sys
 from deap import creator, tools, base, algorithms
@@ -32,10 +31,9 @@ def evaluate(ind, close=True, hidden=False, draw=False):
 			br.adjustAngle(alpha - br.angle, br.rotanchor)
 
 	if 'xform' in ind:
-		oldxform = ligand.openState.xform = chimera_xform(ligand.initxform)
-		newxform = chimera_xform(ind['xform'])
-		newxform.multiply(oldxform)
-		ligand.openState.xform = newxform
+		new = M.multiply_matrices(*ind['xform'])
+		old = ligand.initxform
+		ligand.openState.xform = M.chimera_xform(M.multiply_matrices(new, old))
 
 	if 'rotamers' in ind:
 		if 'mutamers' in ind:
@@ -124,8 +122,9 @@ def het_crossover(ind1, ind2):
 		elif key in ('mutamers', 'rotamers'):
 			ind1[key], ind2[key] = deap.tools.cxTwoPoint(ind1[key], ind2[key])
 		elif key == 'xform': # swap rotation and translation
-			for i, (r1, r2) in enumerate(zip(ind1[key], ind2[key])):
-				ind1[key][i], ind2[key][i] = r1[:3]+r2[3:], r2[:3]+r1[3:]
+			ind1[key], ind2[key] = ind1[key][:1]+ind2[key][1:], ind2[key][:1]+ind1[key][1:]
+			# ind1[key], ind2[key] = mof3d.move.pos_swap(ind1[key], ind2[key])
+
 	return ind1, ind2
 
 def het_mutation(ind, indpb):
@@ -141,19 +140,16 @@ def het_mutation(ind, indpb):
 				low=0, up=8, indpb=indpb)[0]
 		elif key == 'xform' and random.random() < indpb:
 			# Careful! Mutation generates a whole NEW position (similar to eta ~= 0)
-			ligand = ligands[ind['ligand']][0]
-			chimera.openModels.add([ligand], shareXform=True)
-			ligand.openState.xform = chimera_xform(ligand.initxform)
 			ind['xform'] = mof3d.move.rand_xform(origin, cfg.protein.radius)
-			chimera.openModels.remove([ligand])
-
 
 	return ind,
 
 def similarity(a, b):
-	if a['xform'] == b['xform']: return True
-	else: return False
-
+	for x,y in zip(a['xform'],b['xform']):
+		for i,j in zip(x,y):
+			if i!=j: 
+				return False
+	return True
 ##/ FUNCTIONS
 
 ## Initialize workspace

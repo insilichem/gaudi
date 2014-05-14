@@ -5,9 +5,9 @@
 # A docking module for UCSF Chimera
 # Jaime RGP <https://bitbucket.org/jrgp> @ UAB, 2014
 
-import chimera
+import chimera, random
 from chimera import Xform as x
-from FitMap.search import random_rotation, random_translation_step
+from FitMap.search import random_direction, random_rotation, random_translation_step
 from PDBmatrices.matrices import chimera_xform
 ZERO = chimera.Point(0.0, 0.0, 0.0)
 
@@ -47,8 +47,8 @@ def rotate(molecule, at, alpha):
 		a.setCoord(r.apply(a.coord()))
 
 def rand_xform(center, r):
-	xf = x.translation(center - ZERO)
-	xf.multiply(chimera_xform(random_rotation()))
-	randompos = random_translation_step(center, r)[:,3].tolist()
-	xf.translate(ZERO - chimera.Point(*randompos))
-	return [xf.getOpenGLMatrix()[i::4] for i in range(3)]
+	import Matrix as M
+	ctf = M.translation_matrix([-x for x in center]).tolist()
+	rot = random_rotation()
+	shift = random_translation_step(center, r).tolist()
+	return shift, rot, ctf
