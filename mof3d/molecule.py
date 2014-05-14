@@ -53,7 +53,8 @@ def place(mol2, target=None, join=True, p2b=True, inplace=True, geom=None):
 	if inplace:
 		anchor = tmpl.cfg.atoms['anchor']
 		if isinstance(target, chimera.Point): # free docking mode
-			move.translate(tmpl, tmpl.bbox()[1].center(), target)
+			# move.translate(tmpl, tmpl.bbox()[1].center(), target)
+			move.translate(tmpl, anchor, target)
 		else: #is atom, covalent mode is on
 			axis_start, axis_end = tmpl.cfg.atoms['axis_start'],tmpl.cfg.atoms['axis_end']
 
