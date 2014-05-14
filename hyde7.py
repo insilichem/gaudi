@@ -54,7 +54,7 @@ def evaluate(ind, close=True, hidden=False, draw=False):
 	ligand_env.clear()
 	ligand_env.add(ligand.atoms)
 	ligand_env.merge(chimera.selection.REPLACE,
-					chimera.specifier.zone( ligand_env, 'atom', None, 25.0,
+					chimera.specifier.zone( ligand_env, 'atom', None, 10.0,
 											[protein,ligand]))
 	score, draw_list = [], {}
 	for obj in cfg.objective:
@@ -63,12 +63,12 @@ def evaluate(ind, close=True, hidden=False, draw=False):
 						[protein, ligand], cache=False, test=ligand_env.atoms(),
 						sel=[ a for a in ligand.atoms if a not in ("C", "CA", "N", "O") ],
 						dist_slop=obj.distance_tolerance, angle_slop=obj.angle_tolerance)
+			score.append(len(hbonds))
+			draw_list['hbonds'] = hbonds
 			if hasattr(obj, 'targets') and len(obj.targets):
 				hb_targets = box.atoms_by_serial(*obj.targets, atoms=protein.atoms)
 				hb_targets_num = [ha for hb in hbonds for ha in hb if ha in hb_targets]
 				score.append(len(hb_targets_num))
-			score.append(len(hbonds))
-			draw_list['hbonds'] = hbonds
 		
 		elif obj.type == 'contacts':
 			if cfg.ligand.type == 'blocks':
