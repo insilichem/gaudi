@@ -123,7 +123,8 @@ def het_crossover(ind1, ind2):
 	for key in ind1:
 		if key == 'rotable_bonds':
 			ind1[key][:], ind2[key][:] = deap.tools.cxSimulatedBinaryBounded(
-				ind1[key], ind2[key], eta=cfg.ga.cx_eta, low=0., up=360.)
+				ind1[key], ind2[key], eta=cfg.ga.cx_eta, 
+				low=-cfg.ligand.flexibility, up=cfg.ligand.flexibility)
 		elif key in ('mutamers', 'rotamers'):
 			ind1[key], ind2[key] = deap.tools.cxTwoPoint(ind1[key], ind2[key])
 		elif key == 'xform': # swap rotation and translation
@@ -136,7 +137,8 @@ def het_mutation(ind, indpb):
 	for key in ind:
 		if key == 'rotable_bonds':
 			ind[key] = deap.tools.mutPolynomialBounded(ind[key], 
-				eta=cfg.ga.mut_eta, low=0., up=360., indpb=indpb)[0]
+				eta=cfg.ga.mut_eta, low=-cfg.ligand.flexibility, 
+				up=cfg.ligand.flexibility, indpb=indpb)[0]
 		elif key == 'mutamers':
 			ind[key] = deap.tools.mutUniformInt(ind[key], 
 				low=0, up=len(residues)-1, indpb=indpb)[0]
@@ -178,7 +180,7 @@ else:
 	search3D = False
 	join = 'dummy'
 	
-rotations = True if cfg.ligand.flexible=='auto' else False
+rotations = True if cfg.ligand.flexibility else False
 ligands = mof3d.molecule.library(cfg.ligand.path,
 				bondto=target, rotations=rotations, join=join)
 
@@ -192,9 +194,10 @@ if search3D:
 	toolbox.register("xform", mof3d.move.rand_xform, origin, cfg.protein.radius)
 	genes.append(toolbox.xform)
 
-if (hasattr(cfg.ligand, 'flexible') and cfg.ligand.flexible == 'auto') or \
-	 (hasattr(cfg.ligand, 'bondto') and cfg.ligand.bondto):
-	toolbox.register("rand_angle", random.uniform, 0, 360)
+if hasattr(cfg.ligand, 'flexibility') and cfg.ligand.flexibility:
+	if cfg.ligand.flexibility > 180: 
+		cfg.ligand.flexibility = 180.0
+	toolbox.register("rand_angle", random.uniform, -cfg.ligand.flexibility, cfg.ligand.flexibility)
 	toolbox.register("rotable_bonds", deap.tools.initRepeat, list,
 						toolbox.rand_angle, n=20)
 	genes.append(toolbox.rotable_bonds) 
