@@ -104,3 +104,11 @@ def sequential_bonds(atoms,s):
 		else: 
 			bonds.append(b)
 	return nbonds
+
+def rmsd(atoms1, atoms2):
+	import math
+	atoms1.sort(key=lambda x: x.serialNumber)
+	atoms2.sort(key=lambda x: x.serialNumber)
+	sqdist = sum( a.xformCoord().sqdistance(b.xformCoord()) for a, b in zip(atoms1, atoms2) )
+
+	return math.sqrt(sqdist / float(len(atoms1)))

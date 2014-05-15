@@ -250,10 +250,17 @@ def main():
 if __name__ == "__main__":	
 	print "Scores:", ', '.join([o.type for o in cfg.objective])
 	pop, log, hof = main()
+	if hasattr(cfg.ligand, 'assess') and cfg.ligand.assess:
+		assess = chimera.openModels.open(cfg.ligand.assess, shareXform=True)
+		cfg.objective = []
+		[ setattr(h, 'rmsd', box.rmsd(assess.atoms, evaluate(h,close=False))) for h in hof ]
+		hof.sort(key=lambda x: x.rmsd)
+
 	rank = box.write_individuals(hof, cfg.default.savepath,	cfg.default.savename, evaluate)
 	print '\nRank of results\n---------------\nFilename\tFitness'
+
 	for r in rank:
-		print "{}\t{}".format(*r)
+		print '\t'.join(r)
 	print("\nCheck your results in {}".format(cfg.default.savepath))
 
 	#Display best individual
