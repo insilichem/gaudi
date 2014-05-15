@@ -124,7 +124,7 @@ def het_crossover(ind1, ind2):
 		if key == 'rotable_bonds':
 			ind1[key][:], ind2[key][:] = deap.tools.cxSimulatedBinaryBounded(
 				ind1[key], ind2[key], eta=cfg.ga.cx_eta, 
-				low=-cfg.ligand.flexibility, up=cfg.ligand.flexibility)
+				low=-0.5*cfg.ligand.flexibility, up=0.5*cfg.ligand.flexibility)
 		elif key in ('mutamers', 'rotamers'):
 			ind1[key], ind2[key] = deap.tools.cxTwoPoint(ind1[key], ind2[key])
 		elif key == 'xform': # swap rotation and translation
@@ -137,8 +137,8 @@ def het_mutation(ind, indpb):
 	for key in ind:
 		if key == 'rotable_bonds':
 			ind[key] = deap.tools.mutPolynomialBounded(ind[key], 
-				eta=cfg.ga.mut_eta, low=-cfg.ligand.flexibility, 
-				up=cfg.ligand.flexibility, indpb=indpb)[0]
+				eta=cfg.ga.mut_eta, low=-0.5*cfg.ligand.flexibility, 
+				up=0.5*cfg.ligand.flexibility, indpb=indpb)[0]
 		elif key == 'mutamers':
 			ind[key] = deap.tools.mutUniformInt(ind[key], 
 				low=0, up=len(residues)-1, indpb=indpb)[0]
@@ -195,9 +195,9 @@ if search3D:
 	genes.append(toolbox.xform)
 
 if hasattr(cfg.ligand, 'flexibility') and cfg.ligand.flexibility:
-	if cfg.ligand.flexibility > 180: 
-		cfg.ligand.flexibility = 180.0
-	toolbox.register("rand_angle", random.uniform, -cfg.ligand.flexibility, cfg.ligand.flexibility)
+	if cfg.ligand.flexibility > 360: 
+		cfg.ligand.flexibility = 360.0
+	toolbox.register("rand_angle", random.uniform, -0.5*cfg.ligand.flexibility, 0.5*cfg.ligand.flexibility)
 	toolbox.register("rotable_bonds", deap.tools.initRepeat, list,
 						toolbox.rand_angle, n=20)
 	genes.append(toolbox.rotable_bonds) 
