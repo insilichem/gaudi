@@ -85,7 +85,7 @@ def write_individuals(inds, outpath, name, evalfn):
 	results = []
 	for i, ind in enumerate(inds):
 		ligand = evalfn(ind, close=False)
-		fullname = '{}{}__{:02d}.mol2'.format(outpath, name, i+1)
+		fullname = '{}{}__{:03d}.mol2'.format(outpath, name, i+1)
 		writeMol2([ligand], fullname)
 		chimera.openModels.remove([ligand])
 		results.append([fullname+'\t']+[ind.fitness])

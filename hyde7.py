@@ -31,9 +31,7 @@ def evaluate(ind, close=True, hidden=False, draw=False):
 			br.adjustAngle(alpha - br.angle, br.rotanchor)
 
 	if 'xform' in ind:
-		new = M.multiply_matrices(*ind['xform'])
-		old = ligand.initxform
-		ligand.openState.xform = M.chimera_xform(M.multiply_matrices(new, old))
+		ligand.openState.xform = M.chimera_xform(M.multiply_matrices(*ind['xform']))
 
 	if 'rotamers' in ind:
 		if 'mutamers' in ind:
@@ -106,7 +104,7 @@ def evaluate(ind, close=True, hidden=False, draw=False):
 
 	if close:
 		chimera.openModels.remove([ligand])
-		return score
+		return [round(s, 2) for s in score]
 	if draw and draw_list:
 		if 'negvdw' in draw_list:
 			mof3d.score.chem.draw_interactions(draw_list['negvdw'], startCol='FF0000', 
@@ -162,6 +160,7 @@ def similarity(a, b):
 	sqdist = sum( xf1.apply(a.coord()).sqdistance(xf2.apply(a.coord())) 
 					for a, b in zip(atoms1, atoms2) )
 	rmsd = math.sqrt(sqdist / float(len(atoms1)))
+	
 	return rmsd < 0.25
 ##/ FUNCTIONS
 
