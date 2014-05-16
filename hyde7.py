@@ -10,7 +10,7 @@
 # Chimera
 import chimera, Rotamers, SwapRes, Matrix as M
 # Python
-import random, numpy, deap, sys
+import random, numpy, deap, sys, math
 from deap import creator, tools, base, algorithms
 # Custom
 import mof3d
@@ -152,11 +152,17 @@ def het_mutation(ind, indpb):
 	return ind,
 
 def similarity(a, b):
-	for x,y in zip(a['xform'],b['xform']):
-		for i,j in zip(x,y):
-			if i!=j: 
-				return False
-	return True
+	atoms1, atoms2 = ligands[a['ligand']][0].atoms, ligands[b['ligand']][0].atoms
+	atoms1.sort(key=lambda x: x.serialNumber)
+	atoms2.sort(key=lambda x: x.serialNumber)
+
+	xf1, xf2 = M.multiply_matrices(*a['xform']), M.multiply_matrices(*b['xform'])
+	xf1, xf2 = M.chimera_xform(xf1), M.chimera_xform(xf2)
+	
+	sqdist = sum( xf1.apply(a.coord()).sqdistance(xf2.apply(a.coord())) 
+					for a, b in zip(atoms1, atoms2) )
+	rmsd = math.sqrt(sqdist / float(len(atoms1)))
+	return rmsd < 0.25
 ##/ FUNCTIONS
 
 ## Initialize workspace
@@ -251,16 +257,21 @@ if __name__ == "__main__":
 	print "Scores:", ', '.join([o.type for o in cfg.objective])
 	pop, log, hof = main()
 	if hasattr(cfg.ligand, 'assess') and cfg.ligand.assess:
-		assess = chimera.openModels.open(cfg.ligand.assess, shareXform=True)
+		assess, = chimera.openModels.open(cfg.ligand.assess, shareXform=True)
+		chimera.openModels.remove([assess])
 		cfg.objective = []
-		[ setattr(h, 'rmsd', box.rmsd(assess.atoms, evaluate(h,close=False))) for h in hof ]
-		hof.sort(key=lambda x: x.rmsd)
+		for h in hof:
+			h.fitness = list(h.fitness.getValues())
+			hligand = evaluate(h,close=False)
+			h.fitness.append(box.rmsd(assess, hligand))
+			chimera.openModels.remove([hligand])
+		hof = sorted(hof[:], key=lambda x: x.fitness[-1])
 
 	rank = box.write_individuals(hof, cfg.default.savepath,	cfg.default.savename, evaluate)
 	print '\nRank of results\n---------------\nFilename\tFitness'
 
 	for r in rank:
-		print '\t'.join(r)
+		print '{}\t{}'.format(*r)
 	print("\nCheck your results in {}".format(cfg.default.savepath))
 
 	#Display best individual

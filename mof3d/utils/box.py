@@ -88,7 +88,7 @@ def write_individuals(inds, outpath, name, evalfn):
 		fullname = '{}{}__{:02d}.mol2'.format(outpath, name, i+1)
 		writeMol2([ligand], fullname)
 		chimera.openModels.remove([ligand])
-		results.append([fullname, ind.fitness])
+		results.append([fullname+'\t']+[ind.fitness])
 	return results
 
 def sequential_bonds(atoms,s):
@@ -105,10 +105,15 @@ def sequential_bonds(atoms,s):
 			bonds.append(b)
 	return nbonds
 
-def rmsd(atoms1, atoms2):
+def rmsd(a, b):
 	import math
-	atoms1.sort(key=lambda x: x.serialNumber)
-	atoms2.sort(key=lambda x: x.serialNumber)
-	sqdist = sum( a.xformCoord().sqdistance(b.xformCoord()) for a, b in zip(atoms1, atoms2) )
+	if isinstance(a, chimera.Molecule):
+		a = a.atoms
+	if isinstance(b, chimera.Molecule):
+		b = b.atoms
 
-	return math.sqrt(sqdist / float(len(atoms1)))
+	a.sort(key=lambda z: z.serialNumber)
+	b.sort(key=lambda z: z.serialNumber)
+	sqdist = sum( x.xformCoord().sqdistance(y.xformCoord()) for x, y in zip(a, b) )
+
+	return math.sqrt(sqdist / float(len(a)))
