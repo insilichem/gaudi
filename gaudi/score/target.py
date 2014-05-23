@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
-# MOF3D
-# Multi-Objective Force-Field-Free Docking
+# gaudi
+# Genetic Algorithm for Unified Docking Inference
 # A docking module for UCSF Chimera
 # Jaime RGP <https://bitbucket.org/jrgp> @ UAB, 2014
 import numpy, chimera

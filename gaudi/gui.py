@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
-# MOF3D
-# Multi-Objective Force-Field-Free Docking
+# gaudi
+# Genetic Algorithm for Unified Docking Inference
 # A docking module for UCSF Chimera
 # Jaime RGP <https://bitbucket.org/jrgp> @ UAB, 2014
 
@@ -9,9 +9,9 @@ import chimera
 from chimera.baseDialog import ModelessDialog
 import Tkinter, Pmw
 
-class Mof3dDialog(ModelessDialog):
-	name = "mof3d"
-	title = "MOF3D / Multi-Objective Force-field free Docking"
+class gaudiDialog(ModelessDialog):
+	name = "gaudi"
+	title = "gaudi / Multi-Objective Force-field free Docking"
 	provideStatus = True
 	statusPosition = "above"
 	help = ""

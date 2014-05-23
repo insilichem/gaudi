@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
-# MOF3D
-# Multi Objective Force Field Free Docking
+# gaudi
+# Genetic Algorithm for Unified Docking Inference
 # A docking module for UCSF Chimera
 # Jaime RGP <https://bitbucket.org/jrgp> @ UAB, 2014
 
@@ -99,6 +99,6 @@ def _test_rebuild(cfg):
 					print k, "=", v
 
 if __name__ == '__main__':
-	cfg = Settings('/home/jr/x/hyde/mof3d.ini')
+	cfg = Settings('/home/jr/x/hyde/gaudi.ini')
 	print [o.type for o in cfg.objective]
 

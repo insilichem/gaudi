@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
-# MOF3D
-# Multi-Objective Force-Field-Free Docking
+# gaudi
+# Genetic Algorithm for Unified Docking Inference
 # A docking module for UCSF Chimera
 # Jaime RGP <https://bitbucket.org/jrgp> @ UAB, 2014
 
@@ -46,9 +46,9 @@ def rotate(molecule, at, alpha):
 	for a in molecule.atoms:
 		a.setCoord(r.apply(a.coord()))
 
-def rand_xform(center, r):
+def rand_xform(center, r, rotate=True):
 	import Matrix as M
 	ctf = M.translation_matrix([-x for x in center]).tolist()
-	rot = random_rotation()
+	rot = random_rotation() if rotate else None
 	shift = random_translation_step(center, r).tolist()
 	return shift, rot, ctf

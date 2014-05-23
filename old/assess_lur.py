@@ -4,7 +4,7 @@ import chimera
 import deap
 from deap import creator, algorithms, tools, base
 import random, argparse, numpy
-import mof3d
+import gaudi
 
 def evalCoord(ind, final=False):
 
@@ -18,16 +18,16 @@ def evalCoord(ind, final=False):
 	# hbonds_atoms = [ a for a in ligand_atoms if a.name not in ("C", "CA", "N", "O") ]
 	# hbonds = hyde5.countHBonds([mol], sel=hbonds_atoms, cache=True)
 	contacts, num_of_contacts, positive_vdw, negative_vdw = \
-		mof3d.score.chem.clashes(
+		gaudi.score.chem.clashes(
 								atoms=ligand_atoms, test=mol.atoms, 
 								intraRes=True, clashThreshold=-1.4, 
 								hbondAllowance=0.0, parse=True)
 	if final:
 		if positive_vdw: 
-			mof3d.score.chem.draw_clashes(positive_vdw, startCol="FFFF00", endCol="00FF00",
+			gaudi.score.chem.draw_clashes(positive_vdw, startCol="FFFF00", endCol="00FF00",
 				key=3, name="Hydrophobic interactions")
 		if negative_vdw:
-			mof3d.score.chem.draw_clashes(negative_vdw, startCol="FF0000", endCol="FF0000",
+			gaudi.score.chem.draw_clashes(negative_vdw, startCol="FF0000", endCol="FF0000",
 				key=3, name="Bad clashes")
 	return  sum(abs(a[3]) for a in negative_vdw)/2, sum(1-a[3] for a in positive_vdw)/2, \
 			0 #len(hbonds)
@@ -56,14 +56,14 @@ anchor1 = chimera.selection.savedSels['anchor1'].atoms()[0]
 bondrots1 = []
 for b in chimera.selection.savedSels['bonds1'].bonds():
 	br = chimera.BondRot(b)
-	br.myanchor = mof3d.utils.box.find_nearest(anchor1, b.atoms)
+	br.myanchor = gaudi.utils.box.find_nearest(anchor1, b.atoms)
 	bondrots1.append(br)
 
 anchor2 = chimera.selection.savedSels['anchor2'].atoms()[0]
 bondrots2 = []
 for b in chimera.selection.savedSels['bonds2'].bonds():
 	br = chimera.BondRot(b)
-	br.myanchor = mof3d.utils.box.find_nearest(anchor2, b.atoms)
+	br.myanchor = gaudi.utils.box.find_nearest(anchor2, b.atoms)
 	bondrots2.append(br)
 
 mol = chimera.openModels.list()[0]

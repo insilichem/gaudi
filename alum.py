@@ -1,8 +1,8 @@
 # aluminium optimization
 # Rotamer optimization
-import chimera, deap, Rotamers, mof3d
+import chimera, deap, Rotamers, gaudi, Matrix as M
 from deap import creator, algorithms, tools, base
-import random, argparse, numpy
+import random, argparse, numpy, math
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-p', '--population',
@@ -12,18 +12,19 @@ parser.add_argument('-p', '--population',
 					dest="pop",
 					metavar="<number of individuals>",
 					help="Number of individuals in each population" )
-parser.add_argument('-g', '--generation',
+parser.add_argument('-g', '--generations',
 					required=False,
 					type=int,
-					default=30, 
+					default=15, 
 					dest="ngen",
 					metavar="<number of generations>",
 					help="Number of generations to calculate" )
 parser.add_argument('-t', '--threshold',
 					required=False,
+					type=float,
 					default=2.0, 
 					dest="threshold",
-					metavar="<distance in angstroms | covalent>",
+					metavar="<distance in angstroms | `covalent`>",
 					help="Target distance for rotamers. If `covalent`, distance will be inferred from atom types." )
 parser.add_argument('-w', '--wall',
 					required=False,
@@ -31,56 +32,106 @@ parser.add_argument('-w', '--wall',
 					dest="wall",
 					action="store_true",
 					help="Wether to allow distances < threshold or not" )
+parser.add_argument('-r', '--radius',
+					required=False,
+					default=1.5, 
+					type=float,
+					dest="radius",
+					metavar="<angstroms>",
+					help="Radius of the sphere where the metal will be able to move"  )
 args = parser.parse_args()
 
-#random.seed(64)
-
 mol = chimera.openModels.list()[0]
-residues = chimera.selection.savedSels['rotamers'].residues()
+alum = [a for r in mol.residues if r.type=='AL3' for a in r.atoms]
+alres = gaudi.molecule._dummy_res('alum')
+al = chimera.molEdit.addAtom('ALX', alum[0].element, alres,
+						alum[0].coord(), bondedTo=None, serialNumber=-1)
+chimera.selection.setCurrent(al)
+zone = chimera.specifier.evalSpec('sel za < 7')
+residues = [ r for r in zone.residues() if r.type in ('ASP', 'GLU') ]
 rotamers = [ Rotamers.getRotamers(r)[1] for r in residues ]
 r_atoms = [ a for r in residues for a in r.atoms ]
-al = chimera.selection.savedSels['al'].atoms()[0]
 
-def evalCoord(ind):
+def evalCoord(ind, close=True):
+	## Rebuild system
 	# rotamers
-	for res, rot, i in zip(residues, rotamers, ind):
+	for res, rot, i in zip(residues, rotamers, ind['rotamers']):
 		try:
 			Rotamers.useRotamer(res, [rot[i]])
 		except IndexError:
 			Rotamers.useRotamer(res, [rot[-1]])
-	
-	# distance
-	avg_dist = mof3d.score.target.distance(residues, "O", al, args.threshold, \
-		wall=args.wall, avg=True)
-	# clashes
-	r_atoms = [ a for r in residues for a in r.atoms ]
-	clashes, num_of_clashes = mof3d.score.chem.clashes(atoms=r_atoms, 
-		test=[ a for a in mol.atoms if a != al ])
+	# move metal
+	al.molecule.openState.xform = M.chimera_xform(M.multiply_matrices(
+									ind['position'][0], ind['position'][2]))
 
-	return avg_dist, num_of_clashes
+	if not close:
+		return residues[0].molecule, al.molecule
+	## Test new conformation
+	# distance
+	zone = chimera.specifier.evalSpec('sel zr < 7')
+	oxygens = [ a for a in zone.atoms() if a.element.number==8 and len(a.neighbors)==1 ]
+	ox_within_r = [ a for a in oxygens if gaudi.score.target._distance(a, al) < args.threshold ]
+	avg_dist = gaudi.score.target.distance(oxygens, al, args.threshold, wall=args.wall)
+	# dihedral
+	nearest_ox = min((o for o in oxygens if len(o.neighbors)==1), 
+					key=lambda a: gaudi.score.target._distance(a, al))
+	nearest_ox_c = nearest_ox.neighbors[0]
+	nearest_ox_cc = next(a for a in nearest_ox_c.neighbors if a.element.number!=8)
+	dihedral = chimera.dihedral(*[a.molecule.openState.xform.apply(a.coord())
+								for a in (al, nearest_ox, nearest_ox_c, nearest_ox_cc)])
+
+	# clashes
+	r_atoms = [ a for r in residues for a in r.atoms ] + [al]
+	clashes, num_of_clashes, _, __ = gaudi.score.chem.clashes(atoms=r_atoms, 
+		test=(a for a in mol.atoms if a not in alum), parse=False)
+
+
+
+	return   len(ox_within_r), num_of_clashes, avg_dist, \
+			 abs(math.sin(math.radians(dihedral)))
+
+def het_crossover(ind1, ind2):
+	ind1['rotamers'], ind2['rotamers'] = deap.tools.cxTwoPoint(ind1['rotamers'], ind2['rotamers'])
+
+	return ind1, ind2
+
+def het_mutation(ind, indpb):
+	for key in ind:
+		if key == 'rotamers':
+			ind[key], = deap.tools.mutUniformInt(ind[key], 
+				low=0, up=10, indpb=indpb)
+		elif key == 'xform' and random.random() < indpb:
+			# Careful! Mutation generates a whole NEW position (similar to eta ~= 0)
+			ind['xform'] = gaudi.move.rand_xform(al[0].coord(), args.radius, rotate=False)
+
+	return ind,
 
 # Genetic Algorithm
 # define individual, population, etc
-deap.creator.create("FitnessMin", deap.base.Fitness, weights=(-1.0, -1.0))
-deap.creator.create("Individual", list, fitness=deap.creator.FitnessMin)
+deap.creator.create("FitnessMin", deap.base.Fitness, weights=(1.0, -1.0, -1.0, -1.0))
+deap.creator.create("Individual", dict, fitness=deap.creator.FitnessMin)
 
 toolbox = deap.base.Toolbox()
-toolbox.register("randrot", random.randint, 0, 8)
-toolbox.register("individual", deap.tools.initRepeat, deap.creator.Individual,
-	toolbox.randrot, n=len(residues))
-toolbox.register("population", deap.tools.initRepeat, 
-	list, toolbox.individual)
+toolbox.register("toDict", 
+	(lambda ind, *fn: ind((f.__name__, f()) for f in fn)))
+#genes
+toolbox.register("randrot", random.randint, 0, 10)
+toolbox.register("rotamers", deap.tools.initRepeat, list, toolbox.randrot, n=len(residues))
+toolbox.register("position", gaudi.move.rand_xform, alum[0].coord(), args.radius, rotate=False)
+genes = [toolbox.rotamers, toolbox.position]
+#ind&pop
+toolbox.register("individual", toolbox.toDict, deap.creator.Individual, *genes)
+toolbox.register("population", deap.tools.initRepeat, list, toolbox.individual)
 
 toolbox.register("evaluate", evalCoord)
-toolbox.register("mate", deap.tools.cxTwoPoint)
-toolbox.register("mutate", deap.tools.mutUniformInt, 
-	low=0., up=8., indpb=0.05)
+toolbox.register("mate", het_crossover)
+toolbox.register("mutate", het_mutation, indpb=0.05)
 toolbox.register("select", deap.tools.selNSGA2)
 
 def main():
 	pop = toolbox.population(n=args.pop)
-	hof = deap.tools.HallOfFame(10)
-	stats = deap.tools.Statistics(lambda ind: ind.fitness.values[0])
+	hof = deap.tools.ParetoFront()
+	stats = deap.tools.Statistics(lambda ind: ind.fitness.values)
 	stats.register("avg", numpy.mean, axis=0)
 	stats.register("min", numpy.min, axis=0)
 	stats.register("max", numpy.max, axis=0)
@@ -92,8 +143,9 @@ def main():
 if __name__ == "__main__":
 
 	pop, log, hof = main()
-	evalCoord(hof[0])
-	print("Best individual is: %s\nwith fitness: %s" % (hof[0], hof[0].fitness))
-	print("More possible solutions to assess: ")
-	for h in hof[1:]:
-		print h, h.fitness
+	rank = gaudi.utils.box.write_individuals(hof, mol.openedAs[0][:-4]+"/", 'solution', evalCoord, remove=False)
+	out = open(mol.openedAs[0][:-4]+'/results.txt', 'w+')
+	out.write("File path\t\tOxygens within radius, avg distance, number of clashes, planarity\n")
+	for r in rank:
+		out.write("{}\t{}\n".format(*r))
+	out.close()

@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
-# MOF3D
-# Multi-Objective Force-Field-Free Docking
+# gaudi
+# Genetic Algorithm for Unified Docking Inference
 # A docking module for UCSF Chimera
 # Jaime RGP <https://bitbucket.org/jrgp> @ UAB, 2014
 
@@ -78,16 +78,17 @@ def pseudobond_to_bond(molecule, remove=False):
 		pbm = molecule.pseudoBondMgr()
 		pbm.deletePseudoBondGroup(pbgroup)
 
-def write_individuals(inds, outpath, name, evalfn):
+def write_individuals(inds, outpath, name, evalfn, remove=True):
 	from WriteMol2 import writeMol2
 	if not os.path.isdir(outpath):
 		os.makedirs(outpath)
 	results = []
 	for i, ind in enumerate(inds):
-		ligand = evalfn(ind, close=False)
+		ligands = evalfn(ind, close=False)
 		fullname = '{}{}__{:03d}.mol2'.format(outpath, name, i+1)
-		writeMol2([ligand], fullname)
-		chimera.openModels.remove([ligand])
+		writeMol2(ligands, fullname)
+		if remove:
+			chimera.openModels.remove(ligands)
 		results.append([fullname+'\t']+[ind.fitness])
 	return results
 

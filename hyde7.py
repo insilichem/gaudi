@@ -12,9 +12,10 @@ import chimera, Rotamers, SwapRes, Matrix as M
 # Python
 import random, numpy, deap, sys, math
 from deap import creator, tools, base, algorithms
+from operator import mul
 # Custom
-import mof3d
-from mof3d.utils import box
+import gaudi
+from gaudi.utils import box
 
 ### CUSTOM FUNCTIONS
 
@@ -57,7 +58,7 @@ def evaluate(ind, close=True, hidden=False, draw=False):
 	score, draw_list = [], {}
 	for obj in cfg.objective:
 		if obj.type == 'hbonds':
-			hbonds = mof3d.score.chem.hbonds(
+			hbonds = gaudi.score.chem.hbonds(
 						[protein, ligand], cache=False, test=ligand_env.atoms(),
 						sel=[ a for a in ligand.atoms if a not in ("C", "CA", "N", "O") ],
 						dist_slop=obj.distance_tolerance, angle_slop=obj.angle_tolerance)
@@ -74,7 +75,7 @@ def evaluate(ind, close=True, hidden=False, draw=False):
 			else:
 				ligand_atoms = ligand.atoms
 			contacts, num_of_contacts, positive_vdw, negative_vdw = \
-				mof3d.score.chem.clashes(atoms=ligand_atoms, 
+				gaudi.score.chem.clashes(atoms=ligand_atoms, 
 										test=ligand_env.atoms(), 
 										intraRes=True, clashThreshold=obj.threshold, 
 										hbondAllowance=obj.threshold_h, parse=True,
@@ -83,7 +84,7 @@ def evaluate(ind, close=True, hidden=False, draw=False):
 				clashscore = sum(abs(a[3]) for a in negative_vdw)/2
 				if clashscore > obj.cutoff and close:
 					chimera.openModels.remove([ligand])
-					return [ -1000*w for w in weights ]
+					return sum(-1000*w for w in weights ),
 				score.append(clashscore)
 				draw_list['negvdw'] = negative_vdw
 			elif obj.which == 'hydrophobic':
@@ -93,27 +94,27 @@ def evaluate(ind, close=True, hidden=False, draw=False):
 		elif obj.type == 'distance':
 			probes = box.atoms_by_serial(*obj.probes, atoms=ligand.atoms)
 			dist_target, = box.atoms_by_serial(obj.target, atoms=protein.atoms)
-			dist = mof3d.score.target.distance(probes, dist_target, obj.threshold, 
+			dist = gaudi.score.target.distance(probes, dist_target, obj.threshold, 
 						wall=obj.wall)
 			score.append(dist)
 
 		elif obj.type == 'solvation':
-			atoms, ses, sas = mof3d.score.chem.solvation(ligand_env.atoms())
+			atoms, ses, sas = gaudi.score.chem.solvation(ligand_env.atoms())
 			ligand_ses = sum(s for (a,s) in zip(atoms, ses) if a in ligand.atoms)
 			score.append(ligand_ses)
 
 	if close:
 		chimera.openModels.remove([ligand])
-		return [round(s, 2) for s in score]
+		return sum(map(mul, weights, score)),
 	if draw and draw_list:
 		if 'negvdw' in draw_list:
-			mof3d.score.chem.draw_interactions(draw_list['negvdw'], startCol='FF0000', 
+			gaudi.score.chem.draw_interactions(draw_list['negvdw'], startCol='FF0000', 
 				endCol='FF0000', key=3, name="Clashes")
 		if 'posvdw' in draw_list: 
-			mof3d.score.chem.draw_interactions(draw_list['posvdw'], startCol='00FF00',
+			gaudi.score.chem.draw_interactions(draw_list['posvdw'], startCol='00FF00',
 				endCol='FFFF00', key=3, name="Hydrophobic interactions")
 		if 'hbonds' in draw_list:
-			mof3d.score.chem.draw_interactions(draw_list['hbonds'], startCol='00FFFF', 
+			gaudi.score.chem.draw_interactions(draw_list['hbonds'], startCol='00FFFF', 
 				endCol='00FFFF', name="H Bonds")
 	return ligand
 
@@ -127,7 +128,7 @@ def het_crossover(ind1, ind2):
 			ind1[key], ind2[key] = deap.tools.cxTwoPoint(ind1[key], ind2[key])
 		elif key == 'xform': # swap rotation and translation
 			ind1[key], ind2[key] = ind1[key][:1]+ind2[key][1:], ind2[key][:1]+ind1[key][1:]
-			# ind1[key], ind2[key] = mof3d.move.pos_swap(ind1[key], ind2[key])
+			# ind1[key], ind2[key] = gaudi.move.pos_swap(ind1[key], ind2[key])
 
 	return ind1, ind2
 
@@ -145,7 +146,7 @@ def het_mutation(ind, indpb):
 				low=0, up=8, indpb=indpb)[0]
 		elif key == 'xform' and random.random() < indpb:
 			# Careful! Mutation generates a whole NEW position (similar to eta ~= 0)
-			ind['xform'] = mof3d.move.rand_xform(origin, cfg.protein.radius)
+			ind['xform'] = gaudi.move.rand_xform(origin, cfg.protein.radius)
 
 	return ind,
 
@@ -165,9 +166,9 @@ def similarity(a, b):
 ##/ FUNCTIONS
 
 ## Initialize workspace
-cfg = mof3d.utils.parse.Settings(sys.argv[1])
-weights = cfg.weights()
-deap.creator.create("FitnessMax", deap.base.Fitness, weights=weights)
+cfg = gaudi.utils.parse.Settings(sys.argv[1])
+weights = cfg.weights() if len(sys.argv)<=2 else map(float, sys.argv[2:])
+deap.creator.create("FitnessMax", deap.base.Fitness, weights=(1.0,))
 deap.creator.create("Individual", dict, fitness=deap.creator.FitnessMax)
 
 # Open protein
@@ -186,7 +187,7 @@ else:
 	join = 'dummy'
 	
 rotations = True if cfg.ligand.flexibility else False
-ligands = mof3d.molecule.library(cfg.ligand.path,
+ligands = gaudi.molecule.library(cfg.ligand.path,
 				bondto=target, rotations=rotations, join=join)
 
 # Operators and genes
@@ -196,7 +197,7 @@ toolbox.register("ligand", random.choice, ligands.keys())
 genes.append(toolbox.ligand)
 
 if search3D:
-	toolbox.register("xform", mof3d.move.rand_xform, origin, cfg.protein.radius)
+	toolbox.register("xform", gaudi.move.rand_xform, origin, cfg.protein.radius)
 	genes.append(toolbox.xform)
 
 if hasattr(cfg.ligand, 'flexibility') and cfg.ligand.flexibility:
@@ -255,16 +256,16 @@ def main():
 if __name__ == "__main__":	
 	print "Scores:", ', '.join([o.type for o in cfg.objective])
 	pop, log, hof = main()
-	if hasattr(cfg.ligand, 'assess') and cfg.ligand.assess:
-		assess, = chimera.openModels.open(cfg.ligand.assess, shareXform=True)
-		chimera.openModels.remove([assess])
-		cfg.objective = []
-		for h in hof:
-			h.fitness = list(h.fitness.getValues())
-			hligand = evaluate(h,close=False)
-			h.fitness.append(box.rmsd(assess, hligand))
-			chimera.openModels.remove([hligand])
-		hof = sorted(hof[:], key=lambda x: x.fitness[-1])
+	# if hasattr(cfg.ligand, 'assess') and cfg.ligand.assess:
+	# 	assess, = chimera.openModels.open(cfg.ligand.assess, shareXform=True)
+	# 	cfg.objective = []
+	# 	for h in hof:
+	# 		h.fitness = list(h.fitness.getValues())
+	# 		hligand = evaluate(h,close=False)
+	# 		h.fitness.append(box.rmsd(assess, hligand))
+	# 		chimera.openModels.remove([hligand])
+	# 	hof = sorted(hof[:], key=lambda x: x.fitness[-1])
+	# 	chimera.openModels.remove([assess])
 
 	rank = box.write_individuals(hof, cfg.default.savepath,	cfg.default.savename, evaluate)
 	print '\nRank of results\n---------------\nFilename\tFitness'

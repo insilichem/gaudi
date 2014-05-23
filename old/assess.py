@@ -4,7 +4,7 @@ import chimera
 import deap
 from deap import creator, algorithms, tools, base
 import random, argparse, numpy
-import mof3d
+import gaudi
 
 def evalCoord(individual):
 	## 1 - Set rotations
@@ -15,8 +15,8 @@ def evalCoord(individual):
 	## 2 - Score
 	# TODO: Restrict donor and acceptors to smaller selection
 	model = chimera.openModels.list()
-	hbonds = mof3d.score.chem.hbonds(model, sel=ligand.atoms, cache=True)
-	clashes, num_of_clashes = mof3d.score.chem.clashes(atoms=ligand.atoms, 
+	hbonds = gaudi.score.chem.hbonds(model, sel=ligand.atoms, cache=True)
+	clashes, num_of_clashes = gaudi.score.chem.clashes(atoms=ligand.atoms, 
 		test=mol.atoms)
 
 	return num_of_clashes, len(hbonds)
@@ -45,7 +45,7 @@ anchor = chimera.selection.currentAtoms()[0]
 bondrots = []
 for b in chimera.selection.currentBonds():
 	br = chimera.BondRot(b)
-	br.myanchor = mof3d.utis.box.find_nearest(anchor, b.atoms)
+	br.myanchor = gaudi.utis.box.find_nearest(anchor, b.atoms)
 	bondrots.append(br)
 
 mol = chimera.selection.currentMolecules()[0]
