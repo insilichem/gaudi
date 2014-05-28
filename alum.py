@@ -41,13 +41,20 @@ parser.add_argument('-r', '--radius',
 					help="Radius of the sphere where the metal will be able to move"  )
 args = parser.parse_args()
 
+################################
+
+## Find aluminium
 mol = chimera.openModels.list()[0]
 alum = [a for r in mol.residues if r.type=='AL3' for a in r.atoms]
+alcrd, alelem = alum[0].coord(), alum[0].element
+# New movable aluminium
 alres = gaudi.molecule._dummy_res('alum')
-al = chimera.molEdit.addAtom('ALX', alum[0].element, alres,
-						alum[0].coord(), bondedTo=None, serialNumber=-1)
+al = chimera.molEdit.addAtom('ALX', alelem, alres, alcrd, bondedTo=None, serialNumber=-1)
 chimera.selection.setCurrent(al)
-zone = chimera.specifier.evalSpec('sel za < 7')
+zone = chimera.specifier.evalSpec('sel zr < 7')
+# Original aluminium ions are not needed
+[mol.deleteResidue(r) for r in mol.residues if r.type=='AL3']
+# Discover nearby residues
 residues = [ r for r in zone.residues() if r.type in ('ASP', 'GLU') ]
 rotamers = [ Rotamers.getRotamers(r)[1] for r in residues ]
 r_atoms = [ a for r in residues for a in r.atoms ]
@@ -61,11 +68,11 @@ def evalCoord(ind, close=True):
 		except IndexError:
 			Rotamers.useRotamer(res, [rot[-1]])
 	# move metal
-	al.molecule.openState.xform = M.chimera_xform(M.multiply_matrices(
-									ind['position'][0], ind['position'][2]))
-
+	al.molecule.openState.xform = \
+			M.chimera_xform(M.multiply_matrices(ind['position'][0], ind['position'][2]))
 	if not close:
-		return residues[0].molecule, al.molecule
+		return mol, al.molecule
+	
 	## Test new conformation
 	# distance
 	zone = chimera.specifier.evalSpec('sel zr < 7')
@@ -82,17 +89,14 @@ def evalCoord(ind, close=True):
 
 	# clashes
 	r_atoms = [ a for r in residues for a in r.atoms ] + [al]
-	clashes, num_of_clashes, _, __ = gaudi.score.chem.clashes(atoms=r_atoms, 
-		test=(a for a in mol.atoms if a not in alum), parse=False)
+	clashes, num_of_clashes, pos, neg = gaudi.score.chem.clashes(atoms=r_atoms, 
+		test=(a for a in mol.atoms), parse=True)
 
-
-
-	return   len(ox_within_r), num_of_clashes, avg_dist, \
+	return   len(ox_within_r), sum(abs(a[3]) for a in neg)/2, avg_dist, \
 			 abs(math.sin(math.radians(dihedral)))
 
 def het_crossover(ind1, ind2):
 	ind1['rotamers'], ind2['rotamers'] = deap.tools.cxTwoPoint(ind1['rotamers'], ind2['rotamers'])
-
 	return ind1, ind2
 
 def het_mutation(ind, indpb):
@@ -117,7 +121,7 @@ toolbox.register("toDict",
 #genes
 toolbox.register("randrot", random.randint, 0, 10)
 toolbox.register("rotamers", deap.tools.initRepeat, list, toolbox.randrot, n=len(residues))
-toolbox.register("position", gaudi.move.rand_xform, alum[0].coord(), args.radius, rotate=False)
+toolbox.register("position", gaudi.move.rand_xform, alcrd, args.radius, rotate=False)
 genes = [toolbox.rotamers, toolbox.position]
 #ind&pop
 toolbox.register("individual", toolbox.toDict, deap.creator.Individual, *genes)
@@ -136,7 +140,7 @@ def main():
 	stats.register("min", numpy.min, axis=0)
 	stats.register("max", numpy.max, axis=0)
 	pop, log = deap.algorithms.eaMuPlusLambda(pop, toolbox, 
-		mu = int(args.pop/2), lambda_= int(args.pop/2), cxpb=0.5, 
+		mu=int(args.pop/2), lambda_=int(args.pop/2), cxpb=0.5, 
 		mutpb=0.2, ngen=args.ngen, stats=stats, halloffame=hof)
 	return pop, log, hof
 
