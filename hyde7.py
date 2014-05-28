@@ -84,7 +84,7 @@ def evaluate(ind, close=True, hidden=False, draw=False):
 				clashscore = sum(abs(a[3]) for a in negative_vdw)/2
 				if clashscore > obj.cutoff and close:
 					chimera.openModels.remove([ligand])
-					return sum(-1000*w for w in weights ),
+					return [-1000*w for w in weights]
 				score.append(clashscore)
 				draw_list['negvdw'] = negative_vdw
 			elif obj.which == 'hydrophobic':
@@ -105,7 +105,7 @@ def evaluate(ind, close=True, hidden=False, draw=False):
 
 	if close:
 		chimera.openModels.remove([ligand])
-		return sum(map(mul, weights, score)),
+		return score
 	if draw and draw_list:
 		if 'negvdw' in draw_list:
 			gaudi.score.chem.draw_interactions(draw_list['negvdw'], startCol='FF0000', 
