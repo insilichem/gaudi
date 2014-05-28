@@ -3,8 +3,11 @@ Given an anchored ligand, explores conformational space of randomly generated su
 
 ## Usage
 In Chimera, define three selections with `namesel`:
+
 * `base`: Single atom. Terminal end of the static part of the ligand
+
 * `anchor`: Single atom. Together with `base`, it will define the static part. It's also the insertion point for the linker.
+
 * `mutable`: Residues to be swapped and mutated.
 
 Then, in command line, type `runscript /abs/path/to/hyde7.py -p <size of initial pop> -g <num of generations>`.
