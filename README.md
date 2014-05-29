@@ -1,12 +1,17 @@
-# Hyde project
-Given an anchored ligand, explores conformational space of randomly generated substituents and optimizes selected residues in target protein with a genetic algorithm.
+# GAUDI Project
+GAUDI (Genetic Algorithm for Unified Docking Inference) provides a novel method in docking essays by combining several chemostructural criteria, along with energy optimization.
 
-## Usage
-In Chimera, define three selections with `namesel`:
-* `base`: Single atom. Terminal end of the static part of the ligand
-* `anchor`: Single atom. Together with `base`, it will define the static part. It's also the insertion point for the linker.
-* `mutable`: Residues to be swapped and mutated.
+## Features
+**True multi-objective optimization**
 
-Then, in command line, type `runscript /abs/path/to/hyde7.py -p <size of initial pop> -g <num of generations>`.
+* Feel free to optimize H bonds, hydrophobic interactions, desolvation effects, distances between given sets of atoms, rotamers and more.
 
-Check the roadmap in tab "Issues".
+**Force-field-less approach**
+
+* Metal complexes are more than welcome.
+
+**Unprecedented customizability**
+
+* Each objective can be switched off upon demand.
+
+* The weights can be auto-optimized for each essay.
