@@ -1,8 +1,0 @@
-[atoms]
-anchor = 1
-target = 2
-axis_start = 1
-axis_end = 2
-
-[angles]
-target, anchor, post = 120

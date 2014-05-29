@@ -1,8 +1,0 @@
-[atoms]
-anchor = 4
-target = 10
-axis_start = 4
-axis_end = 10
-
-[angles]
-target, anchor, post = 109.5
