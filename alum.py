@@ -80,20 +80,26 @@ def evalCoord(ind, close=True):
 	ox_within_r = [ a for a in oxygens if gaudi.score.target._distance(a, al) < args.threshold ]
 	avg_dist = gaudi.score.target.distance(oxygens, al, args.threshold, wall=args.wall)
 	# dihedral
-	nearest_ox = min((o for o in oxygens if len(o.neighbors)==1), 
-					key=lambda a: gaudi.score.target._distance(a, al))
-	nearest_ox_c = nearest_ox.neighbors[0]
-	nearest_ox_cc = next(a for a in nearest_ox_c.neighbors if a.element.number!=8)
-	dihedral = chimera.dihedral(*[a.molecule.openState.xform.apply(a.coord())
-								for a in (al, nearest_ox, nearest_ox_c, nearest_ox_cc)])
-
+	dihedrals = []
+	for res in residues:
+		nearest_ox = min((a for a in res.atoms if len(a.neighbors)==1 and a.element.number==8), 
+						key=lambda x: gaudi.score.target._distance(x, al))
+		nearest_ox_c = nearest_ox.neighbors[0]
+		nearest_ox_cc = next(a for a in nearest_ox_c.neighbors if a.element.number!=8)
+		dihedral = chimera.dihedral(*[a.molecule.openState.xform.apply(a.coord())
+									for a in (al, nearest_ox, nearest_ox_c, nearest_ox_cc)])
+		planarity = abs(math.sin(math.radians(dihedral)))
+		if planarity < 0.25: 
+			dihedrals.append(planarity)
+		else:
+			dihedrals.append(1000)
+	# dihedrals = dihedrals + [0]*(4-len(dihedrals))
 	# clashes
 	r_atoms = [ a for r in residues for a in r.atoms ] + [al]
 	clashes, num_of_clashes, pos, neg = gaudi.score.chem.clashes(atoms=r_atoms, 
 		test=(a for a in mol.atoms), parse=True)
 
-	return   len(ox_within_r), sum(abs(a[3]) for a in neg)/2, avg_dist, \
-			 abs(math.sin(math.radians(dihedral)))
+	return len(ox_within_r), sum(abs(a[3]) for a in neg)/2, avg_dist, numpy.mean(dihedrals)
 
 def het_crossover(ind1, ind2):
 	ind1['rotamers'], ind2['rotamers'] = deap.tools.cxTwoPoint(ind1['rotamers'], ind2['rotamers'])
