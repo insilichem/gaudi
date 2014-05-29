@@ -169,7 +169,8 @@ def similarity(a, b):
 cfg = gaudi.utils.parse.Settings(sys.argv[1])
 weights = cfg.weights() if len(sys.argv)<=2 else map(float, sys.argv[2:])
 deap.creator.create("FitnessMax", deap.base.Fitness, weights=(1.0,))
-deap.creator.create("Individual", dict, fitness=deap.creator.FitnessMax)
+deap.creator.create("Individual", dict, fitness=deap.creator.FitnessMax,
+					fitness_names=[o.type for o in cfg.objective])
 
 # Open protein
 protein, = chimera.openModels.open(cfg.protein.path)
@@ -254,29 +255,13 @@ def main():
 	return pop, log, hof
 
 if __name__ == "__main__":	
-	print "Scores:", ', '.join([o.type for o in cfg.objective])
+	print "Scores:", ', '.join(o.type for o in cfg.objective)
 	pop, log, hof = main()
-	# if hasattr(cfg.ligand, 'assess') and cfg.ligand.assess:
-	# 	assess, = chimera.openModels.open(cfg.ligand.assess, shareXform=True)
-	# 	cfg.objective = []
-	# 	for h in hof:
-	# 		h.fitness = list(h.fitness.getValues())
-	# 		hligand = evaluate(h,close=False)
-	# 		h.fitness.append(box.rmsd(assess, hligand))
-	# 		chimera.openModels.remove([hligand])
-	# 	hof = sorted(hof[:], key=lambda x: x.fitness[-1])
-	# 	chimera.openModels.remove([assess])
 
 	rank = box.write_individuals(hof, cfg.default.savepath,	cfg.default.savename, evaluate)
-	print '\nRank of results\n---------------\nFilename\tFitness'
-
-	for r in rank:
-		print '{}\t{}'.format(*r)
-	print("\nCheck your results in {}".format(cfg.default.savepath))
+	with open(cfg.default.savepath+cfg.default.savename+'.gaudi', 'w+') as out:
+		out.write('\n'.join(rank))
 
 	#Display best individual
-	if chimera.nogui:
-		# run gui interface
-		pass
-	else:
+	if not chimera.nogui:
 		evaluate(hof[0], close=False, draw=True)

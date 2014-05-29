@@ -119,7 +119,8 @@ def het_mutation(ind, indpb):
 # Genetic Algorithm
 # define individual, population, etc
 deap.creator.create("FitnessMin", deap.base.Fitness, weights=(1.0, -1.0, -1.0, -1.0))
-deap.creator.create("Individual", dict, fitness=deap.creator.FitnessMin)
+deap.creator.create("Individual", dict, fitness=deap.creator.FitnessMin,
+					fitness_names=[ 'nearby_ox', 'distance', 'clashes', 'planarity'])
 
 toolbox = deap.base.Toolbox()
 toolbox.register("toDict", 
@@ -151,11 +152,8 @@ def main():
 	return pop, log, hof
 
 if __name__ == "__main__":
-
 	pop, log, hof = main()
 	rank = gaudi.utils.box.write_individuals(hof, mol.openedAs[0][:-4]+"/", 'solution', evalCoord, remove=False)
-	out = open(mol.openedAs[0][:-4]+'/results.txt', 'w+')
-	out.write("File path\t\tOxygens within radius, avg distance, number of clashes, planarity\n")
-	for r in rank:
-		out.write("{}\t{}\n".format(*r))
+	out = open(mol.openedAs[0][:-4]+'/results.gaudi', 'w+')
+	print >> out,  '\n'.join(rank)
 	out.close()
