@@ -4,7 +4,7 @@ from deap import creator, tools, base, algorithms
 def evaluate(ind):
 	weights = [ w*r for (w,r) in zip(cfg_weights, ind) ]
 	print 'Benchmarking weights', weights
-	chimera.runCommand('runscript /home/jr/x/hyde/hyde7.py ' + \
+	chimera.runCommand('runscript /home/jr/x/gaudi/base.py ' + \
 						sys.argv[1] + ' ' + ' '.join(map(str,weights)))
 	assess, = chimera.openModels.open(cfg.ligand.assess, shareXform=True)
 	results = glob.glob(cfg.default.savepath+"*.mol2")
@@ -26,7 +26,7 @@ def main():
 	stats.register("min", numpy.min, axis=0)
 	stats.register("max", numpy.max, axis=0)
 	pop, log = deap.algorithms.eaMuPlusLambda(pop, toolbox, 
-		mu = int(0.75*int(sys.argv[2])), lambda_=  int(0.75*int(sys.argv[2])), 
+		mu=int(0.75*int(sys.argv[2])), lambda_=int(0.75*int(sys.argv[2])), 
 		cxpb=0.5, mutpb=0.25, 
 		ngen=int(sys.argv[3]), stats=stats, halloffame=hof)
 	return pop, log, hof
