@@ -1,22 +1,29 @@
 import deap, gaudi, os, glob, numpy, sys, chimera, random
 from deap import creator, tools, base, algorithms
-
+evalcount = 0
 def evaluate(ind):
+	savedir = ''.join(cfg.default.savepath, id(ind), '/')
+	os.mkdir(savedir)
 	weights = [ w*r for (w,r) in zip(cfg_weights, ind) ]
-	print 'Benchmarking weights', weights
+	print '\nBenchmarking weights', weights
 	chimera.runCommand('runscript /home/jr/x/gaudi/base.py ' + \
 						sys.argv[1] + ' ' + ' '.join(map(str,weights)))
 	assess, = chimera.openModels.open(cfg.ligand.assess, shareXform=True)
 	results = glob.glob(cfg.default.savepath+"*.mol2")
-	rmsd = []
+	rmsd, fitness = [], []
 	for result in results:
 		r, = chimera.openModels.open(result)
+		fit = r.mol2comments[r.mol2comments.index('#>>GAUDI.score')+2].split()[1:]
+		fitness.append(sum(w*f for (w,f) in zip(weights, fit)))
 		rmsd.append(gaudi.utils.box.rmsd(r, assess))
 		chimera.openModels.remove([r])
-		os.remove(result)
+		os.rename(result, savedir+result)
 	chimera.runCommand('close all')
 
-	return numpy.mean(rmsd), numpy.std(rmsd)
+	sort_by_rmsd = sorted(results, key=rmsd)
+	sort_by_fitness = sorted(results, key=fitness)
+
+	return numpy.mean(x==y for (x,y) in zip(sort_by_rmsd, sort_by_fitness)),
 
 def main():
 	pop = toolbox.population(n=int(sys.argv[2]))
@@ -36,7 +43,7 @@ cfg = gaudi.utils.parse.Settings(sys.argv[1])
 cfg_weights = cfg.weights()
 
 toolbox = deap.base.Toolbox()
-deap.creator.create("FitnessMin", deap.base.Fitness, weights=(-1.0,-1.0))
+deap.creator.create("FitnessMin", deap.base.Fitness, weights=(-1.0,))
 deap.creator.create("Individual", list, fitness=deap.creator.FitnessMin)
 
 # Individual and population
@@ -57,5 +64,5 @@ if __name__ == "__main__":
 	pop, log, hof = main()
 	print "\n---------------\n"
 	for h in hof:
-		print h, '\t', h.fitness
+		print id(h), h, '\t', h.fitness
 
