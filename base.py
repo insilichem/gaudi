@@ -103,6 +103,11 @@ def evaluate(ind, close=True, hidden=False, draw=False):
 			ligand_ses = sum(s for (a,s) in zip(atoms, ses) if a in ligand.atoms)
 			score.append(ligand_ses)
 
+		elif obj.type == 'rmsd':
+			assess = chimera.openModels.open(obj.asess)
+			score.append(gaudi.utils.box.rmsd(ligand, assess))
+			chimera.openModels.close([assess])
+			
 	if close:
 		chimera.openModels.remove([ligand])
 		return score
