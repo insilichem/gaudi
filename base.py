@@ -226,9 +226,10 @@ if search3D:
 if hasattr(cfg.ligand, 'flexibility') and cfg.ligand.flexibility:
 	if cfg.ligand.flexibility > 360: 
 		cfg.ligand.flexibility = 360.0
-	toolbox.register("rand_angle", random.uniform, -0.5*cfg.ligand.flexibility, 0.5*cfg.ligand.flexibility)
+	toolbox.register("rand_angle", random.uniform, -0.5*cfg.ligand.flexibility, 
+					0.5*cfg.ligand.flexibility)
 	toolbox.register("rotable_bonds", deap.tools.initRepeat, list,
-						toolbox.rand_angle, n=20)
+						toolbox.rand_angle, n=30)
 	genes.append(toolbox.rotable_bonds) 
 
 if hasattr(cfg, 'rotamers'):
