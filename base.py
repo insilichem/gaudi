@@ -171,9 +171,12 @@ def similarity(a, b):
 	atoms1.sort(key=lambda x: x.serialNumber)
 	atoms2.sort(key=lambda x: x.serialNumber)
 
-	xf1, xf2 = M.multiply_matrices(*a['xform']), M.multiply_matrices(*b['xform'])
-	xf1, xf2 = M.chimera_xform(xf1), M.chimera_xform(xf2)
-	
+	try: 
+		xf1, xf2 = M.multiply_matrices(*a['xform']), M.multiply_matrices(*b['xform'])
+		xf1, xf2 = M.chimera_xform(xf1), M.chimera_xform(xf2)
+	except KeyError: #covalent docking does not use xforms!
+		xf1, xf2 = chimera.Xform(), chimera.Xform()
+
 	sqdist = sum( xf1.apply(a.coord()).sqdistance(xf2.apply(a.coord())) 
 					for a, b in zip(atoms1, atoms2) )
 	rmsd = math.sqrt(sqdist / float(len(atoms1)))
