@@ -189,7 +189,7 @@ cfg = gaudi.utils.parse.Settings(sys.argv[1])
 weights = cfg.weights() if len(sys.argv)<=2 else map(float, sys.argv[2:])
 deap.creator.create("FitnessMax", deap.base.Fitness, weights=weights)
 deap.creator.create("Individual", dict, fitness=deap.creator.FitnessMax,
-					fitness_names=[o.type for o in cfg.objective])
+					fitness_names=['{}_{}'.format(*obj) for obj in enumerate(cfg.objective)])
 
 # Open protein
 protein, = chimera.openModels.open(cfg.protein.path)
