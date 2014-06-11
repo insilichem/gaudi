@@ -84,7 +84,7 @@ def write_individuals(inds, outpath, name, evalfn, remove=True):
 		os.makedirs(outpath)
 	
 	header = ' '.join('{:>10}'.format(x) for x in inds[0].fitness_names)
-	results = ['{:>{len_}} {}\n'.format('Filename', header, len_=len(name)+10) ]
+	results = ['{:>{len_}} {}'.format('Filename', header, len_=len(name)+10) ]
 	for i, ind in enumerate(inds):
 		ligands = evalfn(ind, close=False)
 		fullname = '{}{}__{:03d}.mol2'.format(outpath, name, i+1)
