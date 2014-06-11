@@ -75,8 +75,7 @@ def evaluate(ind, close=True, hidden=False, draw=False):
 			else:
 				ligand_atoms = ligand.atoms
 			contacts, num_of_contacts, positive_vdw, negative_vdw = \
-				gaudi.score.chem.clashes(atoms=ligand_atoms, 
-										test=ligand_env.atoms(), 
+				gaudi.score.chem.clashes(atoms=ligand_atoms, test=ligand_env.atoms(), 
 										intraRes=True, clashThreshold=obj.threshold, 
 										hbondAllowance=obj.threshold_h, parse=True,
 										parse_threshold=obj.threshold_c)
@@ -92,11 +91,16 @@ def evaluate(ind, close=True, hidden=False, draw=False):
 				draw_list['posvdw'] = positive_vdw
 
 		elif obj.type == 'distance':
-			probes = box.atoms_by_serial(*obj.probes, atoms=ligand.atoms)
+			probes = []
+			for p in obj.probes:
+				if p == 'last':
+					probes.append(ligand.cfg.atoms['target'])
+					continue
+				probes.extend(box.atoms_by_serial(p), atoms=ligand.atoms)
 			dist_target, = box.atoms_by_serial(obj.target, atoms=protein.atoms)
 			dist = gaudi.score.target.distance(probes, dist_target, obj.threshold, 
-						wall=obj.wall)
-			score.append(dist)
+						obj.threshold2)
+			score.append(numpy.mean(dist))
 
 		elif obj.type == 'solvation':
 			atoms, ses, sas = gaudi.score.chem.solvation(ligand_env.atoms())
