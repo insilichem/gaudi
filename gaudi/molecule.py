@@ -191,10 +191,8 @@ def copy_atoms(atoms, bondto=None, join=False, keepattr=None, close=False):
 			for k, v in tmpl.cfg.atoms.items():
 				try:
 					mol.cfg.atoms[k] = built_atoms[v]
-					print k, v, built_atoms[v]
 				except KeyError:
 					mol.cfg.atoms[k] = v
-					print k, v
 			if join == 'dummy':
 				mol.cfg.atoms['anchor'] = built_atoms[bondto]
 	
