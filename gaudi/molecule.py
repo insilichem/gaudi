@@ -64,18 +64,19 @@ def place(mol2, target=None, join=True, p2b=True, inplace=True, geom=None):
 				try:
 					geometry = chimera.idatm.typeInfo[target.idatmType].geometry
 				except KeyError:
-					print "Warning, arbitrary geometry with {}, {}, {}".format(
+					print "Warning, arbitrary geometry with {}, {}".format(
 															target, geometry)
 					geometry = 3
 				try:
 					target, targetH = BuildStructure.changeAtom(
 										target, target.element, geometry, 
 										target.numBonds + 1)[:2]
+					
 				except ValueError: #unpacking error; pick any terminal atom available
 					print "Warning, arbitrary terminal atom with {}, {}, {}".format(
 												target, geometry, target.numBonds)
 					targetH = next(a for a in target.neighbors if a.numBonds == 1)
-					
+
 			# fix bond length
 			dv = targetH.coord() - target.coord()
 			dv.length = chimera.Element.bondLength(anchor.element, target.element)
@@ -89,10 +90,11 @@ def place(mol2, target=None, join=True, p2b=True, inplace=True, geom=None):
 			if geom:
 				for atoms, alpha in geom.items():
 					new_atoms = []
-					for i, a in enumerate(atoms): #parse atoms
+					for a in atoms: #parse atoms
 						if isinstance(a, chimera.Atom):
 							continue
-						elif a == 'post':
+						a = a.strip()
+						if a == 'post':
 							new_atoms.append(anchor.neighbors[0])
 						elif a == 'anchor':
 							new_atoms.append(anchor)
@@ -124,7 +126,6 @@ def copy_atoms(atoms, bondto=None, join=False, keepattr=None, close=False):
 		target = bondto
 		res = target.residue
 		mol = target.molecule
-		
 		i = max(a.serialNumber for a in res.molecule.atoms)
 		index = utils.box.highest_atom_indices(res)
 		for a in atoms:
@@ -159,10 +160,10 @@ def copy_atoms(atoms, bondto=None, join=False, keepattr=None, close=False):
 			target = res.atomsMap[sprout.name][-1]
 		else:
 			i += 1
-			built = addAtom(sprout.name, sprout.element, res, sprout.coord(),
+			built_atoms[sprout] = target = addAtom(sprout.name, 
+							sprout.element, res, sprout.coord(),
 							bondedTo=target, serialNumber=i)
-			target = built
-			built_atoms[sprout] = built
+
 		for a in sprout.neighbors:
 			if a.element.number == 1: continue
 			if a.name not in res.atomsMap:
@@ -174,9 +175,8 @@ def copy_atoms(atoms, bondto=None, join=False, keepattr=None, close=False):
 				built = res.atomsMap[a.name][-1]
 			if needBuild:
 				i +=1
-				built = addAtom(a.name, a.element, res,	a.coord(), 
+				built_atoms[a] = built = addAtom(a.name, a.element, res, a.coord(), 
 								bondedTo=target, serialNumber=i)
-				built_atoms[a] = built
 				# if a has more than one neighbor:
 				if len(a.neighbors) > 1:
 					sprouts.append(a) # this new atom can be a new sprout
@@ -187,11 +187,18 @@ def copy_atoms(atoms, bondto=None, join=False, keepattr=None, close=False):
 	if keepattr and hasattr(tmpl, str(keepattr)):
 		setattr(mol, keepattr, getattr(tmpl, keepattr))
 		if keepattr == 'cfg':
-			delattr(mol.cfg, 'angles') #not needed anymore, and outdated
-			for k, v in mol.cfg.atoms.items():
-				mol.cfg.atoms[k] = built_atoms[v]
+			# delattr(mol.cfg, 'angles') #not needed anymore, and outdated
+			for k, v in tmpl.cfg.atoms.items():
+				try:
+					mol.cfg.atoms[k] = built_atoms[v]
+					print k, v, built_atoms[v]
+				except KeyError:
+					mol.cfg.atoms[k] = v
+					print k, v
 			if join == 'dummy':
 				mol.cfg.atoms['anchor'] = built_atoms[bondto]
+	
+	# Save the just built counterpart of a given atom
 	elif isinstance(keepattr, chimera.Atom):
 		mol.kept = built_atoms[keepattr]
 
