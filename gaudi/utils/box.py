@@ -86,9 +86,9 @@ def write_individuals(inds, outpath, name, evalfn, remove=True):
 	header = ' '.join('{:>10}'.format(x) for x in inds[0].fitness_names)
 	results = ['{:>{len_}} {}'.format('Filename', header, len_=len(name)+10) ]
 	for i, ind in enumerate(inds):
-		ligands = evalfn(ind, close=False)
+		ligand = evalfn(ind, close=False)
 		fullname = '{}{}__{:03d}.mol2'.format(outpath, name, i+1)
-		writeMol2(ligands, fullname, temporary=True, multimodelHandling='combined')
+		writeMol2([ligand.mol], fullname, temporary=True, multimodelHandling='combined')
 		fitness = ' '.join('{:>10.6g}'.format(x) for x in ind.fitness.values) 
 		with open(fullname, 'r+') as f:
 			mol2data = f.readlines()
@@ -101,7 +101,7 @@ def write_individuals(inds, outpath, name, evalfn, remove=True):
 			f.write(''.join(mol2data))
 
 		if remove:
-			chimera.openModels.remove(ligands)
+			chimera.openModels.remove([ligand.mol])
 		results.append('{} {}'.format(fullname.split('/')[-1], fitness))
 	return results
 
