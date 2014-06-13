@@ -135,8 +135,9 @@ def het_crossover(ind1, ind2):
 			ind1[key][:], ind2[key][:] = deap.tools.cxSimulatedBinaryBounded(
 				ind1[key], ind2[key], eta=cfg.ga.cx_eta, 
 				low=-0.5*cfg.ligand.flexibility, up=0.5*cfg.ligand.flexibility)
-		elif key in ('mutamers', 'rotamers'):
-			ind1[key], ind2[key] = deap.tools.cxTwoPoint(ind1[key], ind2[key])
+		elif key in ('mutamers', 'rotamers', 'ligand'):
+			ind1[key], ind2[key] = deap.tools.cxTwoPoint(list(ind1[key]), list(ind2[key]))
+			ind1[key], ind2[key] = tuple(ind1[key]), tuple(ind2[key])
 		elif key == 'xform':
 			xf1 = M.chimera_xform(M.multiply_matrices(*ind1[key]))
 			xf2 = M.chimera_xform(M.multiply_matrices(*ind2[key]))
@@ -151,7 +152,9 @@ def het_crossover(ind1, ind2):
 
 def het_mutation(ind, indpb):
 	for key in ind:
-		if key == 'rotable_bonds':
+		if key == 'ligand':
+			ind[key] = toolbox.ligand()
+		elif key == 'rotable_bonds':
 			ind[key] = deap.tools.mutPolynomialBounded(ind[key], 
 				eta=cfg.ga.mut_eta, low=-0.5*cfg.ligand.flexibility, 
 				up=0.5*cfg.ligand.flexibility, indpb=indpb)[0]
