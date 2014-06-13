@@ -23,7 +23,10 @@ def translate(molecule, anchor, target):
 
 def rotate(molecule, at, alpha):
 	if len(at) == 3:
-		a1, a2, a3 = [ a.coord() for a in at ]
+		try:
+			a1, a2, a3 = [ a.coord() for a in at ]
+		except AttributeError:
+			a1, a2, a3 = at
 		axis_a = a1 - a2
 		axis_b = a3 - a2
 		delta = chimera.angle(a1, a2, a3) - alpha
@@ -33,7 +36,10 @@ def rotate(molecule, at, alpha):
 			print "Warning, had to choose arbitrary normal vector"
 		pivot = a2
 	elif len(at) == 4:
-		a1, a2, a3, a4 = [ a.coord() for a in at ]
+		try:
+			a1, a2, a3, a4 = [ a.coord() for a in at ]
+		except AttributeError:
+			a1, a2, a3, a4 = at
 		axis = a3 - a2
 		delta = chimera.dihedral(a1, a2, a3, a4) - alpha
 		pivot = a3
