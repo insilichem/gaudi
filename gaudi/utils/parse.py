@@ -4,7 +4,7 @@
 # Genetic Algorithm for Unified Docking Inference
 # A docking module for UCSF Chimera
 # Jaime RGP <https://bitbucket.org/jrgp> @ UAB, 2014
-
+import os
 class Settings(object):
 	''' Simple parser for INI settings file. Allows both dict and object syntaxes '''
 	def __init__(self, path, asDict=False):
@@ -29,6 +29,8 @@ class Settings(object):
 		return w
 
 	def _parse(self, asDict):
+		if not os.path.isfile(self._path):
+			raise IOError('File {} does not exist'.format(self._path))
 		with open(self._path, 'r') as config:
 			s = None
 			parsed = {}
@@ -99,6 +101,7 @@ def _test_rebuild(cfg):
 					print k, "=", v
 
 if __name__ == '__main__':
-	cfg = Settings('/home/jr/x/hyde/gaudi.ini')
+	import sys
+	cfg = Settings(sys.argv[1])
 	print [o.type for o in cfg.objective]
 
