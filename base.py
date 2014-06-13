@@ -21,18 +21,20 @@ from gaudi.utils import box
 
 def evaluate(ind, close=True, hidden=False, draw=False):
 
-	ligand, bondrots = ligands[ind['ligand']]
-	chimera.openModels.add([ligand], shareXform=True, hidden=hidden)
-	box.pseudobond_to_bond(ligand)
+	ligand = ligands[ind['ligand']]
+	chimera.openModels.add([ligand.mol], shareXform=True, hidden=hidden)
+	box.pseudobond_to_bond(ligand.mol)
 	if 'rotable_bonds' in ind:
-		for alpha, br in zip(ind['rotable_bonds'], bondrots):
-			# check amides!
-			if all([a.idatmType in ('C2', 'N2') for a in br.bond.atoms]):
-				alpha = 0. if alpha<180 else 180.
-			br.adjustAngle(alpha - br.angle, br.rotanchor)
+		for alpha, br in zip(ind['rotable_bonds'], ligand.rotatable_bonds):
+			try: 
+				if all([a.idatmType in ('C2', 'N2') for a in br.bond.atoms]):
+					alpha = 0 if alpha<180 else 180
+				br.adjustAngle(alpha - br.angle, br.rotanchor)
+			except AttributeError: # A null bondrot was returned -> non-rotatable bond
+				continue
 
 	if 'xform' in ind:
-		ligand.openState.xform = M.chimera_xform(M.multiply_matrices(*ind['xform']))
+		ligand.mol.openState.xform = M.chimera_xform(M.multiply_matrices(*ind['xform']))
 
 	if 'rotamers' in ind:
 		if 'mutamers' in ind:
@@ -51,16 +53,16 @@ def evaluate(ind, close=True, hidden=False, draw=False):
 				Rotamers.useRotamer(res,rotamers[-1:])
 
 	ligand_env.clear()
-	ligand_env.add(ligand.atoms)
+	ligand_env.add(ligand.mol.atoms)
 	ligand_env.merge(chimera.selection.REPLACE,
 					chimera.specifier.zone( ligand_env, 'atom', None, 10.0,
-											[protein,ligand]))
+											[protein,ligand.mol]))
 	score, draw_list = [], {}
 	for obj in cfg.objective:
 		if obj.type == 'hbonds':
 			hbonds = gaudi.score.chem.hbonds(
-						[protein, ligand], cache=False, test=ligand_env.atoms(),
-						sel=[ a for a in ligand.atoms if a not in ("C", "CA", "N", "O") ],
+						[protein, ligand.mol], cache=False, test=ligand_env.atoms(),
+						sel=[ a for a in ligand.mol.atoms if a not in ("C", "CA", "N", "O") ],
 						dist_slop=obj.distance_tolerance, angle_slop=obj.angle_tolerance)
 			score.append(len(hbonds))
 			draw_list['hbonds'] = hbonds
@@ -71,9 +73,9 @@ def evaluate(ind, close=True, hidden=False, draw=False):
 		
 		elif obj.type == 'contacts':
 			if cfg.ligand.type == 'blocks':
-				ligand_atoms = [a for a in ligand.atoms if a.serialNumber > 3]
+				ligand_atoms = [a for a in ligand.mol.atoms if a.serialNumber > 3]
 			else:
-				ligand_atoms = ligand.atoms
+				ligand_atoms = ligand.mol.atoms
 			contacts, num_of_contacts, positive_vdw, negative_vdw = \
 				gaudi.score.chem.clashes(atoms=ligand_atoms, test=ligand_env.atoms(), 
 										intraRes=True, clashThreshold=obj.threshold, 
@@ -82,7 +84,7 @@ def evaluate(ind, close=True, hidden=False, draw=False):
 			if obj.which == 'clashes':
 				clashscore = sum(abs(a[3]) for a in negative_vdw)/2
 				if clashscore > obj.cutoff and close:
-					chimera.openModels.remove([ligand])
+					chimera.openModels.remove([ligand.mol])
 					return [-1000*w for w in weights]
 				score.append(clashscore)
 				draw_list['negvdw'] = negative_vdw
@@ -94,9 +96,9 @@ def evaluate(ind, close=True, hidden=False, draw=False):
 			probes = []
 			for p in obj.probes:
 				if p == 'last':
-					probes.append(ligand.cfg.atoms['target'])
+					probes.append(ligand.acceptor)
 					continue
-				probes.extend(box.atoms_by_serial(p), atoms=ligand.atoms)
+				probes.extend(box.atoms_by_serial(p), atoms=ligand.mol.atoms)
 			dist_target, = box.atoms_by_serial(obj.target, atoms=protein.atoms)
 			dist = gaudi.score.target.distance(probes, dist_target, obj.threshold, 
 						obj.threshold2)
@@ -104,16 +106,16 @@ def evaluate(ind, close=True, hidden=False, draw=False):
 
 		elif obj.type == 'solvation':
 			atoms, ses, sas = gaudi.score.chem.solvation(ligand_env.atoms())
-			ligand_ses = sum(s for (a,s) in zip(atoms, ses) if a in ligand.atoms)
+			ligand_ses = sum(s for (a,s) in zip(atoms, ses) if a in ligand.mol.atoms)
 			score.append(ligand_ses)
 
 		elif obj.type == 'rmsd':
 			assess = chimera.openModels.open(obj.asess)
-			score.append(gaudi.utils.box.rmsd(ligand, assess))
+			score.append(gaudi.utils.box.rmsd(ligand.mol, assess))
 			chimera.openModels.close([assess])
 			
 	if close:
-		chimera.openModels.remove([ligand])
+		chimera.openModels.remove([ligand.mol])
 		return score
 	if draw and draw_list:
 		if 'negvdw' in draw_list:
@@ -168,7 +170,7 @@ def het_mutation(ind, indpb):
 	return ind,
 
 def similarity(a, b):
-	atoms1, atoms2 = ligands[a['ligand']][0].atoms, ligands[b['ligand']][0].atoms
+	atoms1, atoms2 = ligands[a['ligand']].mol.atoms, ligands[b['ligand']].mol.atoms
 	atoms1.sort(key=lambda x: x.serialNumber)
 	atoms2.sort(key=lambda x: x.serialNumber)
 
@@ -199,27 +201,25 @@ protein, = chimera.openModels.open(cfg.protein.path)
 # Set up ligands
 ligand_env = chimera.selection.ItemizedSelection()
 if not hasattr(cfg.ligand, 'bondto') or not cfg.ligand.bondto:
-	target = origin = box.atoms_by_serial(cfg.protein.origin, 
+	origin = box.atoms_by_serial(cfg.protein.origin, 
 											atoms=protein.atoms)[0].coord()
-	search3D = True
-	join = False
+	covalent = False
 
 else:
-	target = box.atoms_by_serial(cfg.ligand.bondto, atoms=protein.atoms)[0]
-	search3D = False
-	join = 'dummy'
+	origin = box.atoms_by_serial(cfg.ligand.bondto, atoms=protein.atoms)[0]
+	covalent = True
 	
 rotations = True if cfg.ligand.flexibility else False
-ligands = gaudi.molecule.library(cfg.ligand.path,
-				bondto=target, rotations=rotations, join=join)
+ligands = gaudi.molecule.Library(cfg.ligand.path, origin=origin, covalent=covalent, 
+							flexible=rotations)
 
 # Operators and genes
 genes = []
 toolbox = deap.base.Toolbox()
-toolbox.register("ligand", random.choice, ligands.keys())
+toolbox.register("ligand", random.choice, ligands.catalog)
 genes.append(toolbox.ligand)
 
-if search3D:
+if not covalent:
 	toolbox.register("xform", gaudi.move.rand_xform, origin, cfg.protein.radius)
 	genes.append(toolbox.xform)
 
