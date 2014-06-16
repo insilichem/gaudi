@@ -135,7 +135,9 @@ def het_crossover(ind1, ind2):
 			ind1[key][:], ind2[key][:] = deap.tools.cxSimulatedBinaryBounded(
 				ind1[key], ind2[key], eta=cfg.ga.cx_eta, 
 				low=-0.5*cfg.ligand.flexibility, up=0.5*cfg.ligand.flexibility)
-		elif key in ('mutamers', 'rotamers', 'ligand'):
+		elif key in ('mutamers', 'rotamers'):
+			ind1[key], ind2[key] = deap.tools.cxTwoPoint(ind1[key], ind2[key])
+		elif key == 'ligand' and len(ind1[key])>2:
 			ind1[key], ind2[key] = deap.tools.cxTwoPoint(list(ind1[key]), list(ind2[key]))
 			ind1[key], ind2[key] = tuple(ind1[key]), tuple(ind2[key])
 		elif key == 'xform':
