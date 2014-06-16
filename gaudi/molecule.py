@@ -10,6 +10,7 @@ from chimera import UserError
 from chimera.molEdit import addAtom, addBond
 import os
 import itertools
+import yaml
 import move, utils
 
 class Library(object):
@@ -84,10 +85,11 @@ class Compound(object):
 
 	def parse_attr(self):
 		try:
-			attr = utils.parse.Settings(self.mol.openedAs[0][:-4]+'attr', asDict=True).parsed
+			f = open(self.mol.openedAs[0][:-4]+'attr')
 		except (AttributeError, IOError):
 			print "No attr file found"
 		else:
+			attr = yaml.load(f)
 			flat_attr = {}
 			if 'atoms' in attr:
 				for k,v in attr['atoms'].items():
@@ -196,7 +198,7 @@ class Compound(object):
 	def join(self, molecule, acceptor, donor, newres=False):
 		target = acceptor
 		sprouts = [ donor ]
-		res = _dummy_res() if newres else target.residue
+		res = _dummy_mol().residues[0] if newres else target.residue
 		res_atoms = res.atoms
 
 		i = max(a.serialNumber for a in self.mol.atoms)
@@ -240,39 +242,6 @@ class Compound(object):
 
 		return built_atoms
 
-	# def orientate(self, target, **kwargs):
-	# 	if kwargs:
-	# 		angles = kwargs
-	# 	elif hasattr(self, 'angles'):
-	# 		angles = self.angles
-	# 	else:
-	# 		raise UserError('Please specify geometric constraints for orientation.')
-
-	# 	for atoms, alpha in angles.items():
-	# 		parsed_atoms = []
-	# 		post_atoms = []
-	# 		for a in atoms: #parse atoms
-	# 			if isinstance(a, chimera.Atom):
-	# 				parsed_atoms.append(a)
-	# 			a = a.strip()
-	# 			if a == 'post':
-	# 				post_atoms = self.donor.neighbors
-	# 			elif a == 'anchor':
-	# 				parsed_atoms.append(self.donor)
-	# 			elif a == 'target':
-	# 				parsed_atoms.append(target)
-	# 			elif a == 'pre':
-	# 				parsed_atoms.append(next(a for a in target.neighbors if a.numBonds>1))
-	# 			elif a == 'axis':
-	# 				parsed_atoms.extend([self.axis_start, self.axis_end])
-	# 			elif isinstance(a, str):
-	# 				raise chimera.UserError("Atom descriptor {} not supported.".format(a))
-			
-	# 		for pa in post_atoms:
-	# 			move.rotate(self.mol, parsed_atoms+[pa], alpha)
-
-	# def orientate(self, anchor, target):
-	# 	target_geometry = target
 
 	def place(self, where, anchor=None):
 		if isinstance(where, chimera.Atom):
@@ -287,22 +256,13 @@ class Compound(object):
 		if not anchor:
 			anchor = self.donor
 
-		
-		def new_atom_position(atom, newelement):
-			geometry = chimera.idatm.typeInfo[atom.idatmType].geometry
-			bond_length = chimera.Element.bondLength(atom.element, newelement)
-			neighbors_crd = [a.coord() for a in atom.neighbors]
-			return chimera.bondGeom.bondPositions(atom.coord(), geometry, bond_length,
-					neighbors_crd)[0]
 		# Get target position
-		target_pos = new_atom_position(target, anchor.element)
+		target_pos = _new_atom_position(target, anchor.element)
 		# Place it
 		self.place(target_pos)
 		# Fix orientation
 		anchor_pos = new_atom_position(anchor, target.element)
 		move.rotate(self.mol, [target.coord(), anchor.coord(), anchor_pos], 0.0)
-		# # Hydrogen is no longer needed
-		# target.molecule.deleteAtom(hydrogen)
 
 
 def _add_hydrogen(atom):
@@ -336,10 +296,9 @@ def _dummy_mol(name):
 	r.isHet = True
 	return m
 
-		# # Create a new hydrogen
-		# target_atom, hydrogen = _add_hydrogen(target_atom)
-		# # Adjust bond length to fit new bond
-		# dv = hydrogen.coord() - target_atom.coord()
-		# dv.length = chimera.Element.bondLength(self.donor.element, target_atom.element)
-		# diff = dv - (hydrogen.coord() - target_atom.coord())
-		# hydrogen.setCoord(hydrogen.coord() + diff)
+def _new_atom_position(atom, newelement):
+	geometry = chimera.idatm.typeInfo[atom.idatmType].geometry
+	bond_length = chimera.Element.bondLength(atom.element, newelement)
+	neighbors_crd = [a.coord() for a in atom.neighbors]
+	return chimera.bondGeom.bondPositions(atom.coord(), geometry, bond_length,
+			neighbors_crd)[0]
