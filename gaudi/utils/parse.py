@@ -10,7 +10,7 @@ class Settings(object):
 	def __init__(self, path, asDict=False):
 		self._path = path
 		self._parse(bool(asDict))
-	
+
 	class Param(object):
 		def __init__(self, *d):
 			for d_ in d:
@@ -27,6 +27,14 @@ class Settings(object):
 				w.append(obj.weight)
 			w.append(obj.weight)
 		return w
+	
+	def objectives(self):
+		o = []
+		for obj in self.objective:
+			if obj.type == 'hbonds' and hasattr(obj, 'targets') and len(obj.targets):
+				o.append(obj.type)
+			o.append(obj.type)
+		return o
 
 	def _parse(self, asDict):
 		if not os.path.isfile(self._path):
