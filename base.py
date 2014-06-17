@@ -37,6 +37,8 @@ def evaluate(ind, close=True, hidden=False, draw=False):
 		ligand.mol.openState.xform = M.chimera_xform(M.multiply_matrices(*ind['xform']))
 
 	if 'rotamers' in ind:
+		lib_dict = { 'Dynameomics': 'DYN', 'Dunbrack': 'DUN'}
+		ind.parsed_rotamers = []
 		if 'mutamers' in ind:
 			aas = [ AA[i] for i in ind['mutamers'] ]
 		else:
@@ -45,13 +47,22 @@ def evaluate(ind, close=True, hidden=False, draw=False):
 			try:
 				rotamers = Rotamers.getRotamers(res, resType=mut,
 												lib=cfg.rotamers.library.title())[1]
-				Rotamers.useRotamer(residues[i],[rotamers[rot]])
+				rot_to_use = rotamers[rot]
+				chis = rot_to_use.chis
+				Rotamers.useRotamer(res, [rot_to_use])
 			except Rotamers.NoResidueRotamersError: # ALA, GLY...
 				if 'mutamers' in ind:
 					SwapRes.swap(res, mut, bfactor=None)
+					chis = []
 			except IndexError: #use last available
-				Rotamers.useRotamer(res,rotamers[-1:])
-
+				rot_to_use = rotamers[-1]
+				chis = rot_to_use.chis
+				Rotamers.useRotamer(res, [rot_to_use] )
+			finally:
+				ind.parsed_rotamers.append(' '.join(['.'.join([str(res.id.position), 
+																res.id.chainId]),
+												lib_dict[cfg.rotamers.library.title()],
+												mut] + map(str,chis)))
 	ligand_env.clear()
 	ligand_env.add(ligand.mol.atoms)
 	ligand_env.merge(chimera.selection.REPLACE,
