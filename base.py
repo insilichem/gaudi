@@ -108,11 +108,13 @@ def evaluate(ind, close=True, hidden=False, draw=False):
 			for p in obj.probes:
 				if p == 'last':
 					probes.append(ligand.acceptor)
-					continue
 				probes.extend(box.atoms_by_serial(p), atoms=ligand.mol.atoms)
 			dist_target, = box.atoms_by_serial(obj.target, atoms=protein.atoms)
-			dist = gaudi.score.target.distance(probes, dist_target, obj.threshold, 
-						obj.threshold2)
+			dist = gaudi.score.target.distance(probes, dist_target, obj.threshold)
+			for d in dist:
+				if d < obj.threshold2:
+					return [-1000*w for w in weights]
+
 			score.append(numpy.mean(dist))
 
 		elif obj.type == 'solvation':
