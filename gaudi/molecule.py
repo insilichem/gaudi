@@ -76,6 +76,7 @@ class Compound(object):
 		
 		self.mol.gaudi = self
 		self.rotatable_bonds = []
+		self.built_atoms = []
 		self.parse_attr()
 		self.origin = origin
 		for k,v in kwargs.items():
@@ -110,7 +111,7 @@ class Compound(object):
 
 	def update_attr(self, d):
 		for k,v in self.__dict__.items():
-			if k in ('mol', 'angles'):
+			if k in ('mol', 'angles', 'built_atoms'):
 				continue
 			if isinstance(v, list):
 				setattr(self, k, [d[v_] if v_ in d else v_ for v_ in v])
@@ -239,7 +240,8 @@ class Compound(object):
 						sprouts.append(a) # this new atom can be a new sprout
 				if built not in target.bondsMap and built not in res_atoms: #link!
 					addBond(target, built)
-
+		
+		self.built_atoms.append({a.serialNumber: b for (a,b) in built_atoms.items()})
 		return built_atoms
 
 
@@ -261,7 +263,7 @@ class Compound(object):
 		# Place it
 		self.place(target_pos)
 		# Fix orientation
-		anchor_pos = new_atom_position(anchor, target.element)
+		anchor_pos = _new_atom_position(anchor, target.element)
 		move.rotate(self.mol, [target.coord(), anchor.coord(), anchor_pos], 0.0)
 
 
