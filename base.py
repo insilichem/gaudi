@@ -56,8 +56,8 @@ def evaluate(ind, close=True, hidden=False, draw=False):
 					SwapRes.swap(res, mut, bfactor=None)
 					chis = []
 			finally:
-				rotamerline = '{}.{} {} {}'.format(res.id.position, res.id.chainId,
-					lib_dict[cfg.rotamers.library.title()], ' '.join(map(str,chis)))
+				rotamerline = '{}.{} {} {} {}\n'.format(res.id.position, res.id.chainId,
+					lib_dict[cfg.rotamers.library.title()], res.type, ' '.join(map(str,chis)))
 				ind.parsed_rotamers.append(rotamerline)
 
 	ligand_env.clear()
