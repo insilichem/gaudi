@@ -10,7 +10,7 @@
 # Chimera
 import chimera, Rotamers, SwapRes, Matrix as M
 # Python
-import random, numpy, deap, sys, math
+import random, numpy, deap, sys, math, itertools
 from deap import creator, tools, base, algorithms
 import yaml
 # Custom
@@ -37,7 +37,6 @@ def evaluate(ind, close=True, hidden=False, draw=False):
 		ligand.mol.openState.xform = M.chimera_xform(M.multiply_matrices(*ind['xform']))
 
 	if 'rotamers' in ind:
-		lib_dict = { 'Dynameomics': 'DYN', 'Dunbrack': 'DUN'}
 		ind.parsed_rotamers = []
 		if 'mutamers' in ind:
 			aas = [ AA[i] for i in ind['mutamers'] ]
@@ -45,24 +44,22 @@ def evaluate(ind, close=True, hidden=False, draw=False):
 			aas = [ r.type for r in residues ]
 		for res, rot, mut in map(None, residues, ind['rotamers'], aas):
 			try:
-				rotamers = Rotamers.getRotamers(res, resType=mut,
-												lib=cfg.rotamers.library.title())[1]
-				rot_to_use = rotamers[rot]
+				rot_to_use = rotamers_lib[(res.id.position,mut)][rot]
+				chis = rot_to_use.chis
+				Rotamers.useRotamer(res, [rot_to_use])
+			except IndexError: #use last available
+				rot_to_use = rotamers_lib[(res.id.position,mut)][-1]
 				chis = rot_to_use.chis
 				Rotamers.useRotamer(res, [rot_to_use])
 			except Rotamers.NoResidueRotamersError: # ALA, GLY...
 				if 'mutamers' in ind:
 					SwapRes.swap(res, mut, bfactor=None)
 					chis = []
-			except IndexError: #use last available
-				rot_to_use = rotamers[-1]
-				chis = rot_to_use.chis
-				Rotamers.useRotamer(res, [rot_to_use] )
 			finally:
-				ind.parsed_rotamers.append(' '.join(['.'.join([str(res.id.position), 
-																res.id.chainId]),
-												lib_dict[cfg.rotamers.library.title()],
-												mut] + map(str,chis)))
+				rotamerline = '{}.{} {} {}'.format(res.id.position, res.id.chainId,
+					lib_dict[cfg.rotamers.library.title()], ' '.join(map(str,chis)))
+				ind.parsed_rotamers.append(rotamerline)
+
 	ligand_env.clear()
 	ligand_env.add(ligand.mol.atoms)
 	ligand_env.merge(chimera.selection.REPLACE,
@@ -108,11 +105,16 @@ def evaluate(ind, close=True, hidden=False, draw=False):
 			for p in obj.probes:
 				if p == 'last':
 					probes.append(ligand.acceptor)
-				probes.extend(box.atoms_by_serial(p), atoms=ligand.mol.atoms)
+				elif '/' in p:
+					block, serial = map(int, p.split('/'))
+					probes.append(ligand.built_atoms[block][serial])
+				elif isinstance(p, int):
+					probes.extend(box.atoms_by_serial(p), atoms=ligand.mol.atoms)
 			dist_target, = box.atoms_by_serial(obj.target, atoms=protein.atoms)
 			dist = gaudi.score.target.distance(probes, dist_target, obj.threshold)
 			for d in dist:
-				if d < obj.threshold2:
+				if d < obj.threshold2 and close:
+					chimera.openModels.remove([ligand.mol])
 					return [-1000*w for w in weights]
 
 			score.append(numpy.mean(dist))
@@ -178,7 +180,7 @@ def het_mutation(ind, indpb):
 				low=0, up=len(residues)-1, indpb=indpb)[0]
 		elif key == 'rotamers':
 			ind[key] = deap.tools.mutUniformInt(ind[key], 
-				low=0, up=8, indpb=indpb)[0]
+				low=0, up=cfg.rotamers.top, indpb=indpb)[0]
 		elif key == 'xform' and random.random() < indpb:
 			# Careful! Mutation generates a whole NEW position (similar to eta ~= 0)
 			# TODO: We could use a eta param in mutation by interpolating original and 
@@ -249,7 +251,13 @@ if hasattr(cfg.ligand, 'flexibility') and cfg.ligand.flexibility:
 	genes.append(toolbox.rotable_bonds) 
 
 if hasattr(cfg, 'rotamers'):
+	lib_dict = { 'Dynameomics': 'DYN', 'Dunbrack': 'DUN'}
 	residues = [ r for r in protein.residues if r.id.position in cfg.rotamers.residues ]
+	rotamers_lib = {}
+	for r in residues:
+		rotamers_lib[(r.id.position, r.type)] = Rotamers.getRotamers(r, resType=r.type,
+												lib=cfg.rotamers.library.title())[1]
+
 	toolbox.register("rand_rotamer", random.randint, 0, cfg.rotamers.top-1)
 	toolbox.register("rotamers", deap.tools.initRepeat, list,
 						toolbox.rand_rotamer, n=len(cfg.rotamers.residues))
@@ -260,6 +268,10 @@ if hasattr(cfg, 'rotamers'):
 			  'PRO', 'SER', 'THR', 'TRP', 'TYR', 'VAL' ]
 		if isinstance(cfg.rotamers.mutate, list):
 			AA = [ AA[i-1] for i in cfg.rotamers.mutate if i<=20 ]
+		for res, mut in itertools.product(residues, AA):
+			rotamers_lib[(res.id.position, mut)] = Rotamers.getRotamers(res, resType=mut,
+												lib=cfg.rotamers.library.title())[1]
+
 		toolbox.register("rand_aa", random.randint, 0, len(AA)-1)
 		toolbox.register("mutamers", deap.tools.initRepeat, list,
 							toolbox.rand_aa, n=len(cfg.rotamers.residues))
