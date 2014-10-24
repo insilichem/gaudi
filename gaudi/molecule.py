@@ -12,6 +12,7 @@ import os
 import itertools
 import yaml
 import move, utils
+import random
 
 class Library(object):
 
@@ -21,19 +22,20 @@ class Library(object):
 		self.covalent = covalent
 		self.flexible = flexible
 		self.compounds = {}
-		self.compile_catalogue()
+		self.compile_catalog()
 	
 	def __getitem__(self, index):
-		return self.get(index)
+		return self.get(index, 0)
 	
-	def get(self, index):
+	def get(self, index, vertex):
 		try:
-			return self.compounds[index]
+			return self.compounds[(index,vertex)]
 		except KeyError:
-			self.compounds[index] = self.build(index, self.origin)
-			return self.compounds[index]
+			compound = self.build(index, self.origin)
+			self.compounds[(index,compound.vertex)] = compound
+			return self.compounds[(index,compound.vertex)]
 	
-	def compile_catalogue(self):
+	def compile_catalog(self):
 		if os.path.isdir(self.path):
 			folders = sorted([ os.path.join(self.path, d) for d in os.listdir(self.path)
 					if os.path.isdir(os.path.join(self.path,d)) and not d.startswith('.')
@@ -47,11 +49,13 @@ class Library(object):
 			self.catalog = [(self.path,)]
 
 	def build(self, index, where=None):
+		vertex = 0
 		if self.covalent:
 			base = Compound()
 			base.donor = base.add_dummy_atom(where.neighbors[0], serial=1)
 			base.acceptor = base.add_dummy_atom(where, bonded_to=base.donor, serial=2)
-			base.append(Compound(molecule=index[0]))
+			base.append(Compound(molecule=index[0], seed=random.random()))
+			vertex = base.vertex
 		else:
 			base = Compound(molecule=index[0])
 			base.place(where)
@@ -61,11 +65,12 @@ class Library(object):
 		
 		if self.flexible:
 			base.update_rotatable_bonds()
+		base.vertex = vertex
 		return base
 
 class Compound(object):
 	### Initializers
-	def __init__(self, molecule=None, origin=None, **kwargs):
+	def __init__(self, molecule=None, origin=None, seed=0.0, **kwargs):
 		if isinstance(molecule, chimera.Molecule):
 			self.mol = molecule
 		elif not molecule or molecule=='dummy':
@@ -79,6 +84,8 @@ class Compound(object):
 		self.built_atoms = []
 		self.parse_attr()
 		self.origin = origin
+		self.seed = seed
+		self.vertex = 0
 		for k,v in kwargs.items():
 			self.__dict__[k] = v
 		if not hasattr(self, 'nonrotatable'):
@@ -179,6 +186,7 @@ class Compound(object):
 			raise UserError('Specified atom is not part of molecule.')
 		 
 		molecule.place_for_bonding(acceptor)
+		self.vertex = molecule.vertex
 		if not donor:
 			donor = molecule.donor
 		updated_atoms = self.join(molecule, acceptor, donor)
@@ -244,7 +252,6 @@ class Compound(object):
 		self.built_atoms.append({a.serialNumber: b for (a,b) in built_atoms.items()})
 		return built_atoms
 
-
 	def place(self, where, anchor=None):
 		if isinstance(where, chimera.Atom):
 			where = where.coord()
@@ -252,18 +259,19 @@ class Compound(object):
 			anchor = self.donor
 		move.translate(self.mol, anchor, where)
 
-	def place_for_bonding(self, target, anchor=None):
+	def place_for_bonding(self, target, anchor=None, seed=None):
 		if not isinstance(target, chimera.Atom):
 			raise UserError('Target must be a chimera.Atom object.')
 		if not anchor:
 			anchor = self.donor
-
+		if not seed:
+			seed = self.seed
 		# Get target position
-		target_pos = _new_atom_position(target, anchor.element)
+		target_pos, self.vertex = _new_atom_position(target, anchor.element, seed)
 		# Place it
 		self.place(target_pos)
 		# Fix orientation
-		anchor_pos = _new_atom_position(anchor, target.element)
+		anchor_pos, i = _new_atom_position(anchor, target.element)
 		move.rotate(self.mol, [target.coord(), anchor.coord(), anchor_pos], 0.0)
 
 
@@ -298,9 +306,26 @@ def _dummy_mol(name):
 	r.isHet = True
 	return m
 
-def _new_atom_position(atom, newelement):
-	geometry = chimera.idatm.typeInfo[atom.idatmType].geometry
+def _new_atom_position(atom, newelement, seed=0.0):
+	try:
+		geometry = chimera.idatm.typeInfo[atom.idatmType].geometry
+	except KeyError:
+		geometry = 3
+		print "Warning, arbitrary geometry with {}, {}".format(atom, geometry) 
 	bond_length = chimera.Element.bondLength(atom.element, newelement)
 	neighbors_crd = [a.coord() for a in atom.neighbors]
-	return chimera.bondGeom.bondPositions(atom.coord(), geometry, bond_length,
-			neighbors_crd)[0]
+	points = chimera.bondGeom.bondPositions(atom.coord(), geometry, bond_length,
+			neighbors_crd)
+	return points[int(seed*len(points))], int(seed*len(points))
+
+def _new_atom_positions(atom, newelement,):
+	try:
+		geometry = chimera.idatm.typeInfo[atom.idatmType].geometry
+	except KeyError:
+		geometry = 3
+		print "Warning, arbitrary geometry with {}, {}".format(atom, geometry) 
+	bond_length = chimera.Element.bondLength(atom.element, newelement)
+	neighbors_crd = [a.coord() for a in atom.neighbors]
+	points = chimera.bondGeom.bondPositions(atom.coord(), geometry, bond_length,
+			neighbors_crd)
+	return points

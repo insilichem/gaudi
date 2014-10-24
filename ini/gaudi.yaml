@@ -15,6 +15,7 @@ ga:
     mu : 50
     lambda_ : 50
     pareto : 0
+    history : 0
 
 protein:
     path : /home/jr/x/hyde/mol2/ethanol.mol2

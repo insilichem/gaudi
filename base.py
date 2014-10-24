@@ -21,7 +21,7 @@ from gaudi.utils import box
 
 def evaluate(ind, close=True, hidden=False, draw=False):
 
-	ligand = ligands[ind['ligand']]
+	ligand = ligands.get(ind['ligand'],ind['vertex'])
 	chimera.openModels.add([ligand.mol], shareXform=True, hidden=hidden)
 	box.pseudobond_to_bond(ligand.mol)
 	if 'rotable_bonds' in ind:
@@ -112,10 +112,12 @@ def evaluate(ind, close=True, hidden=False, draw=False):
 					probes.extend(box.atoms_by_serial(p), atoms=ligand.mol.atoms)
 			dist_target, = box.atoms_by_serial(obj.target, atoms=protein.atoms)
 			dist = gaudi.score.target.distance(probes, dist_target, obj.threshold)
-			for d in dist:
-				if d < obj.threshold2 and close:
-					chimera.openModels.remove([ligand.mol])
-					return [-1000*w for w in weights]
+
+			if not obj.threshold == 'covalent':
+				for d in dist:
+					if d < obj.threshold2 and close:
+						chimera.openModels.remove([ligand.mol])
+						return [-1000*w for w in weights]
 
 			score.append(numpy.mean(dist))
 
@@ -125,7 +127,7 @@ def evaluate(ind, close=True, hidden=False, draw=False):
 			score.append(ligand_ses)
 
 		elif obj.type == 'rmsd':
-			assess = chimera.openModels.open(obj.asess)
+			assess = chimera.openModels.open(obj.assess)
 			score.append(gaudi.utils.box.rmsd(ligand.mol, assess))
 			chimera.openModels.close([assess])
 			
@@ -190,7 +192,8 @@ def het_mutation(ind, indpb):
 	return ind,
 
 def similarity(a, b):
-	atoms1, atoms2 = ligands[a['ligand']].mol.atoms, ligands[b['ligand']].mol.atoms
+	atoms1, atoms2 = ligands.get(a['ligand'],a['vertex']).mol.atoms, \
+					 ligands.get(b['ligand'],b['vertex']).mol.atoms
 	atoms1.sort(key=lambda x: x.serialNumber)
 	atoms2.sort(key=lambda x: x.serialNumber)
 
@@ -222,9 +225,11 @@ protein, = chimera.openModels.open(cfg.protein.path)
 ligand_env = chimera.selection.ItemizedSelection()
 if not hasattr(cfg.ligand, 'bondto') or not cfg.ligand.bondto:
 	origin = box.atoms_by_serial(cfg.protein.origin, atoms=protein.atoms)[0].coord()
+	vertices = [0]
 	covalent = False
 else:
 	origin = box.atoms_by_serial(cfg.ligand.bondto, atoms=protein.atoms)[0]
+	vertices = range(len(gaudi.molecule._new_atom_positions(origin, chimera.Element('C'))))
 	covalent = True
 	
 rotations = True if cfg.ligand.flexibility else False
@@ -237,9 +242,13 @@ toolbox = deap.base.Toolbox()
 toolbox.register("ligand", random.choice, ligands.catalog)
 genes.append(toolbox.ligand)
 
-if not covalent:
+if covalent:
+	toolbox.register("vertex", random.choice, vertices)
+	genes.append(toolbox.vertex)
+else:
 	toolbox.register("xform", gaudi.move.rand_xform, origin, cfg.protein.radius)
 	genes.append(toolbox.xform)
+
 
 if hasattr(cfg.ligand, 'flexibility') and cfg.ligand.flexibility:
 	if cfg.ligand.flexibility > 360: 
@@ -290,8 +299,17 @@ toolbox.register("mate", het_crossover)
 toolbox.register("mutate", het_mutation, indpb=cfg.ga.mut_indpb)
 toolbox.register("select", deap.tools.selNSGA2)
 
+if cfg.ga.history:
+		history = deap.tools.History()
+		# Decorate the variation operators
+		toolbox.decorate("mate", history.decorator)
+		toolbox.decorate("mutate", history.decorator)
+
 def main():
 	pop = toolbox.population(n=cfg.ga.pop)
+	if cfg.ga.history:
+		history.update(pop)
+
 	hof = deap.tools.ParetoFront(similarity) if cfg.ga.pareto \
 			else deap.tools.HallOfFame(cfg.default.results, similarity)
 	stats = deap.tools.Statistics(lambda ind: ind.fitness.values)
@@ -317,6 +335,23 @@ if __name__ == "__main__":
 					'GAUDI.results': rank}
 	print >> out, yaml.dump(results, default_flow_style=False)
 	out.close()
+
+	if cfg.ga.history:
+		# # Plot genealogy and save fig
+		# import matplotlib.pyplot as plt
+		# import networkx
+		# graph = networkx.DiGraph(history.genealogy_tree)
+		# graph = graph.reverse()     # Make the grah top-down
+		# colors = [toolbox.evaluate(history.genealogy_history[i])[0] for i in graph]
+		# networkx.draw(graph, node_color=colors)
+		# plt.show()
+		# plt.savefig(cfg.default.savepath + 'history.png')
+		# Dump log
+		import pickle
+		cp = dict(pop=pop, gens=cfg.ga.gens, log=log, history=history,
+				rndstate=random.getstate())
+		with open(cfg.default.savepath + 'dump_log.pkl', "wb") as cp_file:
+			pickle.dump(cp, cp_file, -1)
 
 	#Display best individual
 	if not chimera.nogui:
