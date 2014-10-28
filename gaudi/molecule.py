@@ -16,12 +16,14 @@ import random
 
 class Library(object):
 
-	def __init__(self, path, origin=None, covalent=False, flexible=True):
+	def __init__(self, path, origin=None, covalent=False, flexible=True, symmetry=None):
 		self.path = path
 		self.origin = origin if origin else chimera.Point(0,0,0)
 		self.covalent = covalent
 		self.flexible = flexible
+		self.symmetry = symmetry
 		self.compounds = {}
+		self.catalog = []
 		self.compile_catalog()
 	
 	def __getitem__(self, index):
@@ -41,8 +43,18 @@ class Library(object):
 					if os.path.isdir(os.path.join(self.path,d)) and not d.startswith('.')
 						and not d.startswith('_')])
 			if folders:
-				self.catalog = list(itertools.product(*[utils.box.files_in(f, ext='mol2')
-														 for f in folders]))
+				catalog = itertools.product(*[utils.box.files_in(f, ext='mol2')
+														 for f in folders])
+				if isinstance(self.symmetry, list):
+					folders_last_level = [os.path.basename(os.path.normpath(f))
+										 for f in folders]
+					for entry in catalog:
+						if all( os.path.basename(entry[folders_last_level.index(s1)]) == \
+								os.path.basename(entry[folders_last_level.index(s2)]) 
+								for (s1,s2) in self.symmetry):
+							self.catalog.append(entry)
+				else:
+					self.catalog = list(catalog)
 			else:
 				self.catalog = [ (f,) for f in utils.box.files_in(self.path, ext='mol2') ]
 		elif os.path.isfile(self.path) and self.path.endswith('.mol2'):

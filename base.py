@@ -113,13 +113,11 @@ def evaluate(ind, close=True, hidden=False, draw=False):
 			dist_target, = box.atoms_by_serial(obj.target, atoms=protein.atoms)
 			dist = gaudi.score.target.distance(probes, dist_target, obj.threshold)
 
-			if not obj.threshold == 'covalent':
-				for d in dist:
-					if d < obj.threshold2 and close:
-						chimera.openModels.remove([ligand.mol])
-						return [-1000*w for w in weights]
-
-			score.append(numpy.mean(dist))
+			for d in dist:
+				if d < obj.tolerance and close:
+					chimera.openModels.remove([ligand.mol])
+					return [-1000*w for w in weights]
+			score.append(numpy.mean(numpy.absolute(dist)))
 
 		elif obj.type == 'solvation':
 			atoms, ses, sas = gaudi.score.chem.solvation(ligand_env.atoms())
@@ -154,7 +152,8 @@ def het_crossover(ind1, ind2):
 				low=-0.5*cfg.ligand.flexibility, up=0.5*cfg.ligand.flexibility)
 		elif key in ('mutamers', 'rotamers'):
 			ind1[key], ind2[key] = deap.tools.cxTwoPoint(ind1[key], ind2[key])
-		elif key == 'ligand' and len(ind1[key])>2:
+		elif key == 'ligand' and len(ind1[key])>2 and \
+			(not hasattr(cfg.ligand, 'symmetry') or not cfg.ligand.symmetry):
 			ind1[key], ind2[key] = deap.tools.cxTwoPoint(list(ind1[key]), list(ind2[key]))
 			ind1[key], ind2[key] = tuple(ind1[key]), tuple(ind2[key])
 		elif key == 'xform':
@@ -234,7 +233,7 @@ else:
 	
 rotations = True if cfg.ligand.flexibility else False
 ligands = gaudi.molecule.Library(cfg.ligand.path, origin=origin, covalent=covalent, 
-							flexible=rotations)
+							flexible=rotations, symmetry=cfg.ligand.symmetry)
 
 # Operators and genes
 genes = []
