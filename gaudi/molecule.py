@@ -11,8 +11,9 @@ from chimera.molEdit import addAtom, addBond
 import os
 import itertools
 import yaml
-import move, utils
+import move, box
 import random
+from repoze.lru import LRUCache
 
 class Library(object):
 
@@ -22,20 +23,21 @@ class Library(object):
 		self.covalent = covalent
 		self.flexible = flexible
 		self.symmetry = symmetry
-		self.compounds = {}
+		self.compounds = LRUCache(300)
 		self.catalog = []
 		self.compile_catalog()
+
 	
 	def __getitem__(self, index):
 		return self.get(index, 0)
 	
 	def get(self, index, vertex):
-		try:
-			return self.compounds[(index,vertex)]
-		except KeyError:
-			compound = self.build(index, self.origin)
-			self.compounds[(index,compound.vertex)] = compound
-			return self.compounds[(index,compound.vertex)]
+		compound = self.compounds.get((index,vertex))
+		if compound:
+			return compound 
+		compound = self.build(index, self.origin)
+		self.compounds.put((index,compound.vertex), compound)
+		return compound
 	
 	def compile_catalog(self):
 		if os.path.isdir(self.path):
