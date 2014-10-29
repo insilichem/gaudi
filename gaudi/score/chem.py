@@ -6,7 +6,6 @@
 # Jaime RGP <https://bitbucket.org/jrgp> @ UAB, 2014
 
 import chimera, FindHBond, DetectClash, Measure, MoleculeSurface, ChemGroup as cg
-from .. import utils
 
 ALIPH = ['C3', [[cg.C, [cg.C, [cg.C , [cg.R, cg.R, cg.R, cg.R]], \
 		cg.R, cg.R] ], cg.R, cg.R, cg.R] ], [ 1, 1, 1, 1, 1, 0, 0] 

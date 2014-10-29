@@ -15,7 +15,7 @@ def evaluate(ind):
 		r, = chimera.openModels.open(result)
 		fit = r.mol2comments[r.mol2comments.index('#>>GAUDI.score')+2].split()[1:]
 		fitness.append(sum(w*f for (w,f) in zip(weights, fit)))
-		rmsd.append(gaudi.utils.box.rmsd(r, assess))
+		rmsd.append(gaudi.box.rmsd(r, assess))
 		chimera.openModels.remove([r])
 		os.rename(result, savedir+result)
 	chimera.runCommand('close all')

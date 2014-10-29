@@ -45,7 +45,7 @@ class Library(object):
 					if os.path.isdir(os.path.join(self.path,d)) and not d.startswith('.')
 						and not d.startswith('_')])
 			if folders:
-				catalog = itertools.product(*[utils.box.files_in(f, ext='mol2')
+				catalog = itertools.product(*[box.files_in(f, ext='mol2')
 														 for f in folders])
 				if isinstance(self.symmetry, list):
 					folders_last_level = [os.path.basename(os.path.normpath(f))
@@ -58,7 +58,7 @@ class Library(object):
 				else:
 					self.catalog = list(catalog)
 			else:
-				self.catalog = [ (f,) for f in utils.box.files_in(self.path, ext='mol2') ]
+				self.catalog = [ (f,) for f in box.files_in(self.path, ext='mol2') ]
 		elif os.path.isfile(self.path) and self.path.endswith('.mol2'):
 			self.catalog = [(self.path,)]
 
@@ -124,7 +124,7 @@ class Compound(object):
 				for k,v in attr['bonds'].items():
 					if k == 'nonrotatable':
 						if isinstance(v, list):
-							flat_attr[k] = utils.box.atoms_by_serial(*v, atoms=self.mol.atoms)
+							flat_attr[k] = box.atoms_by_serial(*v, atoms=self.mol.atoms)
 						elif v.strip().lower() in ('all', 'yes'):
 							flat_attr[k] = self.mol.atoms
 
@@ -165,7 +165,7 @@ class Compound(object):
 						else:
 							raise
 					else:
-						br.rotanchor = utils.box.find_nearest(self.donor, b.atoms)
+						br.rotanchor = box.find_nearest(self.donor, b.atoms)
 						yield br
 
 	def update_rotatable_bonds(self):
@@ -225,7 +225,7 @@ class Compound(object):
 		res_atoms = res.atoms
 
 		i = max(a.serialNumber for a in self.mol.atoms)
-		index = utils.box.highest_atom_indices(self.mol)
+		index = box.highest_atom_indices(self.mol)
 		for a in molecule.mol.atoms:
 			try:
 				index[a.element.name] += 1
