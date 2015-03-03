@@ -55,9 +55,15 @@ zone = chimera.specifier.evalSpec('sel zr < 7')
 # Original aluminium ions are not needed
 [mol.deleteResidue(r) for r in mol.residues if r.type=='AL3']
 # Discover nearby residues
-residues = [ r for r in zone.residues() if r.type in ('ASP', 'GLU') ]
+residues = [ r for r in zone.residues() if r.type in ('ASP', 'GLU', 'TYR', 'HIS') ]
 rotamers = [ Rotamers.getRotamers(r)[1] for r in residues ]
 r_atoms = [ a for r in residues for a in r.atoms ]
+# Target atoms
+target_atoms= [	'ND1', 'NE2', #his
+				'OD1','OD2', # Asp
+				'O', # peptidic bond
+				'OE1', 'OE2', #glut
+				'OG1' ] #tyr
 
 def evalCoord(ind, close=True):
 	## Rebuild system
@@ -76,14 +82,14 @@ def evalCoord(ind, close=True):
 	## Test new conformation
 	# distance
 	zone = chimera.specifier.evalSpec('sel zr < 7')
-	oxygens = [ (gaudi.score.target._distance(a, al),a)
-			for a in zone.atoms() if a.element.number==8 and len(a.neighbors)==1 ]
-	oxygens = [ ox for ox in oxygens if ox[0]>args.threshold2]
-	oxygens.sort()
+	oxygens_or_nitrogens = [ (gaudi.score.target._distance(a, al),a)
+			for a in zone.atoms() if a.name in target_atoms ]
+	oxygens_or_nitrogens = [ ox for ox in oxygens_or_nitrogens if ox[0]>args.threshold2]
+	oxygens_or_nitrogens.sort()
 
 	# dihedral
 	dihedrals = []
-	for d,ox in oxygens[:3]:
+	for d,ox in oxygens_or_nitrogens[:3]:
 		nearest_ox = ox
 		nearest_ox_c = nearest_ox.neighbors[0]
 		nearest_ox_cc = next(a for a in nearest_ox_c.neighbors if a.element.number!=8)
@@ -97,9 +103,9 @@ def evalCoord(ind, close=True):
 	clashes, num_of_clashes, pos, neg = gaudi.score.chem.clashes(atoms=r_atoms, 
 		test=(a for a in mol.atoms), parse=True)
 
-	score = [len([d for (d,o) in oxygens if d < args.threshold])]
+	score = [len([d for (d,o) in oxygens_or_nitrogens if d < args.threshold])]
 	score.append(sum(abs(a[3]) for a in neg)/2)
-	score.extend([abs(2.0-ox[0]) for ox in oxygens[:3]] + [0]*(3-len(oxygens[:3])))
+	score.extend([abs(2.0-ox[0]) for ox in oxygens_or_nitrogens[:3]] + [0]*(3-len(oxygens_or_nitrogens[:3])))
 	score.extend(dihedrals + [0]*(3-len(dihedrals)))
 	
 	return score
