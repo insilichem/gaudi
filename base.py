@@ -1,11 +1,12 @@
-###########################################################
-# CHIMERA SCRIPT
-# Rotate selected bonds, find clashes and H bonds
-# By Jaime RG <jaime.rogue@gmail.com>, in UAB
-###########################################################
+#!/usr/bin/python
 
-## VERSION 7
-# Implement genetic algorithm
+##############
+# GAUDIasm: Genetic Algorithms for Universal
+# Design Inference and Atomic Scale Modeling
+# Author: Jaime Rodríguez-Guerra Pedregal
+# Email: jaime.rogue@gmail.com
+# Web: https://bitbucket.org/jrgp/gaudi
+##############
 
 # Chimera
 import chimera, Rotamers, SwapRes, Matrix as M

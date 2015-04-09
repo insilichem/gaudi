@@ -1,5 +1,5 @@
 # GAUDI Project
-GAUDI (Genetic Algorithm for Unified Docking Inference) provides a novel method in docking essays by combining several chemostructural criteria, along with energy optimization.
+GAUDIasm: Genetic Algorithms for Universal Design Inference and Atomic Scale Modeling provides a novel method in design essays by combining several chemostructural criteria, along with energy optimization.
 
 ## Features
 **True multi-objective optimization**
@@ -23,9 +23,9 @@ To download a copy of Gaudi, just clone it to your desired directory using `git 
 
 * [UCSF Chimera](http://www.cgl.ucsf.edu/chimera/download.html).
 
-* [PyYaml]() package
+* [PyYaml](http://pyyaml.org/wiki/PyYAML) package
 
-* [repoze.lru]() package
+* [repoze.lru](https://pypi.python.org/pypi/repoze.lru/) package
 
 **Install Chimera**
 
