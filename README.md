@@ -21,11 +21,13 @@ To download a copy of Gaudi, just clone it to your desired directory using `git 
 
 **Dependencies**
 
-* [UCSF Chimera](http://www.cgl.ucsf.edu/chimera/download.html).
+* [UCSF Chimera](http://www.cgl.ucsf.edu/chimera/download.html). Main framework.
 
-* [PyYaml](http://pyyaml.org/wiki/PyYAML) package
+* [deap](https://pypi.python.org/pypi/deap/) package. Genetic Algorithms.
 
-* [repoze.lru](https://pypi.python.org/pypi/repoze.lru/) package
+* [PyYaml](http://pyyaml.org/wiki/PyYAML) package. Input/output file parsing.
+
+* [repoze.lru](https://pypi.python.org/pypi/repoze.lru/) package. A lightweight cache.
 
 **Install Chimera**
 
