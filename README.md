@@ -39,7 +39,9 @@ To download a copy of Gaudi, just clone it to your desired directory using `git 
 
     ```bash
     CHIMERADIR=~/.local/UCSF-Chimera64-1.10.1
+
     alias chimera="$CHIMERADIR"/bin/chimera
+
     chimeracli() { chimera --nogui --silent --script "${*}"; }
     ```
 
@@ -70,6 +72,7 @@ If you are going to be installing a lot of packages, maybe it's a good idea to s
     ```bash
     chimerapip() { chimeracli "$CHIMERADIR"/bin/pip "${*}"; }
     ```
+
 
 4. `pip` supports list of packages, so to install all the dependencies of GAUDI at once, just run these command: `chimerapip install deap pyyaml repoze.lru`.
 
