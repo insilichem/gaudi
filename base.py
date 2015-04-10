@@ -3,7 +3,7 @@
 ##############
 # GAUDIasm: Genetic Algorithms for Universal
 # Design Inference and Atomic Scale Modeling
-# Author: Jaime Rodríguez-Guerra Pedregal
+# Author: Jaime Rodriguez-Guerra Pedregal
 # Email: jaime.rogue@gmail.com
 # Web: https://bitbucket.org/jrgp/gaudi
 ##############
