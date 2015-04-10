@@ -40,10 +40,11 @@ To download a copy of Gaudi, just clone it to your desired directory using `git 
     `CHIMERADIR=~/.local/UCSF-Chimera64-1.10.1`
 
     `alias chimera="$CHIMERADIR"/bin/chimera`
-    
+
     `chimeracli() { chimera --nogui --silent --script "${*}"; }`
 
     >*Running Chimera from CLI requires the same three parameters all the time: `chimera --nogui --silent --script "<the commands to run>"`. That last function will avoid that repetitive task.*
+
 
 5. Apply the changes with `source ~/.bashrc`. This way, you can run Chimera from the console by typing `chimera`. If you want to run a script, simply type `chimeracli <script.py> <arg1> <arg2> <...>`.
 
@@ -68,7 +69,7 @@ If you are going to be installing a lot of packages, maybe it's a good idea to s
 3. Finally, you can run pip installations with `chimeracli "$CHIMERADIR"/bin/pip install <your_package>`, but it's so cumbersome it deserves another alias. In the same fashion, open `~/.bashrc` and add this line at the end: 
 
     `chimerapip() { chimeracli "$CHIMERADIR"/bin/pip "${*}"; }`
-
+    
 
 4. `pip` supports list of packages, so to install all the dependencies of GAUDI at once, just run these command: `chimerapip install deap pyyaml repoze.lru`.
 
