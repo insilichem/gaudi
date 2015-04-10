@@ -38,11 +38,13 @@ To download a copy of Gaudi, just clone it to your desired directory using `git 
 3. Now, create some bash aliases to speed up the work. Open `~/.bashrc` with your favourite editor and add these lines at the end of the file and save it:
 
     ```bash
+
     CHIMERADIR=~/.local/UCSF-Chimera64-1.10.1
 
     alias chimera="$CHIMERADIR"/bin/chimera
 
     chimeracli() { chimera --nogui --silent --script "${*}"; }
+    
     ```
 
     >*Running Chimera from CLI requires the same three parameters all the time: `chimera --nogui --silent --script "<the commands to run>"`. That last function will avoid that repetitive task.*
