@@ -39,7 +39,7 @@ objectives:
       distance_tolerance : 0.4
       angle_tolerance : 20.0
 
-	- name: Clashes
+  - name: Clashes
       type : contacts
       which : clashes
       weight : -1.0

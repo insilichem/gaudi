@@ -28,14 +28,14 @@ ligand:
     assess : /home/jr/x/output/biotin2.mol2
 
 objectives:
-	- name: HBonds
-	  type : hbonds
+  - name: HBonds
+    type : hbonds
       weight : 1.0
       targets : [1140, 1479, 1172, 1004, 1031, 1155]
       distance_tolerance : 0.4
       angle_tolerance : 20.0
 
-	- name: Clashes
+  - name: Clashes
       type : contacts
       which : clashes
       weight : -1.0
@@ -45,7 +45,7 @@ objectives:
       threshold_c : 0.6
       cutoff : 80.0
 
-	- name: Contacts
+  - name: Contacts
       type : contacts
       which : hydrophobic
       weight : 1.0

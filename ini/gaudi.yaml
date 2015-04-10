@@ -1,55 +1,56 @@
-default:
-    results : 3
-    savepath : /home/jr/x/hyde/output/_/
-    savename : test_
-    precision : 2
+# GAUDI input file
+default: 
+    results: 3
+    savepath: /home/jr/x/hyde/output/_/
+    savename: test_
+    precision: 2
 
-ga:
-    pop : 500
-    gens : 20
-    mut_eta : 5
-    mut_pb : 0.05
-    mut_indpb : 0.05
-    cx_eta : 5
-    cx_pb : 0.05
-    mu : 50
-    lambda_ : 50
-    pareto : 0
-    history : 0
+ga: 
+    pop: 500
+    gens: 20
+    mut_eta: 5
+    mut_pb: 0.05
+    mut_indpb: 0.05
+    cx_eta: 5
+    cx_pb: 0.05
+    mu: 50
+    lambda_: 50
+    pareto: 0
+    history: 0
 
-protein:
-    path : /home/jr/x/hyde/mol2/ethanol.mol2
-    origin : 5
-    radius : 10.0
+protein: 
+    path: /home/jr/x/hyde/mol2/ethanol.mol2
+    origin: 5
+    radius: 10.0
 
-ligand:
-    type : blocks
-    path : /home/jr/x/hyde/mol2/
-    flexible : auto
-    bondto : 2
+ligand: 
+    type: blocks
+    path: /home/jr/x/hyde/mol2/
+    flexible: auto
+    bondto: 2
 
-objectives:
-	- name: Clashes
-      type : contacts
-      which : clashes
-      weight : -1.0
-      test : ligand
-      threshold : 0.4
+objectives: 
+  - name: Clashes
+    type: contacts
+    which: clashes
+    weight: -1.0
+    test: ligand
+    threshold: 0.4
 
-	- name: HBonds
-      type : hbonds
-      weight : 1.0
+  - name: HBonds
+    type: hbonds
+    weight: 1.0
 
-	- name: Contacts
-      type : contacts
-      which : hydrophobic
-      weight : 1.0
-      threshold : -1.4
+  - name: Contacts
+    type: contacts
+    which: hydrophobic
+    weight: 1.0
+    threshold: -1.4
 
-	- name: Distance
-      type : distance
-      weight : -1.0
-      threshold : 2.0
-      target : 1
-      probes : [1, 5, 6]
-      wall : 0
+  - name: Distance
+    type: distance
+    weight: -1.0
+    threshold: 2.0
+    target: 1
+    probes: [1, 5, 6]
+    wall: 0
