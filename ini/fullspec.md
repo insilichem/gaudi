@@ -89,7 +89,7 @@ Objective-specific parameters are discussed below.
 - **int `target`**. Serial Number of the protein atom to reach.
 - **list of int `probes`**. List of serial numbers of the ligand atoms that will try to reach `target`. It can be set to `last`, which will referr to the greatest serial number of the `acceptor` atom in the ligand.
 - **float `threshold`**. The distance to aim for. The final distance can be both greater and smaller than this value.
-- **float `threshold2`**. A second threshold that limits how smaller the final distance can be. Please make sure that `threshold2 <= threshold`. For example, if `threshold` is set to 2A and `threshold2` equals 1.8A, GAUDI will optimize the ligand pose so that its distance to `target` is as near to 2A as possible. However, if it's smaller than 1.8A, that pose will be penalized.
+- **float `tolerance`**. When to apply penalty. If threshold is set to `2.0` and the target is at `1.8`, `tolerance`  should be at least `0.2` to consider that individual a valid one. Otherwise, it will be condemned to extinction (-1000*w for each objective)
 
 ### solvation
 - **str `which`**. Choose between `sas` (solvent accessible surface) or `ses` (solvent excluded surface).
