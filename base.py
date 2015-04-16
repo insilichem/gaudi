@@ -9,7 +9,7 @@
 ##############
 
 # Chimera
-import chimera, Rotamers, SwapRes, Matrix as M
+import chimera, Rotamers, SwapRes, MetalGeom, Matrix as M 
 # Python
 import random, numpy, deap, sys, math, itertools
 from deap import creator, tools, base, algorithms
@@ -129,7 +129,32 @@ def evaluate(ind, close=True, hidden=False, draw=False):
 			assess = chimera.openModels.open(obj.assess)
 			score.append(gaudi.utils.box.rmsd(ligand.mol, assess))
 			chimera.openModels.close([assess])
+		
+		elif obj.type == 'coordinationrmsd':
+			geom = MetalGeom.geomData.geometries[obj.geometry]
+			if isinstance(obj.target, int):
+				metal = chimera.specifier.evalSpec('@/serialNumber={}'.format(obj.target)).atoms()[0]
+			elif isinstance(obj.target, str):
+				metal = chimera.specifier.evalSpec('@{}'.format(obj.target)).atoms()[0]
+			metal_env = chimera.selection.ItemizedSelection()
+			metal_env.add(metal)
+			metal_env.merge(chimera.selection.REPLACE, chimera.specifier.zone( 
+					metal_env, 'atom', None, obj.radius, chimera.openModels.list()))
+			ligands = tuple( a for a in metal_env.atoms() if not a == metal )
 			
+			try:
+				rmsd, center, vectors = MetalGeom.gui.geomDistEval(geom, metal, ligands)
+			except: # geometry not feasible in current conditions
+				rmsd = 100
+			else:
+				rmsd.center = center
+				rmsd.vectors = vectors
+			
+			if rmsd > obj.threshold and close:
+				chimera.openModels.remove([ligand.mol])
+				return [-1000*w for w in weights]
+			score.append(rmsd)
+
 	if close:
 		chimera.openModels.remove([ligand.mol])
 		return score
