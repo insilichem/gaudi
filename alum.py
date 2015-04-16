@@ -3,8 +3,28 @@
 import chimera, deap, Rotamers, gaudi, Matrix as M
 from deap import creator, algorithms, tools, base
 import random, argparse, numpy, math, yaml
+import MetalGeom
+
+##legacy
+def _dummy_res(name, atom=None):
+	m = chimera.Molecule()
+	m.name = name
+	pos = 1
+	while m.findResidue(chimera.MolResId('het', pos)) \
+	or m.findResidue(chimera.MolResId('water', pos)):
+		pos += 1
+	r = m.newResidue(name, 'het', pos, ' ')
+	r.isHet = True
+	chimera.openModels.add([m])
+	return r
 
 parser = argparse.ArgumentParser()
+parser.add_argument('-m', '--molecule',
+					required=True,
+					type=str, 
+					dest="mol",
+					metavar="<path to molecule file>",
+					help="Molecule to explore" )
 parser.add_argument('-p', '--population',
 					required=False,
 					type=int,
@@ -39,26 +59,46 @@ parser.add_argument('-r', '--radius',
 					dest="radius",
 					metavar="<angstroms>",
 					help="Radius of the sphere where the metal will be able to move"  )
+parser.add_argument('-c', '--coordination',
+					required=True, 
+					type=str,
+					dest="geometry",
+					metavar="<coordination geometry>",
+					help="Coordination geometry you want to optimize"  )
+# parser.add_argument('-m', '--metal',
+# 					required=False,
+# 					default=1, 
+# 					type=int,
+# 					dest="metal",
+# 					metavar="<serial number>",
+# 					help="Serial number of the metal involved in the process"  )
 args = parser.parse_args()
 
 ################################
 
+## Open model
+mol = chimera.openModels.open(args.mol)[0]
+mol.mol = mol
 ## Find aluminium
-mol = chimera.openModels.list()[0]
 alum = [a for r in mol.residues if r.type=='AL3' for a in r.atoms]
 alcrd, alelem = alum[0].coord(), alum[0].element
 # New movable aluminium
-alres = gaudi.molecule._dummy_res('alum')
+alres = _dummy_res('alum')
 al = chimera.molEdit.addAtom('ALX', alelem, alres, alcrd, bondedTo=None, serialNumber=-1)
 chimera.selection.setCurrent(al)
 zone = chimera.specifier.evalSpec('sel zr < 7')
 # Original aluminium ions are not needed
 [mol.deleteResidue(r) for r in mol.residues if r.type=='AL3']
 # Discover nearby residues
-residues = [ r for r in zone.residues() if r.type in ('ASP', 'GLU') ]
+residues = [ r for r in zone.residues() if r.type in ('ASP', 'GLU', 'TYR', 'HIS') ]
 rotamers = [ Rotamers.getRotamers(r)[1] for r in residues ]
 r_atoms = [ a for r in residues for a in r.atoms ]
-
+# Target atoms
+target_atoms= [	'ND1', 'NE2', #his
+				'OD1','OD2', # Asp
+				'O', # peptidic bond
+				'OE1', 'OE2', #glut
+				'OG1' ] #tyr
 def evalCoord(ind, close=True):
 	## Rebuild system
 	# rotamers
@@ -76,20 +116,21 @@ def evalCoord(ind, close=True):
 	## Test new conformation
 	# distance
 	zone = chimera.specifier.evalSpec('sel zr < 7')
-	oxygens = [ (gaudi.score.target._distance(a, al),a)
-			for a in zone.atoms() if a.element.number==8 and len(a.neighbors)==1 ]
-	oxygens = [ ox for ox in oxygens if ox[0]>args.threshold2]
-	oxygens.sort()
+	oxygens_or_nitrogens = [ (gaudi.score.target._distance(a, al),a)
+			for a in zone.atoms() if a.name in target_atoms ]
+	oxygens_or_nitrogens = [ ox for ox in oxygens_or_nitrogens if ox[0]>args.threshold2]
+	oxygens_or_nitrogens.sort()
 
 	# dihedral
 	dihedrals = []
-	for d,ox in oxygens[:3]:
-		nearest_ox = ox
-		nearest_ox_c = nearest_ox.neighbors[0]
-		nearest_ox_cc = next(a for a in nearest_ox_c.neighbors if a.element.number!=8)
-		dihedral = chimera.dihedral(*[a.molecule.openState.xform.apply(a.coord())
-									for a in (al, nearest_ox, nearest_ox_c, nearest_ox_cc)])
-		planarity = abs(math.sin(math.radians(dihedral)))
+	for d,ox in oxygens_or_nitrogens[:3]:
+		# nearest_ox = ox
+		# nearest_ox_c = nearest_ox.neighbors[0]
+		# nearest_ox_cc = next(a for a in nearest_ox_c.neighbors if a.element.number!=8)
+		# dihedral = chimera.dihedral(*[a.molecule.openState.xform.apply(a.coord())
+		# 							for a in (al, nearest_ox, nearest_ox_c, nearest_ox_cc)])
+		# planarity = abs(math.sin(math.radians(dihedral)))
+		planarity = 1
 		dihedrals.append(planarity)
 
 	# clashes
@@ -97,11 +138,26 @@ def evalCoord(ind, close=True):
 	clashes, num_of_clashes, pos, neg = gaudi.score.chem.clashes(atoms=r_atoms, 
 		test=(a for a in mol.atoms), parse=True)
 
-	score = [len([d for (d,o) in oxygens if d < args.threshold])]
-	score.append(sum(abs(a[3]) for a in neg)/2)
-	score.extend([abs(2.0-ox[0]) for ox in oxygens[:3]] + [0]*(3-len(oxygens[:3])))
-	score.extend(dihedrals + [0]*(3-len(dihedrals)))
+	# metal geom rmsd
+	geom = MetalGeom.geomData.geometries[args.geometry]
+	metal = al
+	metal_env = chimera.selection.ItemizedSelection()
+	metal_env.add(metal)
+	metal_env.merge(chimera.selection.REPLACE, chimera.specifier.zone( 
+			metal_env, 'atom', None, args.radius, chimera.openModels.list()))
+	ligands = tuple( a for a in metal_env.atoms() if not a == metal )
 	
+	try:
+		rmsd, center, vectors = MetalGeom.gui.geomDistEval(geom, metal, ligands)
+	except: # geometry not feasible in current conditions
+		rmsd = 100
+	
+	score = [len([d for (d,o) in oxygens_or_nitrogens if d < args.threshold])]
+	score.append(sum(abs(a[3]) for a in neg)/2)
+	score.extend([abs(2.0-ox[0]) for ox in oxygens_or_nitrogens[:3]] + [0]*(3-len(oxygens_or_nitrogens[:3])))
+	score.extend(dihedrals + [0]*(3-len(dihedrals)))
+	score.append(rmsd)
+
 	return score
 
 
@@ -122,7 +178,7 @@ def het_mutation(ind, indpb):
 
 # Genetic Algorithm
 # define individual, population, etc
-deap.creator.create("FitnessMin", deap.base.Fitness, weights=(1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0))
+deap.creator.create("FitnessMin", deap.base.Fitness, weights=(1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0))
 deap.creator.create("Individual", dict, fitness=deap.creator.FitnessMin,
 					fitness_names=[ 'nearby_ox', 'clashes', 'distance', 'distance', 'distance', 'planarity'])
 
