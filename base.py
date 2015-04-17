@@ -147,25 +147,31 @@ def evaluate(ind, close=True, hidden=False, draw=False):
 			chimera.openModels.close([assess])
 		
 		elif obj.type == 'coordinationrmsd':
-			geom = MetalGeom.geomData.geometries[obj.geometry]
+			geom = MetalGeom.geomData.geometries[ind['geometry']]
 			if isinstance(obj.target, int):
 				metal = chimera.specifier.evalSpec('@/serialNumber={}'.format(obj.target)).atoms()[0]
 			elif isinstance(obj.target, str):
-				metal = chimera.specifier.evalSpec('@{}'.format(obj.target)).atoms()[0]
+				if obj.target == 'ligand':
+					try:
+						metal = next(a for a in ligand.mol.atoms if a.residue.isMetal)
+					except:
+						raise
+				else:
+					metal = chimera.specifier.evalSpec('@{}'.format(obj.target)).atoms()[0]
 			metal_env = chimera.selection.ItemizedSelection()
 			metal_env.add(metal)
 			metal_env.merge(chimera.selection.REPLACE, chimera.specifier.zone( 
 					metal_env, 'atom', None, obj.radius, chimera.openModels.list()))
-			ligands = tuple( a for a in metal_env.atoms() if not a == metal )
-			
-			try:
-				rmsd, center, vectors = MetalGeom.gui.geomDistEval(geom, metal, ligands)
-			except: # geometry not feasible in current conditions
-				rmsd = 100
+			metal_ligands = tuple( a for a in metal_env.atoms() if not a == metal and
+								a.name in obj.atom_types )
+			if len(metal_ligands) >= obj.min_atoms:	
+				try:
+					rmsd, center, vectors = MetalGeom.gui.geomDistEval(geom, metal, metal_ligands)
+				except: # geometry not feasible in current conditions
+					rmsd = 1000
 			else:
-				rmsd.center = center
-				rmsd.vectors = vectors
-			
+				rmsd = 1000
+
 			if rmsd > obj.threshold and close:
 				chimera.openModels.remove([ligand.mol])
 				return [-1000*w for w in weights]
@@ -265,7 +271,10 @@ protein, = chimera.openModels.open(cfg.protein.path)
 # Set up ligands
 ligand_env = chimera.selection.ItemizedSelection()
 if not hasattr(cfg.ligand, 'bondto') or not cfg.ligand.bondto:
-	origin = box.atoms_by_serial(cfg.protein.origin, atoms=protein.atoms)[0].coord()
+	origin_atom = box.atoms_by_serial(cfg.protein.origin, atoms=protein.atoms)[0]
+	origin = origin_atom.coord()
+	if 'DUM' in (origin_atom.name, origin_atom.label):
+		origin_atom.molecule.deleteAtom(origin_atom)
 	vertices = [0]
 	covalent = False
 else:
@@ -282,14 +291,12 @@ genes = []
 toolbox = deap.base.Toolbox()
 toolbox.register("ligand", random.choice, ligands.catalog)
 genes.append(toolbox.ligand)
+toolbox.register("vertex", random.choice, vertices)
+genes.append(toolbox.vertex)
 
-if covalent:
-	toolbox.register("vertex", random.choice, vertices)
-	genes.append(toolbox.vertex)
-else:
+if not covalent:
 	toolbox.register("xform", gaudi.move.rand_xform, origin, cfg.protein.radius)
 	genes.append(toolbox.xform)
-
 
 if hasattr(cfg.ligand, 'flexibility') and cfg.ligand.flexibility:
 	if cfg.ligand.flexibility > 360: 
@@ -326,6 +333,11 @@ if hasattr(cfg, 'rotamers'):
 		toolbox.register("mutamers", deap.tools.initRepeat, list,
 							toolbox.rand_aa, n=len(cfg.rotamers.residues))
 		genes.append(toolbox.mutamers)
+
+for obj in cfg.objectives:
+	if obj.type == 'coordinationrmsd':
+		toolbox.register("geometry", random.choice, obj.geometries)
+		genes.append(toolbox.geometry)
 
 toolbox.register("toDict", 
 	(lambda ind, *fn: ind((f.__name__, f()) for f in fn)))
