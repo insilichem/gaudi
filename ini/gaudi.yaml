@@ -1,56 +1,85 @@
-# GAUDI input file
-default: 
-    results: 3
-    savepath: /home/jr/x/hyde/output/_/
-    savename: test_
+default:
+    results: 20
+    savepath: /path/to/output/
+    savename: nickel
     precision: 2
 
-ga: 
-    pop: 500
-    gens: 20
+ga:
+    pop: 100
+    gens: 10
+    mu: 0.75
+    lambda_: 0.75
     mut_eta: 5
-    mut_pb: 0.05
+    mut_pb: 0.10
     mut_indpb: 0.05
     cx_eta: 5
-    cx_pb: 0.05
-    mu: 50
-    lambda_: 50
-    pareto: 0
+    cx_pb: 0.8
+    pareto: 1
     history: 0
 
-protein: 
-    path: /home/jr/x/hyde/mol2/ethanol.mol2
-    origin: 5
-    radius: 10.0
+protein:
+    path: /path/to/protein.mol2
+    origin: 1868
+    radius: 5.0
 
-ligand: 
-    type: blocks
-    path: /home/jr/x/hyde/mol2/
-    flexible: auto
-    bondto: 2
+ligand:
+# if a path is submitted, all combinations will be generated
+    path: /path/to/ligand.mol2/or/block/containing/dir/
+    type: blocks #or ligand
+    symmetry: [[ dirA, dirB ]]
+    flexibility: 360
+    bondto: 1868
 
-objectives: 
-  - name: Clashes
-    type: contacts
-    which: clashes
-    weight: -1.0
-    test: ligand
-    threshold: 0.4
+rotamers:
+    residues: [233, 109]
+    library: dynameomics #or dunbrack
+    top: 8
+    mutate: no
 
-  - name: HBonds
-    type: hbonds
-    weight: 1.0
+###
+# OBJECTIVES
+###
 
-  - name: Contacts
-    type: contacts
-    which: hydrophobic
-    weight: 1.0
-    threshold: -1.4
+objectives:
+    -   name: Hbonds
+        type: hbonds
+        weight: 1.0
+        distance_tolerance: 0.4
+        angle_tolerance: 20.0
 
-  - name: Distance
-    type: distance
-    weight: -1.0
-    threshold: 2.0
-    target: 1
-    probes: [1, 5, 6]
-    wall: 0
+    -   name: Clashes
+        type: contacts
+        which: clashes #or hydrophobic
+        weight: -1.0
+        test: ligand
+        threshold: 0.6
+        threshold_h: 0.2
+        threshold_c: 0.6
+        cutoff: 100.0
+
+    -   name: DistanceAB
+        type: distance
+        weight: -1.0
+        threshold: covalent #or <n>
+        tolerance: -0.1
+        target: 929
+        probes: [last] # or serialNumber
+
+    -   name: AngleABC
+        type: angle 
+        weight: -1.0
+        threshold: 90.0 #degrees or 'planar'
+        # serialnumbers, 3 for angle, 4 for dihedral
+        # Careful, input order DOES matter
+        target: [123, 456, 789, 123]
+
+
+    -   name: Coordination_RMSD
+        type: coordinationrmsd
+        weight: -1.0
+        target: 'ligand' #also: <serialNumber>, 'auto'
+        geometries: ['tetrahedral'] # check MetalGeom.geomData.geometries.keys()
+        min_atoms: 2 # coordination must have at least min_atoms ligating atoms
+        atom_types: [ 'ND1', 'NE2', 'OD1','OD2', 'O', 'OE1', 'OE2', 'OG1' ]
+        radius: 2.5 # search radius from metal position
+        threshold: 1.0 # max admitted RMSD
