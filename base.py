@@ -21,7 +21,7 @@ from gaudi.utils import box
 ### CUSTOM FUNCTIONS
 
 def evaluate(ind, close=True, hidden=False, draw=False):
-
+	## APPLY EXPLORATION
 	ligand = ligands.get(ind['ligand'],ind['vertex'])
 	chimera.openModels.add([ligand.mol], shareXform=True, hidden=hidden)
 	box.pseudobond_to_bond(ligand.mol)
@@ -66,6 +66,7 @@ def evaluate(ind, close=True, hidden=False, draw=False):
 	ligand_env.merge(chimera.selection.REPLACE,
 					chimera.specifier.zone( ligand_env, 'atom', None, 10.0,
 											[protein,ligand.mol]))
+	### EVALUATE SCORE
 	score, draw_list = [], {}
 	for obj in cfg.objectives:
 		if obj.type == 'hbonds':
@@ -82,11 +83,11 @@ def evaluate(ind, close=True, hidden=False, draw=False):
 		
 		elif obj.type == 'contacts':
 			if cfg.ligand.type == 'blocks':
-				ligand_atoms = [a for a in ligand.mol.atoms if a.serialNumber > 3]
+				ligand_atoms = [a for a in ligand_env.atoms() if a.serialNumber > 3]
 			else:
-				ligand_atoms = ligand.mol.atoms
+				ligand_atoms = ligand_env.atoms()
 			contacts, num_of_contacts, positive_vdw, negative_vdw = \
-				gaudi.score.chem.clashes(atoms=ligand_atoms, test=ligand_env.atoms(), 
+				gaudi.score.chem.clashes(atoms=ligand_atoms, test=ligand_atoms, 
 										intraRes=True, clashThreshold=obj.threshold, 
 										hbondAllowance=obj.threshold_h, parse=True,
 										parse_threshold=obj.threshold_c)
