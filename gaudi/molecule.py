@@ -94,6 +94,8 @@ class Compound(object):
 		self.mol.gaudi = self
 		self.rotatable_bonds = []
 		self.built_atoms = []
+		self.donor = self.mol.atoms[0]
+		self.acceptor = self.mol.atoms[-1]
 		self.parse_attr()
 		self.origin = origin
 		self.seed = seed
