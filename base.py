@@ -121,6 +121,21 @@ def evaluate(ind, close=True, hidden=False, draw=False):
 					return [-1000*w for w in weights]
 			score.append(numpy.mean(numpy.absolute(dist)))
 
+		elif obj.type == 'angle':
+			atoms = box.atoms_by_serial(*obj.target)
+			atoms_coords = [a.molecule.openState.xform.apply(a.coord()) for a in atoms]
+			try:
+				angle = chimera.angle(*atoms_coords)
+			except TypeError: # four atoms, means dihedral
+				try:
+					angle = chimera.dihedral(*atoms_coords)
+				except TypeError: # threshold is str, calc abs sine
+					if obj.threshold == 'planar':
+						delta = abs(math.sin(math.radians(angle)))
+			else:
+				delta = obj.threshold - angle.real
+			score.append(delta)
+
 		elif obj.type == 'solvation':
 			atoms, ses, sas = gaudi.score.chem.solvation(ligand_env.atoms())
 			ligand_ses = sum(s for (a,s) in zip(atoms, ses) if a in ligand.mol.atoms)
