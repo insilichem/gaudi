@@ -14,6 +14,12 @@ def distance(atoms, target, threshold):
 		distances.append(d-threshold)
 	return distances
 
+def angle():
+	pass
+
+def dihedral():
+	pass
+	
 ## Internal use
 def _distance(atom1, atom2):
 	return atom1.xformCoord().distance(atom2.xformCoord())
