@@ -83,7 +83,6 @@ If you are going to be installing a lot of packages, maybe it's a good idea to s
 ## Running a GAUDI job
 You only have to run `base.py <inputfile>.gaudi` with Chimera's Python. You have already done this to install the packages!
 
-<<<<<<< HEAD
     cd /path/to/gaudi/
     chimeracli base.py /path/to/input/file.gaudi
 
