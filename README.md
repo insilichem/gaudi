@@ -21,7 +21,6 @@ To download a copy of Gaudi, just clone it to your desired directory using `git 
 
 **Dependencies**
 
-<<<<<<< HEAD
 * **[UCSF Chimera](http://www.cgl.ucsf.edu/chimera/download.html)**. Main framework.
 
 * **[deap](https://pypi.python.org/pypi/deap/) package**. Genetic Algorithms.
