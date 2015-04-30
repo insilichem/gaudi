@@ -1,8 +1,9 @@
-default:
-    results: 20
-    savepath: /path/to/output/
-    savename: nickel
+# GAUDI internals
+general:
+    outputpath: /path/to/output/
+    name: nickel
     precision: 2
+    compress: 1
 
 ga:
     pop: 100
@@ -17,29 +18,51 @@ ga:
     pareto: 1
     history: 0
 
-protein:
-    path: /path/to/protein.mol2
-    origin: 1868
-    radius: 5.0
+search:
+    origin: 0
+    radius: 0
 
-ligand:
-# if a path is submitted, all combinations will be generated
-    path: /path/to/ligand.mol2/or/block/containing/dir/
-    type: blocks #or ligand
-    symmetry: [[ dirA, dirB ]]
-    flexibility: 360
-    bondto: 1868
+###
+# GENOME
+###
+genes: 
+    -   name: Protein
+        type: molecule
+        path: /path/to/protein.mol2
 
-rotamers:
-    residues: [233, 109]
-    library: dynameomics #or dunbrack
-    top: 8
-    mutate: no
+    -   name: Ligand
+        type: molecule
+        path: /path/to/ligand.mol2/or/block/containing/dir/
+        symmetry: [[ dirA, dirB ]]
+
+    -   name: Rotamers
+        type: rotamers
+        residues: [ $Protein$/233, $Protein$/109]
+        library: { dynameomics | dunbrack }
+        mutations: []
+
+    -   name: Normal Modes
+        type: normalmodes
+        target: protein
+
+    -   name: Torsion
+        type: torsion
+        target: Ligand
+        flexibility: 360
+
+    -   name: Search
+        type: search
+        origin: $Protein$/DUM
+        radius: 5.0
+
+    -   name: Covalent Search
+        type: search_covalent  
+        bond:   - [ $Ligand$/DUM, $Protein$/136 ]
+                - [ $Ligand$/END, $Protein$/145 ]
 
 ###
 # OBJECTIVES
 ###
-
 objectives:
     -   name: Hbonds
         type: hbonds
@@ -71,7 +94,7 @@ objectives:
         threshold: 90.0 #degrees or 'planar'
         # serialnumbers, 3 for angle, 4 for dihedral
         # Careful, input order DOES matter
-        target: [123, 456, 789, 123]
+        target: [ $Protein$/123, $Protein$/456, $Ligand$/789, $Ligand$/123]
 
 
     -   name: Coordination_RMSD

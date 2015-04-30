@@ -1,49 +1,161 @@
 #!/usr/bin/python
 
-# gaudi
-# Genetic Algorithm for Unified Docking Inference
-# A docking module for UCSF Chimera
-# Jaime RGP <https://bitbucket.org/jrgp> @ UAB, 2014
+##############
+# GAUDIasm: Genetic Algorithms for Universal
+# Design Inference and Atomic Scale Modeling
+# Author: Jaime Rodriguez-Guerra Pedregal
+# Email: jaime.rogue@gmail.com
+# Web: https://bitbucket.org/jrgp/gaudi
+##############
 
+from gaudi import move, box, parse
+from gaudi.genes import GeneProvider
 import chimera, BuildStructure
 from chimera import UserError
 from chimera.molEdit import addAtom, addBond
-import os
-import itertools
+from WriteMol2 import writeMol2
+
+import deap
 import yaml
-import move, box
-import random
 from repoze.lru import LRUCache
 
-class Library(object):
+import os
+import itertools
+import random
+import sys
 
-	def __init__(self, path, origin=None, covalent=False, flexible=True, symmetry=None):
+### TODO:
+### Vertex param does not belong here
+### Move into `covalentsearch` gene
+ZERO = chimera.Point(0.0, 0.0, 0.0)
+
+def enable(**kwargs):
+	return Molecule(**kwargs)
+
+class Molecule(GeneProvider):
+
+	_CATALOG = {}
+	def __init__(self, parent=None, name=None, cache=None,
+				path=None, symmetry=None,
+			 	**kwargs):
+		self.parent = parent
+		self.name = name
+		self._cache = cache
 		self.path = path
-		self.origin = origin if origin else chimera.Point(0,0,0)
-		self.covalent = covalent
-		self.flexible = flexible
 		self.symmetry = symmetry
-		self.compounds = LRUCache(300)
-		self.catalog = []
-		self.compile_catalog()
+		self._kwargs = kwargs
+		self.origin = ZERO
 
+		if 'gaudi.genes.search' in sys.modules:
+			for g in self.parent.cfg.genes:
+				if g.type == 'gaudi.genes.search' and g.target == self.name:
+					self.origin = g.origin
+					break
+			
+		if self.name not in self._cache:
+			self._cache[self.name] = LRUCache(300)
+			self.catalog = self._CATALOG[self.name] = tuple(self._compile_catalog())
+			
+		self.catalog = self._CATALOG[self.name]
+		self.allele = random.choice(self.catalog)
+		self.compound = self.get(self.allele)
+
+	def __deepcopy__(self, memo):
+		new = self.__class__(self.parent, self.name,self._cache,
+							self.path, self.symmetry, 
+							**self._kwargs)
+		new.__dict__.update((k,v) for k,v in self.__dict__.items())
+		new.allele = self.allele+()
+		return new 
+
+	def express(self):
+		self.compound = self.get(self.allele)
+		chimera.openModels.add([self.compound.mol], shareXform=True)
+		box.pseudobond_to_bond(self.compound.mol)
+
+		if self.name not in ('Protein', 'Static') and self.origin != self.compound.donor.coord():
+			try:
+				self.compound.place(self.origin)
+			except TypeError:
+				mol, serial = parse.parse_rawstring(self.origin)
+				try: 
+					if isinstance(serial, int):
+						atom = next(a for a in self.parent.genes[mol].compound.mol.atoms 
+									if serial == a.serialNumber)
+					else:
+						atom = next(a for a in self.parent.genes[mol].compound.mol.atoms 
+									if serial == a.name)
+				except AttributeError: #atom not found
+					self.origin = ZERO
+				else:
+					self.origin = atom
+				finally:
+					self.compound.place(self.origin)
+
+	def unexpress(self):
+		chimera.openModels.remove([self.compound.mol])
+		# del self.compound
+
+	def mate(self, mate):
+		try:
+			self.allele, mate.allele = deap.tools.cxTwoPoint(list(self.allele), list(mate.allele))
+		except (StopIteration, ValueError):
+			self.allele, mate.allele = mate.allele, self.allele
+		else:
+			self.allele, mate.allele = tuple(self.allele), tuple(mate.allele)
+
+	def mutate(self, indpb):
+		"""
+		VERY primitive. It only gets another compound. 
+		"""
+		if random.random()>indpb:
+			self.allele = random.choice(self.catalog)
+
+	def write(self, path, name):
+		fullname = os.path.join(path, '{}_{}({}).mol2'.format(name,self.name,self.__class__.__name__))
+		writeMol2([self.compound.mol], fullname, temporary=True, multimodelHandling='combined')
+		return fullname
 	
-	def __getitem__(self, index):
-		return self.get(index, 0)
-	
-	def get(self, index, vertex):
-		compound = self.compounds.get((index,vertex))
-		if compound:
-			return compound 
-		compound = self.build(index, self.origin)
-		self.compounds.put((index,compound.vertex), compound)
+	############
+	def __getitem__(self, key):
+		return self.get(key, 0)
+
+	def get(self, key, vertex=0):
+		# repoze.lru does not raise exceptions, so we must switch to LBYL
+		compound = self._cache[self.name].get((key,vertex))
+		if not compound:
+ 			compound = self.build(key)
+			self._cache[self.name].put((key,compound.vertex), compound)
 		return compound
-	
-	def compile_catalog(self):
+
+
+	def build(self, key, where=None):
+		vertex = 0
+		# if self.covalent:
+		# 	base = Compound()
+		# 	base.donor = base.add_dummy_atom(where.neighbors[0], serial=1)
+		# 	base.acceptor = base.add_dummy_atom(where, bonded_to=base.donor, serial=2)
+		# 	base.append(Compound(molecule=key[0], seed=random.random()))
+		# 	vertex = base.vertex
+		# else:
+		# 	base = Compound(molecule=key[0])
+		# 	base.place(where)
+		base = Compound(molecule=key[0])
+		#base.place(self.origin)
+		for molpath in key[1:]:
+			base.append(Compound(molecule=molpath))
+		
+		# if self.flexible:
+		# 	base.update_rotatable_bonds()
+		base.vertex = vertex
+		return base
+
+	def _compile_catalog(self):
+		container = set()
 		if os.path.isdir(self.path):
-			folders = sorted([ os.path.join(self.path, d) for d in os.listdir(self.path)
+			folders = sorted(os.path.join(self.path, d) for d in os.listdir(self.path)
 					if os.path.isdir(os.path.join(self.path,d)) and not d.startswith('.')
-						and not d.startswith('_')])
+						and not d.startswith('_'))
 			if folders:
 				catalog = itertools.product(*[box.files_in(f, ext='mol2')
 														 for f in folders])
@@ -56,31 +168,12 @@ class Library(object):
 								for (s1,s2) in self.symmetry):
 							self.catalog.append(entry)
 				else:
-					self.catalog = list(catalog)
+					container.update(tuple(catalog))
 			else:
-				self.catalog = [ (f,) for f in box.files_in(self.path, ext='mol2') ]
+				container.update((f,) for f in box.files_in(self.path, ext='mol2'))
 		elif os.path.isfile(self.path) and self.path.endswith('.mol2'):
-			self.catalog = [(self.path,)]
-
-	def build(self, index, where=None):
-		vertex = 0
-		if self.covalent:
-			base = Compound()
-			base.donor = base.add_dummy_atom(where.neighbors[0], serial=1)
-			base.acceptor = base.add_dummy_atom(where, bonded_to=base.donor, serial=2)
-			base.append(Compound(molecule=index[0], seed=random.random()))
-			vertex = base.vertex
-		else:
-			base = Compound(molecule=index[0])
-			base.place(where)
-
-		for molpath in index[1:]:
-			base.append(Compound(molecule=molpath))
-		
-		if self.flexible:
-			base.update_rotatable_bonds()
-		base.vertex = vertex
-		return base
+			container.add((self.path,))
+		return container
 
 class Compound(object):
 	### Initializers
@@ -90,7 +183,7 @@ class Compound(object):
 		elif not molecule or molecule=='dummy':
 			self.mol = _dummy_mol('dummy')
 		else:
-			self.mol = chimera.openModels.open(molecule)[0]
+			self.mol, = chimera.openModels.open(molecule)
 			chimera.openModels.remove([self.mol])
 		
 		self.mol.gaudi = self
@@ -265,7 +358,7 @@ class Compound(object):
 				if built not in target.bondsMap and built not in res_atoms: #link!
 					addBond(target, built)
 		
-		self.built_atoms.append({a.serialNumber: b for (a,b) in built_atoms.items()})
+		self.built_atoms.append({a.serialNumber:b for (a,b) in built_atoms.items()})
 		return built_atoms
 
 	def place(self, where, anchor=None):
@@ -291,30 +384,6 @@ class Compound(object):
 		move.rotate(self.mol, [target.coord(), anchor.coord(), anchor_pos], 0.0)
 
 
-def _add_hydrogen(atom):
-	h = None
-	if atom.element.number == 1:
-		return atom.neighbors[0], atom
-	try:
-		geometry = chimera.idatm.typeInfo[atom.idatmType].geometry
-	except KeyError:
-		geometry = 3
-		print "Warning, arbitrary geometry with {}, {}".format(atom, geometry) 
-	
-	try:
-		atom, h = BuildStructure.changeAtom(atom, atom.element, 
-								geometry, atom.numBonds+1)[:2]
-	except ValueError:
-		try: 
-			h = next(a for a in atom.neighbors if a.numBonds == 1)
-		except StopIteration:
-			h = next(a for a in atom.molecule.atoms if a.numBonds == 1)
-			print "WARNING! Atom {} was chosen randomly among molecule terminal atoms".format(h)
-		else:
-			print "WARNING! Atom {}, with geometry {} and {} bonds was chosen randomly among neighbor terminal atoms".format(
-												atom, geometry, atom.numBonds)		
-	return atom, h
-
 def _dummy_mol(name):
 	m = chimera.Molecule()
 	m.name = name
@@ -333,15 +402,3 @@ def _new_atom_position(atom, newelement, seed=0.0):
 	points = chimera.bondGeom.bondPositions(atom.coord(), geometry, bond_length,
 			neighbors_crd)
 	return points[int(seed*len(points))], int(seed*len(points))
-
-def _new_atom_positions(atom, newelement,):
-	try:
-		geometry = chimera.idatm.typeInfo[atom.idatmType].geometry
-	except KeyError:
-		geometry = 3
-		print "Warning, arbitrary geometry with {}, {}".format(atom, geometry) 
-	bond_length = chimera.Element.bondLength(atom.element, newelement)
-	neighbors_crd = [a.coord() for a in atom.neighbors]
-	points = chimera.bondGeom.bondPositions(atom.coord(), geometry, bond_length,
-			neighbors_crd)
-	return points

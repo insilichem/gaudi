@@ -6,6 +6,7 @@
 # Jaime RGP <https://bitbucket.org/jrgp> @ UAB, 2014
 import os
 import yaml
+import logging
 
 class Settings(object):
 	''' Simple parser for YAML settings file. '''
@@ -13,28 +14,21 @@ class Settings(object):
 		self._path = path
 		self.data = {}
 		self._parse()
+		self.weights = self._weights()
+		self.objectivesnames = self._objectives()
+
+	def _weights(self):
+		return [obj.weight for obj in self.objectives]
 	
-	def weights(self):
-		w = []
-		for obj in self.objectives:
-			if obj.type == 'hbonds' and hasattr(obj, 'targets') and len(obj.targets):
-				w.append(obj.weight)
-			w.append(obj.weight)
-		return w
-	
-	def list_objectives(self):
-		o = []
-		for obj in self.objectives:
-			o.append(obj.name)
-			if obj.type == 'hbonds' and hasattr(obj, 'targets') and len(obj.targets):
-				o.append('pref_'+obj.name)	
-		return o
+	def _objectives(self):	
+		return [obj.name for obj in self.objectives]
 
 	def _parse(self):
 		with open(self._path, 'r') as f:
 			self.data = yaml.load(f)
+		# make dict available as attrs	
 		for k,v in self.data.items():
-			if isinstance(v, list):
+			if isinstance(v, list): # objectives is a list!
 				self.__dict__[k] = [Param(d) for d in v]
 			else:
 				self.__dict__[k] = Param(v)
@@ -44,8 +38,35 @@ class Param(object):
 		for d_ in d:
 			self.__dict__.update(d_)
 
-	def __str__(self):
-		return "{}: {}-type objective with weight={}".format(self.name, self.type, self.weight)
+def parse_rawstring(s):
+	molecule, res_or_atom = s.split('/')
+	molecule = molecule.strip()
+	try:
+		res_or_atom = int(res_or_atom)
+	except ValueError:
+		pass #is str
+	return molecule, res_or_atom
+
+def enable_logging(output_dir=None):
+	logger = logging.getLogger('gaudi')
+	logger.setLevel(logging.DEBUG)
+
+	# create CONSOLE handler and set level to error
+	handler = logging.StreamHandler()
+	handler.setLevel(logging.ERROR)
+	formatter = logging.Formatter("%(levelname)s - %(message)s")
+	handler.setFormatter(formatter)
+	logger.addHandler(handler)
+ 
+	# create debug file handler and set level to debug
+	if output_dir:
+		handler = logging.FileHandler(os.path.join(output_dir, "debug.log"),"w")
+		handler.setLevel(logging.DEBUG)
+		formatter = logging.Formatter("%(asctime)s %(levelname)s - %(message)s")
+		handler.setFormatter(formatter)
+		logger.addHandler(handler)
+
+	return logger
 
 #####
 def _test_rebuild(cfg):

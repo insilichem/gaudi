@@ -1,14 +1,18 @@
 #!/usr/bin/python
 
-# gaudi
-# Genetic Algorithm for Unified Docking Inference
-# A docking module for UCSF Chimera
-# Jaime RGP <https://bitbucket.org/jrgp> @ UAB, 2014
+##############
+# GAUDIasm: Genetic Algorithms for Universal
+# Design Inference and Atomic Scale Modeling
+# Author: Jaime Rodriguez-Guerra Pedregal
+# Email: <jaime.rogue@gmail.com>
+# Web: https://bitbucket.org/jrgp/gaudi
+##############
 
+import base
 import box
-import ga
+import genes
 import molecule
 import move
+import objectives
 import parse
-import score
-#from base import instantiate, calculate_score
+import plugin
