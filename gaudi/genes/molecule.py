@@ -35,25 +35,23 @@ def enable(**kwargs):
 class Molecule(GeneProvider):
 
 	_CATALOG = {}
-	def __init__(self, parent=None, name=None, cache=None,
-				path=None, symmetry=None,
+	def __init__(self, path=None, symmetry=None,
 			 	**kwargs):
-		self.parent = parent
-		self.name = name
-		self._cache = cache
+		GeneProvider.__init__(self, **kwargs)
+		self._kwargs = kwargs
 		self.path = path
 		self.symmetry = symmetry
-		self._kwargs = kwargs
 		self.origin = ZERO
-
 		if 'gaudi.genes.search' in sys.modules:
 			for g in self.parent.cfg.genes:
 				if g.type == 'gaudi.genes.search' and g.target == self.name:
 					self.origin = g.origin
 					break
 			
-		if self.name not in self._cache:
-			self._cache[self.name] = LRUCache(300)
+		try:
+			self._compoundcache = self._cache['compounds']
+		except KeyError:
+		 	self._compoundcache = self._cache['compounds']= LRUCache(300)
 			self.catalog = self._CATALOG[self.name] = tuple(self._compile_catalog())
 			
 		self.catalog = self._CATALOG[self.name]
@@ -61,8 +59,7 @@ class Molecule(GeneProvider):
 		self.compound = self.get(self.allele)
 
 	def __deepcopy__(self, memo):
-		new = self.__class__(self.parent, self.name,self._cache,
-							self.path, self.symmetry, 
+		new = self.__class__(self.path, self.symmetry, 
 							**self._kwargs)
 		new.__dict__.update((k,v) for k,v in self.__dict__.items())
 		new.allele = self.allele+()
@@ -108,7 +105,7 @@ class Molecule(GeneProvider):
 		"""
 		VERY primitive. It only gets another compound. 
 		"""
-		if random.random()>indpb:
+		if random.random() < self.indpb:
 			self.allele = random.choice(self.catalog)
 
 	def write(self, path, name):
@@ -122,10 +119,10 @@ class Molecule(GeneProvider):
 
 	def get(self, key, vertex=0):
 		# repoze.lru does not raise exceptions, so we must switch to LBYL
-		compound = self._cache[self.name].get((key,vertex))
+		compound = self._compoundcache.get((key,vertex))
 		if not compound:
  			compound = self.build(key)
-			self._cache[self.name].put((key,compound.vertex), compound)
+			self._compoundcache.put((key,compound.vertex), compound)
 		return compound
 
 

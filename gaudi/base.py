@@ -12,9 +12,11 @@ from collections import OrderedDict
 from zipfile import ZipFile, ZIP_DEFLATED, ZIP_STORED
 import os
 import pprint
+import math
 
 import deap.base
 import yaml
+import chimera
 
 import gaudi.plugin
 
@@ -30,16 +32,20 @@ class Individual(object):
 	:environment:   Constants of the system
 	"""
 	_CACHE = {}
-	def __init__(self, genescfg=None, cache=None, cfg=None):
-		self._genescfg = genescfg
+	_CACHE_OBJ = {}
+	def __init__(self, cfg=None, cache=None, ):
 		self.genes = OrderedDict()
 		self.cfg = cfg
-		gaudi.plugin.load_plugins(genescfg, container=self.genes, 
-								cache=self._CACHE, parent=self)
+		gaudi.plugin.load_plugins(self.cfg.genes, container=self.genes, 
+								cache=self._CACHE, parent=self,
+								cxeta=self.cfg.ga.cx_eta,
+								mteta=self.cfg.ga.cx_eta,
+								indpb=self.cfg.ga.mut_indpb)
+		self.fitness = gaudi.base.Fitness(parent=self,cache=self._CACHE_OBJ)
 
 	def evaluate(self):
 		self.express()
-		score = self.fitness.evaluate(self)
+		score = self.fitness.evaluate()
 		self.unexpress()
 		return score
 
@@ -72,7 +78,25 @@ class Individual(object):
 		return self,
 
 	def similar(self, individual):
-		pass
+		self.express()
+		individual.express()
+		compound1 = next(compound for compound in self.genes.values()
+					 if compound.__class__.__name__ == 'Molecule')
+		compound2 = next(compound for compound in individual.genes.values()
+					 if compound.__class__.__name__ == 'Molecule')
+
+		xf1, xf2 = compound1.mol.openState.xform, compound2.mol.openState.xform
+		atoms1 = sorted(compound1.mol.atoms, key=lambda x: x.serialNumber)
+		atoms2 = sorted(compound2.mol.atoms, key=lambda x: x.serialNumber)
+		sqdist = sum(xf1.apply(a.coord()).sqdistance(xf2.apply(a.coord())) 
+						for a,b in zip(atoms1, atoms2))
+		rmsd = math.sqrt(sqdist / ((len(atoms1)+len(atoms2))/2.0))
+		
+		self.unexpress()
+		individual.unexpress()
+
+		print "RMSD is", rmsd, "which means its similarity is", rmsd < self.cfg.ga.similarity_rmsd
+		return rmsd < self.cfg.ga.similarity_rmsd
 	
 	def write(self, path, name, i, compress=True):
 		"""
@@ -110,15 +134,27 @@ class Fitness(deap.base.Fitness):
 	of every individual, it should result in a self-contained object.
 	"""
 	objectives = OrderedDict()
-	def __init__(self, parent=None, *args, **kwargs):
-		deap.base.Fitness.__init__(self, *args, **kwargs)
+	wvalues = ()
+	def __init__(self, parent=None, cache=None, *args, **kwargs):
 		self.parent = parent
-		if not self.objectives:
-			gaudi.plugin.load_plugins(self.objectivelist, container=self.objectives)
+		self.weights = self.parent.cfg.weights
+		deap.base.Fitness.__init__(self, *args, **kwargs)
+		self.cache = cache
+		self.env = chimera.selection.ItemizedSelection()
 
-	def evaluate(self, individual):
+		if not self.objectives:
+			gaudi.plugin.load_plugins(self.parent.cfg.objectives, 
+									container=self.objectives,
+									cache=self.cache, parent=self.parent,
+									environment=self.env)
+	def __deepcopy__(self, memo):
+	        copy_ = self.__class__(parent=self.parent)
+	        copy_.wvalues = self.wvalues
+	        return copy_
+
+	def evaluate(self):
 		score = []
 		for name,obj in self.objectives.items():
 			print "Evaluating", name
-			score.append(obj.evaluate(individual))
+			score.append(obj.evaluate())
 		return score

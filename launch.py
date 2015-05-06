@@ -23,13 +23,8 @@ def main(cfg):
 	
 	## DEAP setup: Fitness, Individuals, Population
 	toolbox = deap.base.Toolbox()
-	deap.creator.create("Fitness", gaudi.base.Fitness,
-						objectivelist=cfg.objectives,
-						weights=cfg.weights)
-	deap.creator.create("Individual", gaudi.base.Individual, 
-						fitness=deap.creator.Fitness)
 	toolbox.register("call", (lambda fn, *args, **kwargs: fn(*args, **kwargs)))
-	toolbox.register("individual", toolbox.call, deap.creator.Individual, cfg.genes, cfg=cfg)
+	toolbox.register("individual", toolbox.call, gaudi.base.Individual, cfg)
 	toolbox.register("population", deap.tools.initRepeat, list, toolbox.individual)
 	population = toolbox.population(n=cfg.ga.pop)
 

@@ -30,6 +30,16 @@ class ObjectiveProvider(object):
  	with an evaluate() function. Apart from that, there's no requirements.
  	"""
 	__metaclass__ = plugin.PluginMount
+	def __init__(self, parent=None, name=None, weight=None, cache=None, environment=None,
+				**kwargs):
+		self.parent = parent
+		self.name = name
+		self.weight = weight
+		self.env = environment
+		try:
+			self._cache = cache[self.name]
+		except KeyError:
+			self._cache = cache[self.name] = {}
 
 	@abc.abstractmethod
 	def evaluate(self, individual):

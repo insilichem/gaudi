@@ -44,14 +44,12 @@ def import_plugins(*args, **kwargs):
 			plugins.append(module)
 	return plugins
 
-def load_plugins(plugins, container=None, parent=None, cache=None):
+def load_plugins(plugins, container=None, **kwargs):
 	if container is None:
 		container = OrderedDict()
-		for plugin in plugins:
-			module = plugin.type
-			container[plugin.name] = sys.modules[module].enable(parent=parent,cache=cache,**plugin.__dict__)
-		return container
-
+	
 	for plugin in plugins:
 		module = plugin.type
-		container[plugin.name] = sys.modules[module].enable(parent=parent,cache=cache,**plugin.__dict__)
+		kwargs.update(plugin.__dict__)
+		container[plugin.name] = sys.modules[module].enable(**kwargs)
+	return container

@@ -23,23 +23,21 @@ from gaudi.parse import parse_rawstring
 
 class Rotamers(GeneProvider):
 
-	def __init__(self, parent=None, name=None, cache=None,
-				residues=None, library='Dunbrack', mutations=[],
+	def __init__(self, residues=None, library='Dunbrack', mutations=[],
 				**kwargs):
+		GeneProvider.__init__(self, **kwargs)
 		self._kwargs = kwargs
-		self.name = name
-		self.parent = parent
-		self._cache = cache
 		self._residues = residues
 		self.library = library
 		self.mutations = mutations
 		self.allele = []
 		# set (or retrieve) caches
-		if self.name not in self._cache:
-			self._cache[self.name] = {	'residues': OrderedDict(),
-										'rotamers': LRUCache(300) }
-		self.residues = self._cache[self.name]['residues']
-		self.rotamers = self._cache[self.name]['rotamers']
+		try:
+			self.residues = self._cache['residues']
+			self.rotamers = self._cache['rotamers']
+		except KeyError:
+			self.residues = self._cache['residues'] = OrderedDict()
+			self.rotamers = self._cache['rotamers'] = LRUCache(300)
 		
 		# find requested residues
 		self._residues_rawstring = tuple(parse_rawstring(r) for r in residues)
@@ -58,8 +56,7 @@ class Rotamers(GeneProvider):
 				)
 
 	def __deepcopy__(self, memo):
-		new = self.__class__(self.parent, self.name, self._cache,
-							self._residues, self.library, self.mutations,
+		new = self.__class__(self._residues, self.library, self.mutations,
 							**self._kwargs)
 		new.__dict__.update((k,v) for k,v in self.__dict__.items())
 		new.allele = self.allele[:]
@@ -81,20 +78,21 @@ class Rotamers(GeneProvider):
 		self.allele, mate.allele = deap.tools.cxTwoPoint(self.allele, mate.allele)
 
 	def mutate(self, indpb):
-		self.allele = []
-		for molecule, resid in self._residues_rawstring:
-			try:
-				res = next(r for r in self.parent.genes[molecule].compound.mol.residues
-								if r.id.position == resid)
-			except (KeyError, StopIteration): # molecule or residue not found
-				raise
-			else: #residue was found!
-				self.residues[(molecule, resid)] = res
-				self.allele.append(
-					(	random.choice(self.mutations+[res.type]),
-						random.random()
+		if random.random() < self.indpb:
+			self.allele = []
+			for molecule, resid in self._residues_rawstring:
+				try:
+					res = next(r for r in self.parent.genes[molecule].compound.mol.residues
+									if r.id.position == resid)
+				except (KeyError, StopIteration): # molecule or residue not found
+					raise
+				else: #residue was found!
+					self.residues[(molecule, resid)] = res
+					self.allele.append(
+						(	random.choice(self.mutations+[res.type]),
+							random.random()
+						)
 					)
-				)
 
 	def write(self, path, name):
 		pass

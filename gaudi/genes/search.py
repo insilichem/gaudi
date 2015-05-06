@@ -22,11 +22,9 @@ def enable(**kwargs):
 
 class Search(GeneProvider):
 	
-	def __init__(self, parent=None, name=None, 
-				target=None, origin=None, radius=None, rotate=True,
+	def __init__(self, target=None, origin=None, radius=None, rotate=True,
 				**kwargs):
-		self.parent = parent
-		self.name = name
+		GeneProvider.__init__(self, **kwargs)
 		self.radius = radius
 		self.rotate = rotate
 		self.target = target
@@ -41,7 +39,7 @@ class Search(GeneProvider):
 		except StopIteration: #atom not found
 			raise
 		else:
-			self.origin = atom.coord()
+			self.origin = atom.coord().data()
 
 		self.allele = self.random_transform()
 
@@ -63,7 +61,7 @@ class Search(GeneProvider):
 								(interp_tl, mate.allele[1], mate.allele[-1])
 
 	def mutate(self, indpb):
-		if random.random() < indpb:
+		if random.random() < self.indpb:
 			# Careful! Mutation generates a whole NEW position (similar to eta ~= 0)
 			# TODO: We could use a eta param in mutation by interpolating original and 
 			# a new random xform with a given `frac` parameter

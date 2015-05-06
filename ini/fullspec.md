@@ -1,3 +1,6 @@
+CAUTION: This document is outdated. It will be rewritten soon.
+
+
 GAUDI Input files full specification
 ====================================
 

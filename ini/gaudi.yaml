@@ -15,48 +15,44 @@ ga:
     mut_indpb: 0.05
     cx_eta: 5
     cx_pb: 0.8
-    pareto: 1
+    similarity_rmsd: 2.5
     history: 0
-
-search:
-    origin: 0
-    radius: 0
 
 ###
 # GENOME
 ###
 genes: 
     -   name: Protein
-        type: molecule
+        type: gaudi.genes.molecule
         path: /path/to/protein.mol2
 
     -   name: Ligand
-        type: molecule
+        type: gaudi.genes.molecule
         path: /path/to/ligand.mol2/or/block/containing/dir/
         symmetry: [[ dirA, dirB ]]
 
     -   name: Rotamers
-        type: rotamers
+        type: gaudi.genes.rotamers
         residues: [ $Protein$/233, $Protein$/109]
         library: { dynameomics | dunbrack }
         mutations: []
 
     -   name: Normal Modes
-        type: normalmodes
+        type: gaudi.genes.normalmodes
         target: protein
 
     -   name: Torsion
-        type: torsion
+        type: gaudi.genes.torsion
         target: Ligand
         flexibility: 360
 
     -   name: Search
-        type: search
-        origin: $Protein$/DUM
+        type: gaudi.genes.search
+        origin: Protein/DUM
         radius: 5.0
 
-    -   name: Covalent Search
-        type: search_covalent  
+    -   name: CovalentBond
+        type: gaudi.genes.covalent  
         bond:   - [ $Ligand$/DUM, $Protein$/136 ]
                 - [ $Ligand$/END, $Protein$/145 ]
 
@@ -65,23 +61,26 @@ genes:
 ###
 objectives:
     -   name: Hbonds
-        type: hbonds
+        type: gaudi.objectives.hbonds
         weight: 1.0
+        probe: Ligand
+        radius: 5.0
         distance_tolerance: 0.4
         angle_tolerance: 20.0
 
     -   name: Clashes
-        type: contacts
+        type: gaudi.objectives.contacts
         which: clashes #or hydrophobic
         weight: -1.0
-        test: ligand
+        probe: Ligand
+        radius: 5.0
         threshold: 0.6
         threshold_h: 0.2
         threshold_c: 0.6
         cutoff: 100.0
 
     -   name: DistanceAB
-        type: distance
+        type: gaudi.objectives.distance
         weight: -1.0
         threshold: covalent #or <n>
         tolerance: -0.1
@@ -89,16 +88,16 @@ objectives:
         probes: [last] # or serialNumber
 
     -   name: AngleABC
-        type: angle 
+        type: gaudi.objectives.angle 
         weight: -1.0
         threshold: 90.0 #degrees or 'planar'
         # serialnumbers, 3 for angle, 4 for dihedral
         # Careful, input order DOES matter
-        target: [ $Protein$/123, $Protein$/456, $Ligand$/789, $Ligand$/123]
+        target: [ $Protein$/123, $Protein$/456, $Ligand$/10, $Ligand$/9]
 
 
     -   name: Coordination_RMSD
-        type: coordinationrmsd
+        type: gaudi.objectives.coordinationrmsd
         weight: -1.0
         target: 'ligand' #also: <serialNumber>, 'auto'
         geometries: ['tetrahedral'] # check MetalGeom.geomData.geometries.keys()
@@ -106,3 +105,9 @@ objectives:
         atom_types: [ 'ND1', 'NE2', 'OD1','OD2', 'O', 'OE1', 'OE2', 'OG1' ]
         radius: 2.5 # search radius from metal position
         threshold: 1.0 # max admitted RMSD
+
+    -   name: Solvation
+        type: gaudi.objectives.solvation
+        weight: -1.0
+        which: 'ses' #or 'sas'
+        target: Ligand

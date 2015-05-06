@@ -29,7 +29,20 @@ class GeneProvider(object):
 	"""
 	# This sole line is the magic behind the plugin system!
 	__metaclass__ = plugin.PluginMount
-
+	
+	def __init__(self, parent=None, name=None, cache=None,
+					cxeta=5.0, mteta=5.0, indpb=0.75,
+					**kwargs):
+		self.parent = parent
+		self.name = name
+		self.cxeta = cxeta
+		self.mteta = mteta
+		self.indpb = indpb
+		try:
+			self._cache = cache[self.name]
+		except KeyError:
+			self._cache = cache[self.name] = {}
+				
 	@abc.abstractmethod
 	def express(self, individual):
 		"""

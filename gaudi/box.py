@@ -32,6 +32,26 @@ def atoms_by_serial(*serials, **kw):
 		kw['atoms'] = [ a for m in chimera.openModels.list() for a in m.atoms ]
 	return [a for a in kw['atoms'] if a.serialNumber in serials]
 
+def draw_interactions(interactions, startCol='FF0000', endCol='FFFF00',
+		key=None, name="Custom pseudobonds"):
+	if not len(interactions):
+		return
+	pb = chimera.misc.getPseudoBondGroup(name)
+	color = _hex_to_rgb(startCol)+[1.0]
+	if key:	
+		max_ = max(abs(_[3]) for _ in interactions)
+	for i in interactions:
+		npb = pb.newPseudoBond(i[0], i[1])
+		if key != None:
+			intensity = (max_ - abs(i[key]))/(max_)
+			opacity = 1-0.7*intensity
+			if startCol != endCol:
+				color = _linear_color(intensity, startCol, endCol)+[opacity]
+			else:
+				color = _hex_to_rgb(startCol)+[opacity]
+		npb.color = chimera.MaterialColor(*color)
+	return pb
+
 def files_in(path, ext=None):
 	if ext:
 		return [ os.path.join(path,fn) for fn in next(os.walk(path))[2] if fn.endswith('.'+ext) ]
@@ -138,3 +158,15 @@ def rmsd(a, b):
 	sqdist = sum( x.xformCoord().sqdistance(y.xformCoord()) for x, y in zip(a, b) )
 
 	return math.sqrt(sqdist / float(len(a)))
+
+###
+def _hex_to_rgb(hexa):
+	return [ int(hexa[i:i+2], 16) for i in range(0,6,2) ]
+def _linear_color(value, start, end):
+	color = []
+	c = 0
+	for s, e in zip(_hex_to_rgb(start),_hex_to_rgb(end)):
+		s, e = sorted([s, e])
+		c = s + value*(e-s)
+		color.append(c/255.)
+	return color
