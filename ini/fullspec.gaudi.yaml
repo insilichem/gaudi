@@ -37,9 +37,9 @@ genes:
         library: { dynameomics | dunbrack }
         mutations: []
 
-    -   name: Normal Modes
-        type: gaudi.genes.normalmodes
-        target: protein
+    # -   name: Normal Modes
+    #     type: gaudi.genes.normalmodes
+    #     target: protein
 
     -   name: Torsion
         type: gaudi.genes.torsion
@@ -51,10 +51,10 @@ genes:
         origin: Protein/DUM
         radius: 5.0
 
-    -   name: CovalentBond
-        type: gaudi.genes.covalent  
-        bond:   - [ $Ligand$/DUM, $Protein$/136 ]
-                - [ $Ligand$/END, $Protein$/145 ]
+    # -   name: CovalentBond
+    #     type: gaudi.genes.covalent  
+    #     bond:   - [ $Ligand$/DUM, $Protein$/136 ]
+    #             - [ $Ligand$/END, $Protein$/145 ]
 
 ###
 # OBJECTIVES

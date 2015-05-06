@@ -80,8 +80,8 @@ If you are going to be installing a lot of packages, maybe it's a good idea to s
     chimerapip install deap pyyaml repoze.lru
 
 ## Running a GAUDI job
-You only have to run `base.py <inputfile>.gaudi` with Chimera's Python. You have already done this to install the packages!
+You only have to run `launch.py <inputfile>.gaudi.yaml` with Chimera's Python. You have already done this to install the packages!
 
     cd /path/to/gaudi/
-    chimeracli base.py /path/to/input/file.gaudi
+    chimeracli launch.py /path/to/input/file.gaudi.yaml
 
