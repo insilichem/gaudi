@@ -1,172 +1,206 @@
 #!/usr/bin/python
 
-# gaudi
-# Genetic Algorithm for Unified Docking Inference
-# A docking module for UCSF Chimera
-# Jaime RGP <https://bitbucket.org/jrgp> @ UAB, 2014
+##############
+# GAUDIasm: Genetic Algorithms for Universal
+# Design Inference and Atomic Scale Modeling
+# Authors:  Jaime Rodriguez-Guerra Pedregal
+#            <jaime.rodriguezguerra@uab.cat>
+#           Jean-Didier Marechal
+#            <jeandidier.marechal@uab.cat>
+# Web: https://bitbucket.org/jrgp/gaudi
+##############
 
-import chimera
+# Python
 import os
+# Chimera
+import chimera
+
 
 def atoms_between(atom1, atom2):
-	''' Finds all connected atoms between two given atoms '''
-	chain1 = [atom1]
-	chain2 = [atom2]
-	i = 0
-	while i < len(chain1):
-		a1 = chain1[i]
-		if atom2 not in a1.neighbors:
-			chain1.extend([ a for a in a1.neighbors if a not in chain1 ])
-		i += 1
-	j = 0
-	while j < len(chain2):
-		a2 = chain2[j]
-		if atom1 not in a2.neighbors:
-			chain2.extend([ a for a in a2.neighbors if a not in chain2 ])
-		j += 1
-	
-	return set(chain1) & set(chain2)
+    """
+    Finds all connected atoms between two given atoms
+    """
+    chain1 = [atom1]
+    chain2 = [atom2]
+    i = 0
+    while i < len(chain1):
+        a1 = chain1[i]
+        if atom2 not in a1.neighbors:
+            chain1.extend([a for a in a1.neighbors if a not in chain1])
+        i += 1
+    j = 0
+    while j < len(chain2):
+        a2 = chain2[j]
+        if atom1 not in a2.neighbors:
+            chain2.extend([a for a in a2.neighbors if a not in chain2])
+        j += 1
+
+    return set(chain1) & set(chain2)
+
 
 def atoms_by_serial(*serials, **kw):
-	if not kw['atoms']:
-		kw['atoms'] = [ a for m in chimera.openModels.list() for a in m.atoms ]
-	return [a for a in kw['atoms'] if a.serialNumber in serials]
+    if not kw['atoms']:
+        kw['atoms'] = [a for m in chimera.openModels.list() for a in m.atoms]
+    return [a for a in kw['atoms'] if a.serialNumber in serials]
+
 
 def draw_interactions(interactions, startCol='FF0000', endCol='FFFF00',
-		key=None, name="Custom pseudobonds"):
-	if not len(interactions):
-		return
-	pb = chimera.misc.getPseudoBondGroup(name)
-	color = _hex_to_rgb(startCol)+[1.0]
-	if key:	
-		max_ = max(abs(_[3]) for _ in interactions)
-	for i in interactions:
-		npb = pb.newPseudoBond(i[0], i[1])
-		if key != None:
-			intensity = (max_ - abs(i[key]))/(max_)
-			opacity = 1-0.7*intensity
-			if startCol != endCol:
-				color = _linear_color(intensity, startCol, endCol)+[opacity]
-			else:
-				color = _hex_to_rgb(startCol)+[opacity]
-		npb.color = chimera.MaterialColor(*color)
-	return pb
+                      key=None, name="Custom pseudobonds"):
+    if not len(interactions):
+        return
+    pb = chimera.misc.getPseudoBondGroup(name)
+    color = _hex_to_rgb(startCol) + [1.0]
+    if key:
+        max_ = max(abs(_[3]) for _ in interactions)
+    for i in interactions:
+        npb = pb.newPseudoBond(i[0], i[1])
+        if key is not None:
+            intensity = (max_ - abs(i[key])) / (max_)
+            opacity = 1 - 0.7 * intensity
+            if startCol != endCol:
+                color = _linear_color(intensity, startCol, endCol) + [opacity]
+            else:
+                color = _hex_to_rgb(startCol) + [opacity]
+        npb.color = chimera.MaterialColor(*color)
+    return pb
+
 
 def files_in(path, ext=None):
-	if ext:
-		return [ os.path.join(path,fn) for fn in next(os.walk(path))[2] if fn.endswith('.'+ext) ]
-	return [ os.path.join(path,fn) for fn in next(os.walk(path))[2] ]
+    if ext:
+        return [os.path.join(path, fn) for fn in next(os.walk(path))[2] if fn.endswith('.' + ext)]
+    return [os.path.join(path, fn) for fn in next(os.walk(path))[2]]
+
 
 def find_nearest(anchor, atoms):
-	''' Returns closer atom from `atoms` to `anchor` '''
-	try: return next(a for a in atoms if a is anchor)
-	except StopIteration: #oops, didn't find it...
-		return min(atoms, key= lambda a:len(atoms_between(anchor, a)))
+    """
+    Returns closer atom from `atoms` to `anchor`
+    """
+    try:
+        return next(a for a in atoms if a is anchor)
+    except StopIteration:  # oops, didn't find it...
+        return min(atoms, key=lambda a: len(atoms_between(anchor, a)))
+
 
 def highest_atom_indices(r):
-	''' Returns a dictionary with highest atom indices in given residue 
-		Key: value -> element.name: highest index in residue
-	'''
-	results = { 'C': 0, 'H': 0, 'N' : 0, 'O': 0 }
-	for a in r.atoms:
-		if a.name[1:].isdigit():
-			atom = a.name[:1]
-			num = int(a.name[1:])
-			if atom not in results:
-				results[atom] = num	
-			elif results[atom] < num:
-				results[atom] = num
-				
-		elif a.name[2:].isdigit():
-			atom = a.name[:2]
-			num = int(a.name[2:])
-			if atom not in results:
-				results[atom] = num
-			elif results[atom] < num:
-				results[atom] = num
-	return results
+    """
+    Returns a dictionary with highest atom indices in given residue
+    Key: value -> element.name: highest index in residue
+    """
+    results = {'C': 0, 'H': 0, 'N': 0, 'O': 0}
+    for a in r.atoms:
+        if a.name[1:].isdigit():
+            atom = a.name[:1]
+            num = int(a.name[1:])
+            if atom not in results:
+                results[atom] = num
+            elif results[atom] < num:
+                results[atom] = num
+
+        elif a.name[2:].isdigit():
+            atom = a.name[:2]
+            num = int(a.name[2:])
+            if atom not in results:
+                results[atom] = num
+            elif results[atom] < num:
+                results[atom] = num
+    return results
+
 
 def pseudobond_to_bond(molecule, remove=False):
-	''' Transforms every pseudobond in `molecule` to a covalent bond '''
-	pbgroup = chimera.misc.getPseudoBondGroup(
-				"coordination complexes of %s (%s)" % 
-				(molecule.name, molecule))#, associateWith=[molecule])
-	if pbgroup.pseudoBonds:
-		for pb in pbgroup.pseudoBonds:
-			chimera.molEdit.addBond(*pb.atoms)
-			if remove: pbgroup.deletePseudoBond(pb)
-		pbm = molecule.pseudoBondMgr()
-		pbm.deletePseudoBondGroup(pbgroup)
+    """
+    Transforms every pseudobond in `molecule` to a covalent bond
+    """
+    pbgroup = chimera.misc.getPseudoBondGroup(
+        "coordination complexes of %s (%s)" %
+        (molecule.name, molecule))  # , associateWith=[molecule])
+    if pbgroup.pseudoBonds:
+        for pb in pbgroup.pseudoBonds:
+            chimera.molEdit.addBond(*pb.atoms)
+            if remove:
+                pbgroup.deletePseudoBond(pb)
+        pbm = molecule.pseudoBondMgr()
+        pbm.deletePseudoBondGroup(pbgroup)
+
 
 def write_individuals(inds, outpath, name, evalfn, remove=True):
-	from WriteMol2 import writeMol2
-	if not os.path.isdir(outpath):
-		os.makedirs(outpath)
-	objectivesnames = (o for o in inds[0].fitness.objectives)
-	header = ' '.join('{:>10}'.format(x) for x in objectivesnames)
-	results = ['{:>{len_}} {}'.format('Filename', header, len_=len(name)+10) ]
-	for i, ind in enumerate(inds):
-		ind.express()
-		ligand = ind.genes['Ligand'].compound
-		fullname = '{}{}__{:03d}.mol2'.format(outpath, name, i+1)
-		writeMol2([ligand.mol], fullname, temporary=True, multimodelHandling='combined')
-		
-		fitness = ' '.join('{:>10.6g}'.format(x) for x in ind.fitness.values) 
-		rotamers = ind.parsed_rotamers if 'rotamers' in ind.genes else []
-		with open(fullname, 'r+') as f:
-			mol2data = f.readlines()
-			mol2data[:0] = ['#~ Generated by GAUDI\n\n']
-			mol2data[-1:] = [   '@<TRIPOS>COMMENT\n',
-								'GAUDI.score\n',
-								header, '\n',
-								fitness,
-								'\n/GAUDI.score\n',
-								'\nGAUDI.rotamers\n'] + \
-								rotamers + \
-								['\n/GAUDI.rotamers']
-			f.seek(0)
-			f.write(''.join(mol2data))
+    from WriteMol2 import writeMol2
+    if not os.path.isdir(outpath):
+        os.makedirs(outpath)
+    objectivesnames = (o for o in inds[0].fitness.objectives)
+    header = ' '.join('{:>10}'.format(x) for x in objectivesnames)
+    results = ['{:>{len_}} {}'.format('Filename', header, len_=len(name) + 10)]
+    for i, ind in enumerate(inds):
+        ind.express()
+        ligand = ind.genes['Ligand'].compound
+        fullname = '{}{}__{:03d}.mol2'.format(outpath, name, i + 1)
+        writeMol2([ligand.mol], fullname, temporary=True,
+                  multimodelHandling='combined')
 
-		if remove:
-			chimera.openModels.remove([ligand.mol])
-		results.append('{} {}'.format(fullname.split('/')[-1], fitness))
-	return results
+        fitness = ' '.join('{:>10.6g}'.format(x) for x in ind.fitness.values)
+        rotamers = ind.parsed_rotamers if 'rotamers' in ind.genes else []
+        with open(fullname, 'r+') as f:
+            mol2data = f.readlines()
+            mol2data[:0] = ['#~ Generated by GAUDI\n\n']
+            mol2data[-1:] = ['@<TRIPOS>COMMENT\n',
+                             'GAUDI.score\n',
+                             header, '\n',
+                             fitness,
+                             '\n/GAUDI.score\n',
+                             '\nGAUDI.rotamers\n'] + \
+                rotamers + \
+                ['\n/GAUDI.rotamers']
+            f.seek(0)
+            f.write(''.join(mol2data))
 
-def sequential_bonds(atoms,s):
-	''' Returns bonds in `atoms` in sequential order, beginning at atom `s` '''
-	if s not in atoms: atoms.append(s)
-	bonds = list(set([ b for a in atoms for b in a.bonds if set(b.atoms)<=set(atoms) ]))
-	nbonds = []
-	while bonds:
-		b = bonds.pop(0)
-		if s in b.atoms:
-			nbonds.append(b)
-			s = b.otherAtom(s)
-		else: 
-			bonds.append(b)
-	return nbonds
+        if remove:
+            chimera.openModels.remove([ligand.mol])
+        results.append('{} {}'.format(fullname.split('/')[-1], fitness))
+    return results
+
+
+def sequential_bonds(atoms, s):
+    """
+    Returns bonds in `atoms` in sequential order, beginning at atom `s`
+    """
+    if s not in atoms:
+        atoms.append(s)
+    bonds = list(
+        set([b for a in atoms for b in a.bonds if set(b.atoms) <= set(atoms)]))
+    nbonds = []
+    while bonds:
+        b = bonds.pop(0)
+        if s in b.atoms:
+            nbonds.append(b)
+            s = b.otherAtom(s)
+        else:
+            bonds.append(b)
+    return nbonds
+
 
 def rmsd(a, b):
-	import math
-	if isinstance(a, chimera.Molecule):
-		a = a.atoms
-	if isinstance(b, chimera.Molecule):
-		b = b.atoms
+    import math
+    if isinstance(a, chimera.Molecule):
+        a = a.atoms
+    if isinstance(b, chimera.Molecule):
+        b = b.atoms
 
-	a.sort(key=lambda z: z.serialNumber)
-	b.sort(key=lambda z: z.serialNumber)
-	sqdist = sum( x.xformCoord().sqdistance(y.xformCoord()) for x, y in zip(a, b) )
+    a.sort(key=lambda z: z.serialNumber)
+    b.sort(key=lambda z: z.serialNumber)
+    sqdist = sum(x.xformCoord().sqdistance(y.xformCoord())
+                 for x, y in zip(a, b))
 
-	return math.sqrt(sqdist / float(len(a)))
+    return math.sqrt(sqdist / float(len(a)))
 
-###
+
 def _hex_to_rgb(hexa):
-	return [ int(hexa[i:i+2], 16) for i in range(0,6,2) ]
+    return [int(hexa[i:i + 2], 16) for i in range(0, 6, 2)]
+
+
 def _linear_color(value, start, end):
-	color = []
-	c = 0
-	for s, e in zip(_hex_to_rgb(start),_hex_to_rgb(end)):
-		s, e = sorted([s, e])
-		c = s + value*(e-s)
-		color.append(c/255.)
-	return color
+    color = []
+    c = 0
+    for s, e in zip(_hex_to_rgb(start), _hex_to_rgb(end)):
+        s, e = sorted([s, e])
+        c = s + value * (e - s)
+        color.append(c / 255.)
+    return color

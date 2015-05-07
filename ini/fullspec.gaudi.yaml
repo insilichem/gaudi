@@ -1,4 +1,12 @@
-# GAUDI internals
+##############
+# GAUDIasm: Genetic Algorithms for Universal
+# Design Inference and Atomic Scale Modeling
+# Authors:  Jaime Rodriguez-Guerra Pedregal
+#            <jaime.rodriguezguerra@uab.cat>
+#           Jean-Didier Maréchal
+#            <jeandidier.marechal@uab.cat>
+# Web: https://bitbucket.org/jrgp/gaudi
+##############
 general:
     outputpath: /path/to/output/
     name: nickel

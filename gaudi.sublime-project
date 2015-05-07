@@ -1,15 +1,19 @@
 {
-	"folders":
-	[
-		{
-			"file_exclude_patterns":
-			[
-				".*",
-				"*.sublime*",
-				"*.pyc"
-			],
-			"name": "GAUDI project",
-			"path": "/home/jr/dev/gaudi"
-		}
-	]
+    "folders":
+    [
+        {
+            "file_exclude_patterns":
+            [
+                ".*",
+                "*.sublime*",
+                "*.pyc"
+            ],
+            "name": "GAUDI project",
+            "path": "."
+        }
+    ],
+    "settings": 
+    {
+        "convert_tabspaces_on_save": true
+    }
 }
