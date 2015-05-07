@@ -10,6 +10,11 @@
 # Web: https://bitbucket.org/jrgp/gaudi
 ##############
 
+"""
+:mod:`gaudi.parse` parses YAML input files into convenient objects that allow
+per-attribute access to configuration parameters.
+"""
+
 # Python
 import os
 import logging

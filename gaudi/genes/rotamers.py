@@ -10,6 +10,17 @@
 # Web: https://bitbucket.org/jrgp/gaudi
 ##############
 
+"""
+:mod:`gaudi.genes.rotamers` allows to explore side chains flexibility
+in proteins, as well as mutation.
+
+It needs that at least a :class:`gaudi.genes.rotamers.molecule.Molecule` has been
+requested in the input file. Residues of those are referenced in the `residues` argument.
+
+It also allows mutations in the selected residues. However, the resulting structure keeps
+the same backbone, which may not be representative of the in-vivo behaviour. Use with caution.
+"""
+
 # Python
 import random
 from collections import OrderedDict

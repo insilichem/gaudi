@@ -10,6 +10,10 @@
 # Web: https://bitbucket.org/jrgp/gaudi
 ##############
 
+"""
+Document this!
+"""
+
 # GAUDI
 from gaudi.genes import GeneProvider
 

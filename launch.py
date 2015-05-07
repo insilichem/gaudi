@@ -11,14 +11,22 @@
 ##############
 
 """
-This script is the main hub for launching GAUDI essays.
+launch -- Run GAUDI essays
+==========================
 
-Usage: Call it from Chimera with a GAUDI input file as the first and only argument.
-Using `nogui` flag is recommended to speed up the calculations.
+This script is the main hub for launching GAUDI essays.
 
 It sets up the configuration environment needed by DEAP (responsible for the GA)
 and ties it up to the GAUDI custom classes that shape up the invididuals and
 objectives. All in a loosely-coupled approach based on Python modules called on-demand.
+
+*Usage*. Call it from Chimera with a GAUDI input file as the first and only argument.
+Using `nogui` flag is recommended to speed up the calculations:
+
+    cd /path/to/gaudi/installation/directory/
+    /path/to/chimera/bin/chimera --nogui --script "launch.py /path/to/gaudi.yaml"
+
+Read `README.md` for additional details on useful aliases.
 
 .. todo::
 

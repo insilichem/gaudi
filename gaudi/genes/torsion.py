@@ -10,6 +10,13 @@
 # Web: https://bitbucket.org/jrgp/gaudi
 ##############
 
+"""
+:mod:`gaudi.genes.torsion` helps explore small molecules flexibility.
+
+It does so by performing bond rotations in the selected :class:`gaudi.genes.molecule.Molecule`
+objects.
+"""
+
 # Python
 import random
 # Chimera
@@ -22,10 +29,6 @@ from gaudi import box
 
 
 class Torsion(GeneProvider):
-
-    """
-    Rotates bonds in given molecule. This plugins requires molecule.py.
-    """
 
     def __init__(self, target=None, flexibility=None, **kwargs):
         GeneProvider.__init__(self, **kwargs)

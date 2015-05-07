@@ -10,6 +10,14 @@
 # Web: https://bitbucket.org/jrgp/gaudi
 ##############
 
+"""
+:mod:`gaudi.genes.search` provides spatial exploration of the environment.
+
+It depends on :class:`gaudi.genes.molecule.Molecule`, since these are the ones
+that will be moved around. Combined with the adequate objectives, this module
+can be used to implement docking experiments.
+"""
+
 # Python
 import random
 # Chimera

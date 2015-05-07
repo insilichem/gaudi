@@ -10,6 +10,16 @@
 # Web: https://bitbucket.org/jrgp/gaudi
 ##############
 
+"""
+:mod:`gaudi.box` is a messy collection of useful functions used all along GAUDI.
+
+.. todo::
+
+    Some of these functions are hardly used, so maybe we should clean it a
+    little in the future...
+
+"""
+
 # Python
 import os
 # Chimera

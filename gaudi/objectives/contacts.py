@@ -10,6 +10,10 @@
 # Web: https://bitbucket.org/jrgp/gaudi
 ##############
 
+"""
+Document this!
+"""
+
 # Chimera
 import chimera
 import DetectClash

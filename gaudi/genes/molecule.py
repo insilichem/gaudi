@@ -11,9 +11,28 @@
 ##############
 
 """
-This module implements a wrapper around Chimera.molecule objects
+:mod:`gaudi.genes.molecule` implements a wrapper around Chimera.molecule objects
 to expand its original features, such as appending new molecules.
+
+This allows to build new structures with a couple of building blocks as a starting
+point, as well as keeping several ligands as different potential solutions to the
+essay (think about multi-molecule alternative docking). The user can also request
+more :mod:`gaudi.genes.molecule` instances for the genome of the individual, 
+resulting in a competitive multi-docking essay.
+
+To handle all this diversity, each construction is cached the first time is built.
+
+This class is a dependency of most of the other genes (and even objectives), so it
+will be requested almost always.
+
+.. todo::
+
+    As a result of the recent migration, some covalent interaction parameters
+    are still present in the code. Ie, `vertex` argument in the keys. A solution
+    must be proposed to get rid of those, probably a new gene that specifies this
+    restrictions (`covalent`, for example).
 """
+
 # Python
 import os
 import itertools
@@ -34,9 +53,6 @@ from gaudi import move, box, parse
 from gaudi.genes import GeneProvider
 
 
-# TODO:
-# Vertex param does not belong here
-# Move into `covalentsearch` gene
 ZERO = chimera.Point(0.0, 0.0, 0.0)
 
 
@@ -47,9 +63,8 @@ def enable(**kwargs):
 class Molecule(GeneProvider):
 
     """
-    Expanded use of Chimera molecules.
-
-    This acts as a wrapper
+    Interface around the :class:`gaudi.genes.molecule.Compound` to handle
+    the GAUDI protocol and caching features.
     """
     _CATALOG = {}
 
@@ -208,7 +223,16 @@ class Molecule(GeneProvider):
 
 
 class Compound(object):
-    # Initializers
+
+    """
+    Wraps `chimera.Molecule` instances and allows to perform copies,
+    appending new fragments, free placement and extended attributes.
+
+    .. todo::
+
+        This was built a while a go (my first class), so it will
+        probably need some refactoring.
+    """
 
     def __init__(self, molecule=None, origin=None, seed=0.0, **kwargs):
         if isinstance(molecule, chimera.Molecule):
@@ -268,40 +292,6 @@ class Compound(object):
                 setattr(self, k, [d[v_] if v_ in d else v_ for v_ in v])
             else:
                 setattr(self, k, d[v] if v in d else v)
-
-    def get_rotatable_bonds(self):
-        existing_bondrots = self.rotatable_bonds
-        existing_bondrots_bonds = []
-        for br in existing_bondrots:
-            existing_bondrots_bonds.append(br.bond)
-            yield br
-
-        bonds = set(
-            b for a in self.mol.atoms for b in a.bonds if not a.element.isMetal)
-        bonds = sorted(
-            bonds, key=lambda b: min(y.serialNumber for y in b.atoms))
-
-        for b in bonds:
-            if b in existing_bondrots_bonds:
-                continue
-            a = b.atoms[0]
-            if a not in self.nonrotatable and \
-               a.idatmType in ('C3', 'N3', 'C2', 'N2') and \
-               (a.numBonds > 1 and b.otherAtom(a).numBonds > 1) or \
-               a.name == 'DUM' or b.otherAtom(a).name == 'DUM':
-                try:
-                    br = chimera.BondRot(b)
-                except (chimera.error, ValueError), v:
-                    if "cycle" in str(v):
-                        continue  # discard bonds in cycles!
-                    else:
-                        raise
-                else:
-                    br.rotanchor = box.find_nearest(self.donor, b.atoms)
-                    yield br
-
-    def update_rotatable_bonds(self):
-        self.rotatable_bonds = list(self.get_rotatable_bonds())
 
     def destroy(self):
         chimera.openModels.close([self.mol])

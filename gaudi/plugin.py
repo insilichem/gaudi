@@ -14,6 +14,7 @@
 :mod:`gaudi.plugin` provides the basic functionality for the plugin system
 of `genes` and `objectives`.
 """
+
 # Python
 from collections import OrderedDict
 from importlib import import_module

@@ -10,6 +10,11 @@
 # Web: https://bitbucket.org/jrgp/gaudi
 ##############
 
+"""
+:mod:`gaudi.base` contains the core classes we use to build individuals
+(potential solutions of the optimization process).
+"""
+
 # Python
 from collections import OrderedDict
 from zipfile import ZipFile, ZIP_DEFLATED, ZIP_STORED
@@ -32,19 +37,27 @@ class Individual(object):
     """
     Base class for `individual` objects that are evaluated by DEAP.
 
-    Each individual is a potential solution.
-    It contains all that is needed for an evaluation. With multiprocessing in mind,
-    individuals should be self-contained so it can be passed between threads.
-    This replaces the need for all that initialization scripting in launch.py.
+    Each individual is a potential solution. It contains all that is needed
+    for an evaluation. With multiprocessing in mind, individuals should be
+    self-contained so it can be passed between threads.
 
-    :genes:    A dict containing parsed features (genes) for the solution
-    :environment:   Constants of the system
+    The defined methods are only wrapper calls to the respective methods of each
+    gene.
+
+    :cfg:   The full parsed object from the configuration YAML file.
+    :cache: A mutable object that can be used to store values across instances.
+
+    .. todo::
+
+        :meth:`write` should use Pickle and just save the whole object, but
+        Chimera's inmutable objects (Atoms, Residues, etc) get in the way. A
+        workaround may be found if we take a look a the session saving code.
     """
 
     _CACHE = {}
     _CACHE_OBJ = {}
 
-    def __init__(self, cfg=None, cache=None, ):
+    def __init__(self, cfg=None, cache=None, **kwargs):
         self.genes = OrderedDict()
         self.cfg = cfg
         gaudi.plugin.load_plugins(self.cfg.genes, container=self.genes,
@@ -80,7 +93,6 @@ class Individual(object):
     def mate(self, individual):
         for gene in self.genes.values():
             gene.mate(individual.genes[gene.name])
-
         return self, individual
 
     def mutate(self, indpb):
@@ -145,8 +157,13 @@ class Fitness(deap.base.Fitness):
     Augmented `Fitness` class to self-include `objectives` objects.
 
     It subclasses  DEAP's `Fitness` to include details of objectives being evaluated
-    and a function to evaluate them all at once. Since Fitness it's an Attribute
+    and a helper function to evaluate them all at once. Since Fitness it's an Attribute
     of every `individual`, it should result in a self-contained object.
+
+    :parent:    A reference to the :class:`individual` that cointains the instance.
+    :cache:     A reference to a mutable object that is maintained at `individual` level.
+    :args:      Positional arguments that will be passed to `deap.base.Fitness.__init__`
+    :kwargs:    Optional arguments that will be passed to `deap.base.Fitness.__init__`
     """
 
     objectives = OrderedDict()
