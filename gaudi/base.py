@@ -121,7 +121,7 @@ class Individual(object):
         print "RMSD is", rmsd, "which means its similarity is", rmsd < self.cfg.ga.similarity_rmsd
         return rmsd < self.cfg.ga.similarity_rmsd
 
-    def write(self, path, name, i, compress=True):
+    def write(self, i):
         """
         # Maybe someday we can pickle it all :/
         filename = os.path.join(path, '{}_{}.pickle.gz'.format(name,i))
@@ -129,7 +129,9 @@ class Individual(object):
             cPickle.dump(self, f, 0)
         return filename
         """
-        COMPRESS = ZIP_DEFLATED if compress else ZIP_STORED
+        path = self.cfg.general.outputpath
+        name = self.cfg.general.name
+        COMPRESS = ZIP_DEFLATED if self.cfg.general.compress else ZIP_STORED
         self.express()
         zipfilename = os.path.join(path, '{}__{:03d}.zip'.format(name, i))
         with ZipFile(zipfilename, 'w', COMPRESS) as z:

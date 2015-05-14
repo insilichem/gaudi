@@ -112,8 +112,7 @@ if __name__ == "__main__":
         '{} ({})'.format(obj.name, obj.type) for obj in cfg.objectives]
     results['GAUDI.results'] = OrderedDict()
     for i, ind in enumerate(paretofront):
-        filename = ind.write(
-            cfg.general.outputpath, cfg.general.name, i, cfg.general.compress)
+        filename = ind.write(i)
         results['GAUDI.results'][filename] = list(ind.fitness.values)
 
     out = open(cfg.general.outputpath + cfg.general.name + '.gaudi.yaml', 'w+')
