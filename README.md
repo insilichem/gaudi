@@ -71,13 +71,15 @@ If you are going to be installing a lot of packages, maybe it's a good idea to s
 
     chimeracli "$CHIMERADIR"/bin/easy_install pip
 
-3 - Finally, you can run pip installations with `chimeracli "$CHIMERADIR"/bin/pip install <your_package>`, but it's so cumbersome it deserves another alias. In the same fashion, open `~/.bashrc` and add this line at the end: 
+3 - Finally, you can run pip installations with `chimeracli "$CHIMERADIR"/bin/pip install <your_package>`, but it's so cumbersome it deserves another alias. In the same fashion, open `~/.bashrc` and add this line at the end. Just don't forget to `source ~ /.bashrc` afterwards! 
 
     chimerapip() { chimeracli "$CHIMERADIR"/bin/pip "${*}"; }
 
-4 - `pip` supports list of packages, so to install all the dependencies of GAUDI at once, just run these command: 
+4 - GAUDI includes a `requirements.txt` file that list all dependencies to be installed by `pip`. To run it, just type: 
+    
+    cd /path/to/gaudi/
+    chimerapip install -r requirements.txt 
 
-    chimerapip install deap pyyaml repoze.lru
 
 ## Running a GAUDI job
 You only have to run `launch.py <inputfile>.gaudi.yaml` with Chimera's Python. You have already done this to install the packages!
