@@ -17,7 +17,7 @@ to expand its original features, such as appending new molecules.
 This allows to build new structures with a couple of building blocks as a starting
 point, as well as keeping several ligands as different potential solutions to the
 essay (think about multi-molecule alternative docking). The user can also request
-more :mod:`gaudi.genes.molecule` instances for the genome of the individual, 
+more :mod:`gaudi.genes.molecule` instances for the genome of the individual,
 resulting in a competitive multi-docking essay.
 
 To handle all this diversity, each construction is cached the first time is built.
@@ -49,9 +49,9 @@ import deap
 import yaml
 from repoze.lru import LRUCache
 # GAUDI
-from gaudi import move, box, parse
+from gaudi import box, parse
 from gaudi.genes import GeneProvider
-
+from gaudi.genes import search
 
 ZERO = chimera.Point(0.0, 0.0, 0.0)
 
@@ -395,7 +395,7 @@ class Compound(object):
             where = where.coord()
         if not anchor:
             anchor = self.donor
-        move.translate(self.mol, anchor, where)
+        search.translate(self.mol, anchor, where)
 
     def place_for_bonding(self, target, anchor=None, seed=None):
         if not isinstance(target, chimera.Atom):
@@ -411,7 +411,7 @@ class Compound(object):
         self.place(target_pos)
         # Fix orientation
         anchor_pos, i = _new_atom_position(anchor, target.element)
-        move.rotate(
+        search.rotate(
             self.mol, [target.coord(), anchor.coord(), anchor_pos], 0.0)
 
 
