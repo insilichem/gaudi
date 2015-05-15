@@ -88,37 +88,42 @@ class Individual(object):
         Undo .express()
         """
         for gene in reversed(self.genes.values()):
+            logger.debug("Reverting expression of gene %s", gene.name)
             gene.unexpress()
 
     def mate(self, individual):
         for gene in self.genes.values():
             gene.mate(individual.genes[gene.name])
+        logger.debug("#%s mated #%s", id(self), id(individual))
         return self, individual
 
     def mutate(self, indpb):
         for gene in self.genes.values():
             gene.mutate(indpb)
+        logger.debug("#%s mutated", id(self))
         return self,
 
     def similar(self, individual):
+        logger.debug("Comparing RMSD between #%s and #%s",
+                     id(self), id(individual))
         self.express()
-        individual.express()
-        compound1 = next(compound for compound in self.genes.values()
-                         if compound.__class__.__name__ == 'Molecule')
-        compound2 = next(compound for compound in individual.genes.values()
-                         if compound.__class__.__name__ == 'Molecule')
-
-        xf1, xf2 = compound1.mol.openState.xform, compound2.mol.openState.xform
+        compound1 = next(gene for gene in self.genes.values()
+                         if gene.__class__.__name__ == 'Molecule').compound
         atoms1 = sorted(compound1.mol.atoms, key=lambda x: x.serialNumber)
+        xf1 = compound1.mol.openState.xform
+        self.unexpress()
+
+        individual.express()
+        compound2 = next(gene for gene in individual.genes.values()
+                         if gene.__class__.__name__ == 'Molecule').compound
         atoms2 = sorted(compound2.mol.atoms, key=lambda x: x.serialNumber)
+        xf2 = compound2.mol.openState.xform
+        individual.unexpress()
+
         sqdist = sum(xf1.apply(a.coord()).sqdistance(xf2.apply(a.coord()))
                      for a, b in zip(atoms1, atoms2))
         rmsd = math.sqrt(sqdist / ((len(atoms1) + len(atoms2)) / 2.0))
-
-        self.unexpress()
-        individual.unexpress()
-
-        print "RMSD is", rmsd, "which means its similarity is", rmsd < self.cfg.ga.similarity_rmsd
+        logger.debug("RMSD: %f", rmsd)
         return rmsd < self.cfg.ga.similarity_rmsd
 
     def write(self, i):
