@@ -109,7 +109,7 @@ def prepare_input():
 
 if __name__ == "__main__":
     cfg = prepare_input()
-    logger = gaudi.parse.enable_logging(
+    logger = gaudi.box.enable_logging(
         cfg.general.outputpath, cfg.general.name)
 
     logger.info('GAUDIasm job started with input %s', sys.argv[1])

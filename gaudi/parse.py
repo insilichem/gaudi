@@ -83,29 +83,6 @@ def parse_rawstring(s):
     return molecule, res_or_atom
 
 
-def enable_logging(path=None, name=None):
-    logger = logging.getLogger('gaudi')
-    logger.setLevel(logging.DEBUG)
-
-    # create CONSOLE handler and set level to error
-    handler = logging.StreamHandler()
-    handler.setLevel(logging.ERROR)
-    formatter = logging.Formatter("%(levelname)s - %(message)s")
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
-
-    # create debug file handler and set level to debug
-    if path and name:
-        handler = logging.FileHandler(
-            os.path.join(path, name + ".gaudi.log"), "w")
-        handler.setLevel(logging.DEBUG)
-        formatter = logging.Formatter(
-            "%(asctime)s - %(name)s - %(levelname)s - %(message)s", "%Y.%m.%d %H:%M:%S")
-        handler.setFormatter(formatter)
-        logger.addHandler(handler)
-
-    return logger
-
 #####
 
 
