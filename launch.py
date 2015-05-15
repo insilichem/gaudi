@@ -102,7 +102,7 @@ def prepare_input():
     except OSError:
         if os.path.isfile(cfg.general.outputpath):
             raise OSError(
-                'Output path is not readable, or could not be created')
+                'Output path is already a file. Please change it.')
 
     return cfg
 
