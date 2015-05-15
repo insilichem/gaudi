@@ -21,6 +21,8 @@ from importlib import import_module
 import logging
 import sys
 
+logger = logging.getLogger(__name__)
+
 
 class PluginMount(type):
 
@@ -63,12 +65,10 @@ def import_plugins(*pluginlist):
         try:
             module = import_module(name)
         except ImportError:
-            logger = logging.getLogger('gaudi')
-            logger.warning(
-                'Ignoring exception while loading the %r plug-in.', name)
-            print '!!Ignoring exception while loading the {} plug-in.'.format(name)
+            logger.exception('Import error while loading plugin %r', name)
             raise
         else:
+            logger.debug('Imported plugin %s', name)
             plugins.append(module)
     return plugins
 
@@ -78,6 +78,7 @@ def load_plugins(plugins, container=None, **kwargs):
     Requests an instance of the class that resides in each plugin. For genes, each
     individual has its own instance, but objectives are treated like a singleton. So,
     they are only instantiated once. That's the reason behind usen a mutable container.
+
     :plugins:   List of plugins (in form of `gaudi.parse.Param`) to load.
     :container: If provided, use this container to retain instances across individuals.
     :kwargs:    Everything else will be passed to the requested plugin instances.
@@ -89,4 +90,5 @@ def load_plugins(plugins, container=None, **kwargs):
         module = plugin.type
         kwargs.update(plugin.__dict__)
         container[plugin.name] = sys.modules[module].enable(**kwargs)
+        logger.debug("Loaded plugin %s", module)
     return container

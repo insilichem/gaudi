@@ -14,12 +14,16 @@
 Document this!
 """
 
+# Python
+import logging
 # Chimera
 import chimera
 import DetectClash
 import ChemGroup as cg
 # GAUDI
 from gaudi.objectives import ObjectiveProvider
+
+logger = logging.getLogger(__name__)
 
 
 def enable(**kwargs):

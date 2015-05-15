@@ -22,8 +22,11 @@
 
 # Python
 import os
+import logging
 # Chimera
 import chimera
+
+logger = logging.getLogger(__name__)
 
 
 def atoms_between(atom1, atom2):

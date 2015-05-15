@@ -24,12 +24,16 @@ Calculates SASA and/or SESA for the given system (or region).
     (here)[http://www.cgl.ucsf.edu/pipermail/chimera-users/2013-February/008497.html].
 """
 
+# Python
+import logging
 # Chimera
 import Measure
 import MoleculeSurface
 from MoleculeSurface import Surface_Calculation_Error
 # GAUDI
 from gaudi.objectives import ObjectiveProvider
+
+logger = logging.getLogger(__name__)
 
 
 def enable(**kwargs):

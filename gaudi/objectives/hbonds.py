@@ -14,12 +14,16 @@
 Document this!
 """
 
+# Python
+import logging
 # Chimera
 import chimera
 import FindHBond
 # GAUDI
 from gaudi.objectives import ObjectiveProvider
 import gaudi.box
+
+logger = logging.getLogger(__name__)
 
 
 def enable(**kwargs):

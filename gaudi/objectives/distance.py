@@ -16,11 +16,14 @@ Document this!
 
 # Python
 import numpy
+import logging
 # Chimera
 import chimera
 # GAUDI
 from gaudi.objectives import ObjectiveProvider
 import gaudi.parse
+
+logger = logging.getLogger(__name__)
 
 
 def enable(**kwargs):
@@ -46,10 +49,10 @@ class Distance(ObjectiveProvider):
                 atom = next(a for a in self.parent.genes[mol].compound.mol.atoms
                             if serial == a.name)
         except KeyError:
-            print "Molecule not found"
+            logger.exception("Molecule not found")
             raise
         except StopIteration:
-            print "No atoms matched for target"
+            logger.exception("No atoms matched for target %s", atom)
             raise
         else:
             self.target = atom
@@ -65,10 +68,10 @@ class Distance(ObjectiveProvider):
                     atom = next(a for a in self.parent.genes[mol].compound.mol.atoms
                                 if serial == a.name)
             except KeyError:
-                print "Molecule not found"
+                logger.exception("Molecule not found")
                 raise
             except StopIteration:
-                print "No atoms matched for probe"
+                logger.exception("No atoms matched for target %s", probe)
                 raise
             else:
                 self.probes.append(atom)

@@ -38,6 +38,7 @@ import os
 import itertools
 import random
 import sys
+import logging
 # Chimera
 import chimera
 import BuildStructure
@@ -54,6 +55,8 @@ from gaudi.genes import GeneProvider
 from gaudi.genes import search
 
 ZERO = chimera.Point(0.0, 0.0, 0.0)
+
+logger = logging.getLogger(__name__)
 
 
 def enable(**kwargs):
@@ -112,7 +115,10 @@ class Molecule(GeneProvider):
 
     def express(self):
         self.compound = self.get(self.allele)
-        chimera.openModels.add([self.compound.mol], shareXform=True)
+        try:
+            chimera.openModels.add([self.compound.mol], shareXform=True)
+        except:
+            logger.warning("Problem with %s", self.compound.mol.name)
         box.pseudobond_to_bond(self.compound.mol)
 
         if self.name not in ('Protein', 'Static') and self.origin != self.compound.donor.coord():
@@ -260,8 +266,9 @@ class Compound(object):
     def parse_attr(self):
         try:
             f = open(self.mol.openedAs[0][:-4] + 'attr')
-        except (AttributeError, IOError):
-            print "No attr file found"
+        except IOError:
+            logger.warning("No attr file found for molecule %s",
+                           self.mol.openedAs[0])
         else:
             attr = yaml.load(f)
             flat_attr = {}
@@ -428,7 +435,8 @@ def _new_atom_position(atom, newelement, seed=0.0):
         geometry = chimera.idatm.typeInfo[atom.idatmType].geometry
     except KeyError:
         geometry = 3
-        print "Warning, arbitrary geometry with {}, {}".format(atom, geometry)
+        logger.warning("Using %s geometry for atom %s in molecule %s",
+                       geometry, atom, molecule.name)
     bond_length = chimera.Element.bondLength(atom.element, newelement)
     neighbors_crd = [a.coord() for a in atom.neighbors]
     points = chimera.bondGeom.bondPositions(atom.coord(), geometry, bond_length,

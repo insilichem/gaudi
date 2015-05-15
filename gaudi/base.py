@@ -21,6 +21,7 @@ from zipfile import ZipFile, ZIP_DEFLATED, ZIP_STORED
 import os
 import pprint
 import math
+import logging
 # Chimera
 import chimera
 # External dependencies
@@ -30,6 +31,8 @@ import yaml
 import gaudi.plugin
 
 pp = pprint.PrettyPrinter(4)
+
+logger = logging.getLogger(__name__)
 
 
 class Individual(object):
@@ -58,6 +61,7 @@ class Individual(object):
     _CACHE_OBJ = {}
 
     def __init__(self, cfg=None, cache=None, **kwargs):
+        logger.debug("Creating new individual with id %s", id(self))
         self.genes = OrderedDict()
         self.cfg = cfg
         gaudi.plugin.load_plugins(self.cfg.genes, container=self.genes,
@@ -68,6 +72,7 @@ class Individual(object):
         self.fitness = gaudi.base.Fitness(parent=self, cache=self._CACHE_OBJ)
 
     def evaluate(self):
+        logger.debug("Evaluating individual #%s", id(self))
         self.express()
         score = self.fitness.evaluate()
         self.unexpress()
@@ -79,8 +84,8 @@ class Individual(object):
         individual to a chimera.Molecule.
         """
         for name, gene in self.genes.items():
-            print "Expressing gene", name, "with allele"
-            pp.pprint(gene.allele)
+            logger.debug("Expressing gene %s with allele\n%s",
+                         name, pp.pformat(gene.allele))
             gene.express()
 
     def unexpress(self):
@@ -142,7 +147,7 @@ class Individual(object):
         with ZipFile(zipfilename, 'w', COMPRESS) as z:
             output = OrderedDict()
             for gene in self.genes.values():
-                print "Writing", gene.name
+                logger.debug("Writing %s to file", gene.name)
                 filename = gene.write(path, name)
                 if filename:
                     z.write(filename, os.path.basename(filename))
@@ -195,8 +200,9 @@ class Fitness(deap.base.Fitness):
         return copy_
 
     def evaluate(self):
-        score = []
+        scores = []
         for name, obj in self.objectives.items():
-            print "Evaluating", name
-            score.append(obj.evaluate())
-        return score
+            score = obj.evaluate()
+            scores.append(score)
+            logger.debug("%s fitness is %s", name, score)
+        return scores

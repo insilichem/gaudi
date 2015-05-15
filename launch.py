@@ -35,11 +35,11 @@ Read `README.md` for additional details on useful aliases.
 """
 
 # Python
-import sys
-import os
-import numpy
-from time import strftime
 from collections import OrderedDict
+from time import strftime
+import numpy
+import os
+import sys
 # External dependencies
 import deap
 from deap import creator, tools, base, algorithms
@@ -87,7 +87,8 @@ def main(cfg):
 
     return population, log, paretofront
 
-if __name__ == "__main__":
+
+def prepare_input():
     # Parse input
     try:
         cfg = gaudi.parse.Settings(sys.argv[1])
@@ -95,18 +96,26 @@ if __name__ == "__main__":
         raise ValueError("Input file not provided")
     except IOError:
         raise IOError("Specified input file was not found")
-
+    # Create dirs
     try:
         os.makedirs(cfg.general.outputpath)
     except OSError:
-        if not os.path.isdir(cfg.general.outputpath):
-            raise
-    # log = gaudi.parse.enable_logging(cfg.general.outputpath)
-    # log.info("Starting GAUDI job")
-    # log.info("Opened input file '{}'".format(sys.argv[1]))
-    # log.info("Scores:", ', '.join(o.name for o in cfg.objectives))
+        if os.path.isfile(cfg.general.outputpath):
+            raise OSError(
+                'Output path is not readable, or could not be created')
+
+    return cfg
+
+
+if __name__ == "__main__":
+    cfg = prepare_input()
+    logger = gaudi.parse.enable_logging(
+        cfg.general.outputpath, cfg.general.name)
+
+    logger.info('GAUDIasm job started with input %s', sys.argv[1])
     pop, log, paretofront = main(cfg)
 
+    logger.info('Writing %s results to disk', len(pop))
     results = OrderedDict()
     results['GAUDI.objectives'] = [
         '{} ({})'.format(obj.name, obj.type) for obj in cfg.objectives]

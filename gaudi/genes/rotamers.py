@@ -24,6 +24,7 @@ the same backbone, which may not be representative of the in-vivo behaviour. Use
 # Python
 import random
 from collections import OrderedDict
+import logging
 # Chimera
 from Rotamers import getRotamers, useRotamer, NoResidueRotamersError
 import SwapRes
@@ -33,6 +34,8 @@ import deap.tools
 # GAUDI
 from gaudi.genes import GeneProvider
 from gaudi.parse import parse_rawstring
+
+logger = logging.getLogger(__name__)
 
 
 class Rotamers(GeneProvider):

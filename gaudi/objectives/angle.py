@@ -16,11 +16,14 @@ Document this!
 
 # Python
 import math
+import logging
 # Chimera
 import chimera
 # GAUDI
 from gaudi.objectives import ObjectiveProvider
 import gaudi.parse
+
+logger = logging.getLogger(__name__)
 
 
 def enable(**kwargs):

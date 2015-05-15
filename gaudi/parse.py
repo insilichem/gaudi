@@ -21,6 +21,8 @@ import logging
 # External dependencies
 import yaml
 
+logger = logging.getLogger(__name__)
+
 
 class Settings(object):
 
@@ -57,8 +59,8 @@ class Settings(object):
 
 class Param(object):
 
-    """ 
-    Blank object for storing the attributes used through the parsing 
+    """
+    Blank object for storing the attributes used through the parsing
     """
 
     def __init__(self, *d):
@@ -67,7 +69,7 @@ class Param(object):
 
 
 def parse_rawstring(s):
-    """ 
+    """
     It parses reference strings contained in some fields.
 
     These strings contain references to :class:`genes.molecule` instances, and one of its atoms
@@ -81,7 +83,7 @@ def parse_rawstring(s):
     return molecule, res_or_atom
 
 
-def enable_logging(output_dir=None):
+def enable_logging(path=None, name=None):
     logger = logging.getLogger('gaudi')
     logger.setLevel(logging.DEBUG)
 
@@ -93,12 +95,12 @@ def enable_logging(output_dir=None):
     logger.addHandler(handler)
 
     # create debug file handler and set level to debug
-    if output_dir:
+    if path and name:
         handler = logging.FileHandler(
-            os.path.join(output_dir, "debug.log"), "w")
+            os.path.join(path, name + ".gaudi.log"), "w")
         handler.setLevel(logging.DEBUG)
         formatter = logging.Formatter(
-            "%(asctime)s %(levelname)s - %(message)s")
+            "%(asctime)s - %(name)s - %(levelname)s - %(message)s", "%Y.%m.%d %H:%M:%S")
         handler.setFormatter(formatter)
         logger.addHandler(handler)
 

@@ -14,12 +14,16 @@
 Document this!
 """
 
+# Python
+import logging
 # Chimera
 import chimera
 import MetalGeom
 # GAUDI
 from gaudi.objectives import ObjectiveProvider
 import gaudi.parse
+
+logger = logging.getLogger(__name__)
 
 
 def enable(**kwargs):
@@ -48,10 +52,10 @@ class CoordinationGeometry(ObjectiveProvider):
                 atom = next(a for a in self.parent.genes[mol].compound.mol.atoms
                             if serial == a.name)
         except KeyError:
-            print "Molecule not found"
+            logger.exception("Molecule not found")
             raise
         except StopIteration:
-            print "No atoms matched for target", target
+            logger.exception("No atoms matched for target %s", target)
             raise
         else:
             self.target = atom

@@ -19,6 +19,7 @@ objects.
 
 # Python
 import random
+import logging
 # Chimera
 import chimera
 # External dependencies
@@ -26,6 +27,8 @@ import deap.tools
 # GAUDI
 from gaudi.genes import GeneProvider
 from gaudi import box
+
+logger = logging.getLogger(__name__)
 
 
 class Torsion(GeneProvider):
@@ -39,8 +42,12 @@ class Torsion(GeneProvider):
         try:
             self.compound = self.parent.genes[self.target].compound
         except KeyError:
+            logger.error("Gene for target %s is not in individual",
+                         self.target)
             raise
         except AttributeError:
+            logger.error("Molecule in %s is not properly expressed",
+                         self.target)
             raise
         else:
             self.rotatable_bonds = list(self.get_rotatable_bonds())

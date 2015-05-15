@@ -20,6 +20,7 @@ can be used to implement docking experiments.
 
 # Python
 import random
+import logging
 # Chimera
 import chimera
 from chimera import Xform as X
@@ -31,6 +32,7 @@ import gaudi.parse
 
 
 ZERO = chimera.Point(0.0, 0.0, 0.0)
+logger = logging.getLogger(__name__)
 
 
 def enable(**kwargs):
@@ -121,7 +123,7 @@ def rotate(molecule, at, alpha):
         axis = chimera.cross(axis_a, axis_b)
         if axis.data() == (0.0, 0.0, 0.0):
             axis = chimera.cross(axis_a, axis_b + chimera.Vector(1, 0, 0))
-            print "Warning, had to choose arbitrary normal vector"
+            logger.warning("Had to choose arbitrary normal vector")
         pivot = a2
     elif len(at) == 4:
         try:
