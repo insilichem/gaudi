@@ -32,6 +32,9 @@ import gaudi.parse
 
 
 ZERO = chimera.Point(0.0, 0.0, 0.0)
+UNITY = ((1.0, 0.0, 0.0, 0.0),
+         (0.0, 1.0, 0.0, 0.0),
+         (0.0, 0.0, 1.0, 0.0))
 logger = logging.getLogger(__name__)
 
 
@@ -66,7 +69,7 @@ class Search(GeneProvider):
         interp_rot = [x[:3] + (0,) for x in interp]
         interp_tl = [y[:3] + x[-1:]
                      for x, y in zip(interp, M.identity_matrix())]
-        self.allele, mate.allele =  (self.allele[0], interp_rot, self.allele[-1]), \
+        self.allele, mate.allele = (self.allele[0], interp_rot, self.allele[-1]), \
             (interp_tl, mate.allele[1], mate.allele[-1])
 
     def mutate(self, indpb):
@@ -82,7 +85,7 @@ class Search(GeneProvider):
     #####
     def random_transform(self):
         ctf = M.translation_matrix([-x for x in self.origin]).tolist()
-        rot = random_rotation() if self.rotate else X()
+        rot = random_rotation() if self.rotate else UNITY
         shift = random_translation_step(self.origin, self.radius).tolist()
         return shift, rot, ctf
 
