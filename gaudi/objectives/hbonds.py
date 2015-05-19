@@ -38,7 +38,7 @@ class Hbonds(ObjectiveProvider):
         self.distance_tolerance = distance_tolerance
         self.angle_tolerance = angle_tolerance
         self.radius = radius
-        self.molecules = tuple(m.compound.mol for m in self.parent.genes
+        self.molecules = tuple(m.compound.mol for m in self.parent.genes.values()
                                if m.__class__.__name__ == "Molecule")
         try:
             self.probe = self.parent.genes[probe].compound.mol

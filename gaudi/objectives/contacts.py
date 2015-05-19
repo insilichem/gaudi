@@ -38,7 +38,7 @@ class Contacts(ObjectiveProvider):
         ObjectiveProvider.__init__(self, **kwargs)
         self.which = which
         self.radius = radius
-        self.molecules = tuple(m.compound.mol for m in self.parent.genes
+        self.molecules = tuple(m.compound.mol for m in self.parent.genes.values()
                                if m.__class__.__name__ == "Molecule")
 
         self.threshold = threshold
