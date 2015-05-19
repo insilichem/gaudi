@@ -47,19 +47,7 @@ class Search(GeneProvider):
         self.radius = radius
         self.rotate = rotate
         self.target = target
-        mol, serial = gaudi.parse.parse_rawstring(origin)
-        try:
-            if isinstance(serial, int):
-                atom = next(a for a in self.parent.genes[mol].compound.mol.atoms
-                            if serial == a.serialNumber)
-            else:
-                atom = next(a for a in self.parent.genes[mol].compound.mol.atoms
-                            if serial == a.name)
-        except StopIteration:  # atom not found
-            raise
-        else:
-            self.origin = atom.coord().data()
-
+        self.origin = parse_origin(origin, self.parent.genes)
         self.allele = self.random_transform()
 
     def express(self):
@@ -146,6 +134,21 @@ def rotate(molecule, at, alpha):
 
 def rand_xform(center, r, rotate=True):
     ctf = M.translation_matrix([-x for x in center]).tolist()
-    rot = random_rotation()  # if rotate else chimera.Xform().
+    rot = random_rotation() if rotate else UNITY
     shift = random_translation_step(center, r).tolist()
     return shift, rot, ctf
+
+
+def parse_origin(origin, genes):
+    mol, serial = gaudi.parse.parse_rawstring(origin)
+    try:
+        if isinstance(serial, int):
+            atom = next(a for a in genes[mol].compound.mol.atoms
+                        if serial == a.serialNumber)
+        else:
+            atom = next(a for a in genes[mol].compound.mol.atoms
+                        if serial == a.name)
+    except StopIteration:  # atom not found
+        raise
+    else:
+        return atom.coord().data()

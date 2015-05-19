@@ -55,7 +55,6 @@ from gaudi.genes import GeneProvider
 from gaudi.genes import search
 
 ZERO = chimera.Point(0.0, 0.0, 0.0)
-
 logger = logging.getLogger(__name__)
 
 
@@ -110,35 +109,20 @@ class Molecule(GeneProvider):
         new = self.__class__(self.path, self.symmetry,
                              **self._kwargs)
         new.__dict__.update((k, v) for k, v in self.__dict__.items())
-        new.allele = self.allele + ()
+        new.allele = self.allele + ()  # make sure we get a NEW allele
         return new
 
     def express(self):
         self.compound = self.get(self.allele)
-        try:
-            chimera.openModels.add([self.compound.mol], shareXform=True)
-        except:
-            logger.warning("Problem with %s", self.compound.mol.name)
+        chimera.openModels.add([self.compound.mol], shareXform=True)
         box.pseudobond_to_bond(self.compound.mol)
 
-        if self.name not in ('Protein', 'Static') and self.origin != self.compound.donor.coord():
-            try:
-                self.compound.place(self.origin)
-            except TypeError:
-                mol, serial = parse.parse_rawstring(self.origin)
-                try:
-                    if isinstance(serial, int):
-                        atom = next(a for a in self.parent.genes[mol].compound.mol.atoms
-                                    if serial == a.serialNumber)
-                    else:
-                        atom = next(a for a in self.parent.genes[mol].compound.mol.atoms
-                                    if serial == a.name)
-                except AttributeError:  # atom not found
-                    self.origin = ZERO
-                else:
-                    self.origin = atom
-                finally:
-                    self.compound.place(self.origin)
+        try:
+            self.compound.place(self.origin)
+        except TypeError:
+            self.origin = chimera.Point(
+                *search.parse_origin(self.origin, self.parent.genes))
+            self.compound.place(self.origin)
 
     def unexpress(self):
         chimera.openModels.remove([self.compound.mol])
