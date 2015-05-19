@@ -41,6 +41,7 @@ import numpy
 import os
 import sys
 # External dependencies
+import chimera
 import deap
 from deap import creator, tools, base, algorithms
 import yaml
@@ -107,12 +108,20 @@ def prepare_input():
     return cfg
 
 
+def suppressKsdssp(trigName, myData, molecules):
+    for m in molecules.created:
+        m.structureAssigned = True
+
 if __name__ == "__main__":
     cfg = prepare_input()
     logger = gaudi.box.enable_logging(
         cfg.general.outputpath, cfg.general.name)
 
     logger.info('GAUDIasm job started with input %s', sys.argv[1])
+
+    # Disable ksdssp
+    chimera.triggers.addHandler("Model", suppressKsdssp, None)
+
     pop, log, paretofront = main(cfg)
 
     logger.info('Writing %s results to disk', len(pop))
