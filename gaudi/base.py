@@ -115,6 +115,7 @@ class Individual(object):
         compound1 = next(gene for gene in self.genes.values()
                          if gene.__class__.__name__ == 'Molecule').compound
         atoms1 = sorted(compound1.mol.atoms, key=lambda x: x.serialNumber)
+        coords1 = [a.coord() for a in atoms1]
         xf1 = compound1.mol.openState.xform
         self.unexpress()
 
@@ -122,12 +123,13 @@ class Individual(object):
         compound2 = next(gene for gene in individual.genes.values()
                          if gene.__class__.__name__ == 'Molecule').compound
         atoms2 = sorted(compound2.mol.atoms, key=lambda x: x.serialNumber)
+        coords2 = [a.coord() for a in atoms2]
         xf2 = compound2.mol.openState.xform
         individual.unexpress()
 
-        sqdist = sum(xf1.apply(a.coord()).sqdistance(xf2.apply(a.coord()))
-                     for a, b in zip(atoms1, atoms2))
-        rmsd = math.sqrt(sqdist / ((len(atoms1) + len(atoms2)) / 2.0))
+        sqdist = sum(xf1.apply(a).sqdistance(xf2.apply(b))
+                     for a, b in zip(coords1, coords2))
+        rmsd = math.sqrt(sqdist / ((len(coords1) + len(coords2)) / 2.0))
         logger.debug("RMSD: %f", rmsd)
         return rmsd < self.cfg.ga.similarity_rmsd
 
