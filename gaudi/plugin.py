@@ -18,6 +18,7 @@ of `genes` and `objectives`.
 # Python
 from collections import OrderedDict
 from importlib import import_module
+import abc
 import logging
 import sys
 
@@ -33,6 +34,8 @@ class PluginMount(type):
     [Marty Alchin's blog](http://martyalchin.com/2008/jan/10/simple-plugin-framework/)
     Each mount point (ie,`genes` and `objectives`), MUST inherit this one.
     """
+
+    __metaclass__ = abc.ABCMeta
 
     def __init__(cls, name, bases, attrs):
         if not hasattr(cls, 'plugins'):
@@ -87,8 +90,12 @@ def load_plugins(plugins, container=None, **kwargs):
         container = OrderedDict()
 
     for plugin in plugins:
-        module = plugin.type
-        kwargs.update(plugin.__dict__)
-        container[plugin.name] = sys.modules[module].enable(**kwargs)
-        logger.debug("Loaded plugin %s", module)
+        if plugin.name not in container:
+            module = plugin.type
+            kwargs.update(plugin.__dict__)
+            container[plugin.name] = sys.modules[module].enable(**kwargs)
+            logger.debug("Loaded plugin %s", module)
+        else:
+            logger.error("Already loaded a plugin with same name %s",
+                         plugin.name)
     return container
