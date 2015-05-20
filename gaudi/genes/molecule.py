@@ -145,8 +145,8 @@ class Molecule(GeneProvider):
 
     def write(self, path, name):
         fullname = os.path.join(
-            path, '{}_{}({}).mol2'.format(name, self.name, self.__class__.__name__))
-        writeMol2([self.compound.mol], fullname, skip=[self.get_dummy_atoms()],
+            path, '{}_{}.mol2'.format(name, self.name))
+        writeMol2([self.compound.mol], fullname,
                   temporary=True, multimodelHandling='combined')
         return fullname
 
@@ -209,11 +209,6 @@ class Molecule(GeneProvider):
         elif os.path.isfile(self.path) and self.path.endswith('.mol2'):
             container.add((self.path,))
         return container
-
-    def get_dummy_atoms(self, name='DUM'):
-        for a in self.compound.mol.atoms:
-            if a.name == name:
-                yield a
 
 
 class Compound(object):
