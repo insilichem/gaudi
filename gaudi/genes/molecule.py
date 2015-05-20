@@ -118,11 +118,10 @@ class Molecule(GeneProvider):
         box.pseudobond_to_bond(self.compound.mol)
 
         try:
-            self.compound.place(self.origin)
+            self.compound.place(chimera.Point(*self.origin))
         except TypeError:
-            self.origin = chimera.Point(
-                *search.parse_origin(self.origin, self.parent.genes))
-            self.compound.place(self.origin)
+            self.origin = search.parse_origin(self.origin, self.parent.genes)
+            self.compound.place(chimera.Point(*self.origin))
 
     def unexpress(self):
         chimera.openModels.remove([self.compound.mol])

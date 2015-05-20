@@ -142,16 +142,19 @@ def rand_xform(center, r, rotate=True):
     return shift, rot, ctf
 
 
-def parse_origin(origin, genes):
-    mol, serial = gaudi.parse.parse_rawstring(origin)
-    try:
-        if isinstance(serial, int):
-            atom = next(a for a in genes[mol].compound.mol.atoms
-                        if serial == a.serialNumber)
+def parse_origin(origin, genes=None):
+    if isinstance(origin, str) and genes:
+        mol, serial = gaudi.parse.parse_rawstring(origin)
+        try:
+            if isinstance(serial, int):
+                atom = next(a for a in genes[mol].compound.mol.atoms
+                            if serial == a.serialNumber)
+            else:
+                atom = next(a for a in genes[mol].compound.mol.atoms
+                            if serial == a.name)
+        except StopIteration:  # atom not found
+            raise
         else:
-            atom = next(a for a in genes[mol].compound.mol.atoms
-                        if serial == a.name)
-    except StopIteration:  # atom not found
-        raise
-    else:
-        return atom.coord().data()
+            return atom.coord().data()
+    elif isinstance(origin, list):
+        return tuple(origin)
