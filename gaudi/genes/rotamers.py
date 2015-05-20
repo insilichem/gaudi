@@ -84,12 +84,20 @@ class Rotamers(GeneProvider):
             try:
                 rot = self.get_rotamers(mol, pos, restype)
             except NoResidueRotamersError:  # ALA, GLY...
-                SwapRes.swap(self.residues[(mol, pos)], restype)
+                SwapRes.swap(self.residues[(mol, pos)], restype, preserve=True)
             else:
                 useRotamer(self.residues[(mol, pos)], [rot[int(i * len(rot))]])
+            finally:
+                self.residues[(mol, pos)] = res = \
+                    next(r for r in self.parent.genes[mol].compound.mol.residues
+                         if r.id.position == pos)
+                for a in res.atoms:
+                    a.display = 1
 
     def unexpress(self):
-        pass
+        for res in self.residues.values():
+            for a in res.atoms:
+                a.display = 0
 
     def mate(self, mate):
         self.allele, mate.allele = deap.tools.cxTwoPoint(
