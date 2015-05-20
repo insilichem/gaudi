@@ -64,7 +64,7 @@ class Search(GeneProvider):
     def mate(self, mate):
         xf1 = M.chimera_xform(M.multiply_matrices(*self.allele))
         xf2 = M.chimera_xform(M.multiply_matrices(*mate.allele))
-        interp = M.xform_matrix(M.interpolate_xforms(xf1, chimera.Point(0, 0, 0),
+        interp = M.xform_matrix(M.interpolate_xforms(xf1, ZERO,
                                                      xf2, 0.5))
         interp_rot = [x[:3] + (0,) for x in interp]
         interp_tl = [y[:3] + x[-1:]
