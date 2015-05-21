@@ -11,7 +11,7 @@
 ##############
 
 """
-Calculates SASA and/or SESA for the given system (or region).
+:mod:`gaudi.objectives.solvation` calculates SASA and/or SESA for the given system (or region).
 
 .. note::
 

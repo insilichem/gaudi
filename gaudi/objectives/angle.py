@@ -11,7 +11,9 @@
 ##############
 
 """
-Document this!
+:mod:`gaudi.objectives.angle` calculates the angle formed by three
+given atoms (or the dihedral, if four atoms are given) and returns
+the absolute difference of that angle and the target value.
 """
 
 # Python

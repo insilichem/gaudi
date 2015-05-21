@@ -13,6 +13,10 @@
 """
 :mod:`gaudi.genes.search` provides spatial exploration of the environment.
 
+It works by creating a sphere with radius `self.radius` and origin at
+`self.origin`. The movement is achieved with three matrices that contain
+a translation, a rotation, and a reference position.
+
 It depends on :class:`gaudi.genes.molecule.Molecule`, since these are the ones
 that will be moved around. Combined with the adequate objectives, this module
 can be used to implement docking experiments.

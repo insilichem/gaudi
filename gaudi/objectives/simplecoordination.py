@@ -11,7 +11,19 @@
 ##############
 
 """
-Document this!
+:mod:`gaudi.objectives.simplecoordination` performs rough estimations
+of good orientations of ligating residues in a protein to
+coordinate a given metal or small molecule. The geometry is approximated
+by computing average distances from ligating atoms the metal centre (`self.probe`)
+as well as the angles formed by the probe, the ligating atom and its immediate neighbor.
+Good planarity is assured by a dihedral check.
+
+:probe:     The atom that acts as the metal center
+:radius:    Distance from `probe` where ligating atoms must be found
+:atomtypes: Types of atoms that are considered ligands to `probe`
+:residues:  Type of residues that must coordinate to `probe`
+:distance:  Target distance from `probe` to ligating atoms
+:angle:     Target angle `probe`, ligand and neighbor should form ideally
 """
 
 # Python
@@ -48,6 +60,25 @@ class SimpleCoordination(ObjectiveProvider):
                                if g.__class__.__name__ == "Molecule")
 
     def evaluate(self):
+        """
+        1. Get atoms and residues found within `self.radius` angstroms from `self.probe`
+        1.1. Found residues MUST include self.residues. Otherwise, apply penalty
+        2. Sort atoms by absolute difference of `self.distance` and distance to `self.probe`.
+           That way, nearest atoms are computed first.
+        2.1. If found atoms do not include some of the requested types, apply penalty.
+        3. For every atom that matches our criteria, calculate
+            - Coordinates for `self.probe`, atom, its immediate neighbor, and next neighbor
+              not being terminal
+            - Angle formed by probe, atom, and neighbor
+            - Dihedral formed by probe, atom, neighbor, and next neighbor
+        4. The score returned is the sum of averages of:
+            - Absolute difference between `self.distance` and found atoms. That way,
+              atoms that are within requested distance, get scores near zero.
+            - Absolute difference of sines of `self.angle` and formed angles. Good matches
+              tend to zero.
+            - Absolute sine of dihedrals. If they are coplanar, this should be zero.
+        5. As a result, lower scores are better.
+        """
         self._update_env()
         atoms, residues = self.env.atoms(), self.env.residues()
         if not self.residues.issubset(set(residues)):
@@ -97,6 +128,10 @@ class SimpleCoordination(ObjectiveProvider):
 
     # TODO: Probes get lost if rotamers are applied!
     def _getatom(self, probe):
+        """
+        Parse `Molecule/serialNumber` string and return a chimera.Atom located at
+        `Molecule` with serial number `serialNumber`
+        """
         mol, serial = gaudi.parse.parse_rawstring(probe)
         try:
             if isinstance(serial, int):
@@ -115,6 +150,10 @@ class SimpleCoordination(ObjectiveProvider):
             return atom
 
     def _getresidue(self, *residues):
+        """
+        Parse `Molecule/position` string and return a chimera.Residue located at
+        `Molecule` with serial number `position`
+        """
         for r in residues:
             mol, pos = gaudi.parse.parse_rawstring(r)
             try:
@@ -131,6 +170,10 @@ class SimpleCoordination(ObjectiveProvider):
                 yield res
 
     def _update_env(self):
+        """
+        Clear existing selection and add atoms within `self.radius` from
+        `self.probe`, as long as they belong to one of `self.molecules`
+        """
         self.env.clear()
         self.env.add(self.probe)
         self.env.merge(chimera.selection.REPLACE,
@@ -141,4 +184,7 @@ class SimpleCoordination(ObjectiveProvider):
 
     @staticmethod
     def _get_xform_coord(a):
+        """
+        Return transformed coordinates from atom `a`
+        """
         return a.molecule.openState.xform.apply(a.coord())

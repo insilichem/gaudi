@@ -11,7 +11,9 @@
 ##############
 
 """
-Document this!
+:mod:`gaudi.objectives.coordinationgeometry` is a wrapper around Chimera's
+`MetalGeom`. It tries to fit the best coordination geometry in a given system,
+returning the RMSD of the found conformation as compared to the ideal polyhedron.
 """
 
 # Python

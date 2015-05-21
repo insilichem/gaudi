@@ -11,7 +11,9 @@
 ##############
 
 """
-Document this!
+:mod:`gaudi.objectives.distance` calculates the distance between two
+given atoms. It returns the absolute differenec between the calculated
+distance and the target value.
 """
 
 # Python
