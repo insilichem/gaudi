@@ -198,7 +198,6 @@ class Fitness(deap.base.Fitness):
 
     def __deepcopy__(self, memo):
         copy_ = self.__class__(parent=self.parent)
-        copy_.values = self.values + ()
         copy_.wvalues = self.wvalues + ()
         return copy_
 
