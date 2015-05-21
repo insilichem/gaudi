@@ -56,8 +56,9 @@ class SimpleCoordination(ObjectiveProvider):
             return self.weight * -1000
         # Distance
         # (distance, ligand) tuple, sorted by distances
-        dist_atoms = sorted((self.probe.xformCoord().distance(a.xformCoord()), a)
-                            for a in atoms if a.name in self.atomtypes)
+        dist_atoms = \
+            sorted((abs(self.distance - self.probe.xformCoord().distance(a.xformCoord())),
+                    a) for a in atoms if a.name in self.atomtypes)
         if not dist_atoms:
             logger.warning(
                 "Could not find requested atoms in probe environment")
