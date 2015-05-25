@@ -96,11 +96,11 @@ class Individual(object):
             logger.debug("Reverting expression of gene %s", gene.name)
             gene.unexpress()
 
-    def mate(self, individual):
+    def mate(self, other):
         for gene in self.genes.values():
-            gene.mate(individual.genes[gene.name])
-        logger.debug("#%s mated #%s", id(self), id(individual))
-        return self, individual
+            gene.mate(other.genes[gene.name])
+        logger.debug("#%s mated #%s", id(self), id(other))
+        return self, other
 
     def mutate(self, indpb):
         for gene in self.genes.values():
