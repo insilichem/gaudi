@@ -25,6 +25,7 @@ the same backbone, which may not be representative of the in-vivo behaviour. Use
 import random
 from collections import OrderedDict
 import logging
+from functools import partial
 # Chimera
 from Rotamers import getRotamers, useRotamer, NoResidueRotamersError
 import SwapRes
@@ -40,37 +41,43 @@ logger = logging.getLogger(__name__)
 
 class Rotamers(GeneProvider):
 
-    def __init__(self, residues=None, library='Dunbrack', mutations=[],
+    def __init__(self, residues=None, library='Dunbrack',
+                 mutations=[], ligation=False,
                  **kwargs):
         GeneProvider.__init__(self, **kwargs)
         self._kwargs = kwargs
         self._residues = residues
         self.library = library
         self.mutations = mutations
+        self.ligation = ligation
         self.allele = []
         # set (or retrieve) caches
         try:
-            self.residues = self._cache['residues']
-            self.rotamers = self._cache['rotamers']
+            self.residues = self._cache[self.name + '_res']
+            self.rotamers = self._cache[self.name + '_rot']
         except KeyError:
-            self.residues = self._cache['residues'] = OrderedDict()
-            self.rotamers = self._cache['rotamers'] = LRUCache(300)
+            self.residues = self._cache[self.name + '_res'] = OrderedDict()
+            self.rotamers = self._cache[self.name + '_rot'] = LRUCache(300)
 
         # find requested residues
+
+        if self.ligation:
+            self.random_number = random.random()
+        else:
+            self.random_number = None
+
         self._residues_rawstring = tuple(parse_rawstring(r) for r in residues)
         for molecule, resid in self._residues_rawstring:
             try:
                 res = next(r for r in self.parent.genes[molecule].compound.mol.residues
                            if r.id.position == resid)
-            except (KeyError, StopIteration):  # molecule or residue not found
+            # molecule or residue not found
+            except (KeyError, StopIteration):
                 raise
             else:  # residue was found!
                 self.residues[(molecule, resid)] = res
-                self.allele.append(
-                    (random.choice(self.mutations + [res.type]),
-                        random.random()
-                     )
-                )
+                self.allele.append((self.choice(self.mutations + [res.type]),
+                                    random.random()))
 
     def __deepcopy__(self, memo):
         new = self.__class__(self._residues, self.library, self.mutations,
@@ -100,26 +107,28 @@ class Rotamers(GeneProvider):
                 a.display = 0
 
     def mate(self, mate):
-        self.allele, mate.allele = deap.tools.cxTwoPoint(
-            self.allele, mate.allele)
+        if self.ligation:
+            self_residues, self_rotamers = zip(*self.allele)
+            mate_residues, mate_rotamers = zip(*mate.allele)
+            self_rotamers, mate_rotamers = deap.tools.cxTwoPoint(
+                list(self_rotamers), list(mate_rotamers))
+            self.allele = map(list, zip(self_residues, self_rotamers))
+            mate.allele = map(list, zip(mate_residues, mate_rotamers))
+        else:
+            self.allele, mate.allele = deap.tools.cxTwoPoint(
+                self.allele, mate.allele)
 
     def mutate(self, indpb):
         if random.random() < self.indpb:
             self.allele = []
-            for molecule, resid in self._residues_rawstring:
-                try:
-                    res = next(r for r in self.parent.genes[molecule].compound.mol.residues
-                               if r.id.position == resid)
-                # molecule or residue not found
-                except (KeyError, StopIteration):
-                    raise
-                else:  # residue was found!
-                    self.residues[(molecule, resid)] = res
-                    self.allele.append(
-                        (random.choice(self.mutations + [res.type]),
-                            random.random()
-                         )
-                    )
+            if self.ligation:  # don't forget to get a new random!
+                self.random_number = random.random()
+            for res in self.residues.values():
+                self.allele.append(
+                    (self.choice(self.mutations + [res.type]),
+                        random.random()
+                     )
+                )
 
     def write(self, path, name):
         pass
@@ -127,6 +136,17 @@ class Rotamers(GeneProvider):
         # self.library.title(), res.type, ' '.join(map(str,rot.chis)))
 
     ###
+    def choice(self, l):
+        """
+        Overrides ``random.choice`` with custom one so we can
+        reuse a previously obtained random number. This helps dealing
+        with the ``ligation`` parameter, which forces all the requested
+        residues to mutate to the same type
+        """
+        if self.random_number:
+            return l[int(self.random_number * len(l))]
+        return l[int(random.random() * len(l))]
+
     def get_rotamers(self, mol, pos, restype):
         rotamers = self.rotamers.get((mol, pos, restype))
         if not rotamers:
