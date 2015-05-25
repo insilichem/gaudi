@@ -46,7 +46,7 @@ def enable(**kwargs):
 class SimpleCoordination(ObjectiveProvider):
 
     def __init__(self, probe=None, radius=None, atomtypes=None, residues=None,
-                 distance=None, angle=None, dihedral=None,
+                 distance=None, angle=None, dihedral=None, enforce_all_residues=False,
                  *args, **kwargs):
         ObjectiveProvider.__init__(self, **kwargs)
         self.probe = self._getatom(probe)
@@ -56,6 +56,7 @@ class SimpleCoordination(ObjectiveProvider):
         self.distance = distance
         self.angle = angle
         self.dihedral = dihedral
+        self.enforce_all_residues = enforce_all_residues
         self.molecules = tuple(g.compound.mol for g in self.parent.genes.values()
                                if g.__class__.__name__ == "Molecule")
 
@@ -80,28 +81,33 @@ class SimpleCoordination(ObjectiveProvider):
         5. As a result, lower scores are better.
         """
         self._update_env()
-        atoms, residues = self.env.atoms(), self.env.residues()
-        if not self.residues.issubset(set(residues)):
-            logger.warning(
-                "Requested residues were not found in surroundings")
-            return self.weight * -1000
+        atoms = self.env.atoms()
+
         # Distance
         # (distance, ligand) tuple, sorted by distances
-        dist_atoms = \
-            sorted((abs(self.distance - self.probe.xformCoord().distance(a.xformCoord())),
-                    a) for a in atoms if a.name in self.atomtypes)
-        if not dist_atoms:
+        atoms_by_distance = \
+            [(abs(self.distance - self.probe.xformCoord().distance(a.xformCoord())),
+              a) for a in atoms if a.name in self.atomtypes and a.residue in self.residues]
+        found_residues = set(a.residue for d, a in atoms_by_distance)
+        if not atoms_by_distance:
             logger.warning(
-                "Could not find requested atoms in probe environment")
+                "Could not find requested atoms from residues in probe environment")
+            return self.weight * -1000
+        if self.enforce_all_residues and found_residues != self.residues:
+            logger.warning(
+                "Some atoms found, but some residues are missing")
             return self.weight * -1000
 
+        atoms_by_distance.sort()
         # Prevent several atoms per residue.
         # Only nearest is added, since distances is sorted
-        residues = set()
+        # residues = set()
         distances, angles, dihedrals = [], [], []
-        for d, a2 in dist_atoms:
-            if a2.residue not in residues:
+        for d, a2 in atoms_by_distance:
+            # if a2.residue not in residues:
                 # Get coords for needed atoms
+            distances.append(d)
+            if self.dihedral or self.angle:
                 c1 = self._get_xform_coord(self.probe)  # the probe
                 c2 = self._get_xform_coord(a2)  # the ligand is a2
                 a3 = a2.neighbors[0]  # bonded atom to ligand
@@ -110,21 +116,19 @@ class SimpleCoordination(ObjectiveProvider):
                           if a is not a3 and len(a.neighbors) > 1)
                 c4 = self._get_xform_coord(a4)
 
-                angle = chimera.angle(c1, c2, c3)
-                dihedral = chimera.dihedral(c1, c2, c3, c4)
-                logger.debug("Distance %s, angle %s, dihedral %s",
-                             d, angle, dihedral)
-                delta = abs(math.cos(math.radians(self.angle))
-                            - math.cos(math.radians(angle)))
-                planarity = abs(math.sin(math.radians(dihedral)))
-                logger.debug("Delta %s, planarity %s", delta, planarity)
+                if self.angle:
+                    angle = chimera.angle(c1, c2, c3)
+                    delta = abs(math.cos(math.radians(self.angle))
+                                - math.cos(math.radians(angle)))
+                    angles.append(delta)
 
-                distances.append(abs(self.distance - d))
-                angles.append(delta)
-                dihedrals.append(planarity)
-                residues.add(a2.residue)
+                if self.dihedral:
+                    dihedral = chimera.dihedral(c1, c2, c3, c4)
+                    planarity = abs(math.sin(math.radians(dihedral)))
+                    dihedrals.append(planarity)
 
-        return sum(numpy.average(x) for x in (distances, angles, dihedrals))
+                # residues.add(a2.residue)
+        return sum(numpy.average(x) for x in (distances, angles, dihedrals) if x)
 
     # TODO: Probes get lost if rotamers are applied!
     def _getatom(self, probe):
