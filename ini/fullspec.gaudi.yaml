@@ -44,6 +44,7 @@ genes:
         residues: [ $Protein$/233, $Protein$/109]
         library: { dynameomics | dunbrack }
         mutations: []
+        ligation: False
 
     # -   name: Normal Modes
     #     type: gaudi.genes.normalmodes
@@ -56,9 +57,10 @@ genes:
 
     -   name: Search
         type: gaudi.genes.search
-        origin: Protein/DUM
+        origin: [1.0, 5.0, 0.0]
         radius: 5.0
-
+        precision: 3
+        rotate: True
     # -   name: CovalentBond
     #     type: gaudi.genes.covalent  
     #     bond:   - [ $Ligand$/DUM, $Protein$/136 ]
@@ -103,7 +105,6 @@ objectives:
         # Careful, input order DOES matter
         target: [ $Protein$/123, $Protein$/456, $Ligand$/10, $Ligand$/9]
 
-
     -   name: Coordination_RMSD
         type: gaudi.objectives.coordinationrmsd
         weight: -1.0
@@ -119,3 +120,15 @@ objectives:
         weight: -1.0
         which: 'ses' #or 'sas'
         target: Ligand
+
+    -   name: Coordination
+        type: gaudi.objectives.simplecoordination
+        weight: -1.0
+        probe: Ligand/1
+        radius: 3.5
+        atomtypes: [ OE1, OE2, OD1, OD2, ND2 ]
+        residues: [Protein/14, Protein/41, Protein/68, Protein/23, Protein/50, Protein/77]
+        enforce_all_residues: True
+        distance: 2.5
+        angle: 90.0 # metal-ligand-neighbor
+        dihedral: 180 # metal-ligand-neighbor1-neighbor2-
