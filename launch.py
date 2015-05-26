@@ -164,7 +164,7 @@ if __name__ == "__main__":
     results['GAUDI.results'] = {}
     for i, ind in enumerate(paretofront):
         filename = ind.write(i)
-        results['GAUDI.results'][filename] = \
+        results['GAUDI.results'][os.path.basename(filename)] = \
             [float(f) for f in ind.fitness.values]
 
     outputpath = os.path.join(cfg.general.outputpath,
