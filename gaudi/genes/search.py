@@ -25,6 +25,7 @@ can be used to implement docking experiments.
 # Python
 import random
 import logging
+from numpy import around as numpy_around
 # Chimera
 import chimera
 from chimera import Xform as X
@@ -49,17 +50,24 @@ def enable(**kwargs):
 class Search(GeneProvider):
 
     def __init__(self, target=None, origin=None, radius=None, rotate=True,
-                 **kwargs):
+                 precision=None,
+                 ** kwargs):
         GeneProvider.__init__(self, **kwargs)
         self.radius = radius
         self.rotate = rotate
         self.target = target
+        self.precision = precision
         self.origin = parse_origin(origin, self.parent.genes)
         self.allele = self.random_transform()
 
     def express(self):
-        self.parent.genes[self.target].compound.mol.openState.xform = \
-            M.chimera_xform(M.multiply_matrices(*self.allele))
+        if self.precision is not None:
+            self.parent.genes[self.target].compound.mol.openState.xform = \
+                M.chimera_xform(M.multiply_matrices(
+                    *numpy_around(self.allele, self.precision).tolist()))
+        else:
+            self.parent.genes[self.target].compound.mol.openState.xform = \
+                M.chimera_xform(M.multiply_matrices(*self.allele))
 
     def unexpress(self):
         self.parent.genes[self.target].compound.mol.openState.xform = \
