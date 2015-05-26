@@ -93,13 +93,37 @@ def main(cfg):
 
 
 def prepare_input():
+    """
+    Parses input file and validate paths
+    """
+    def build_path(basedir, path):
+        """
+        Processes tildes and join paths to base directory of input file.
+        ``os.path.join`` is smart enough to not join two absolute paths, returning
+        the last one provided. ``os.path.normpath`` simplifies joined paths by
+        parsing residual dots or double dots.
+        """
+        return os.path.normpath(os.path.join(basedir, os.path.expanduser(path)))
+
     # Parse input
     try:
-        cfg = gaudi.parse.Settings(sys.argv[1])
+        # os.path.realpath prepends the working directory to relative paths
+        path = os.path.abspath(os.path.expanduser(sys.argv[1]))
     except IndexError:
-        raise ValueError("Input file not provided")
-    except IOError:
-        raise IOError("Specified input file was not found")
+        sys.exit("ERROR: Input file not provided. \n")
+    else:
+        cfg = gaudi.parse.Settings(path)
+        inputdir = os.path.dirname(path)
+
+    # Tilde expansion in paths and abs/rel path support
+    cfg.general.outputpath = build_path(inputdir, cfg.general.outputpath)
+    for g in cfg.genes:
+        if g.type == 'gaudi.genes.molecule':
+            g.path = build_path(inputdir, g.path)
+            if not os.path.isfile(g.path):
+                sys.exit(
+                    "ERROR: File" + g.path + "does not exist. Check your input file.\n")
+
     # Create dirs
     try:
         os.makedirs(cfg.general.outputpath)
