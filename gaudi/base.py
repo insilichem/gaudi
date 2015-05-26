@@ -145,12 +145,12 @@ class Individual(object):
         name = self.cfg.general.name
         COMPRESS = ZIP_DEFLATED if self.cfg.general.compress else ZIP_STORED
         self.express()
-        zipfilename = os.path.join(path, '{}__{:03d}.zip'.format(name, i))
+        zipfilename = os.path.join(path, '{}_{:03d}.zip'.format(name, i))
         with ZipFile(zipfilename, 'w', COMPRESS) as z:
             output = OrderedDict()
             for gene in self.genes.values():
                 logger.debug("Writing %s to file", gene.name)
-                filename = gene.write(path, name)
+                filename = gene.write(path, "{}_{:03d}".format(name, i))
                 if filename:
                     z.write(filename, os.path.basename(filename))
                     os.remove(filename)
@@ -159,7 +159,7 @@ class Individual(object):
                 output['score'] = list(self.fitness.values)
             except AttributeError:  # fitness not in individual :/
                 raise
-            z.writestr('{}__{:03d}.gaudi'.format(name, i),
+            z.writestr('{}_{:03d}.gaudi'.format(name, i),
                        yaml.dump(output, default_flow_style=False))
         self.unexpress()
         return zipfilename
