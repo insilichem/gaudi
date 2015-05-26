@@ -61,6 +61,10 @@ class Param(object):
 
     """
     Blank object for storing the attributes used through the parsing
+
+    .. todo::
+
+        Maybe a ``namedtuple`` is better suit for this task?
     """
 
     def __init__(self, *d):
