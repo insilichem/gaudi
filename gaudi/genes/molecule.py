@@ -128,13 +128,20 @@ class Molecule(GeneProvider):
         # del self.compound
 
     def mate(self, mate):
-        try:
-            self.allele, mate.allele = deap.tools.cxTwoPoint(
-                list(self.allele), list(mate.allele))
-        except (StopIteration, ValueError):
-            self.allele, mate.allele = mate.allele, self.allele
-        else:
-            self.allele, mate.allele = tuple(self.allele), tuple(mate.allele)
+        """
+        .. todo::
+
+            Allow mating while preserving symmetry
+        """
+        if not self.symmetry:
+            try:
+                self.allele, mate.allele = deap.tools.cxTwoPoint(
+                    list(self.allele), list(mate.allele))
+            except (StopIteration, ValueError):
+                self.allele, mate.allele = mate.allele, self.allele
+            else:
+                self.allele, mate.allele = tuple(
+                    self.allele), tuple(mate.allele)
 
     def mutate(self, indpb):
         """
