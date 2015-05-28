@@ -30,7 +30,7 @@ from numpy import around as numpy_around
 import chimera
 from chimera import Xform as X
 import Matrix as M
-from FitMap.search import random_rotation, random_translation_step
+from FitMap.search import random_rotation
 # GAUDI
 from gaudi.genes import GeneProvider
 import gaudi.parse
@@ -49,29 +49,27 @@ def enable(**kwargs):
 
 class Search(GeneProvider):
 
-    def __init__(self, target=None, origin=None, radius=None, rotate=True,
-                 precision=None,
-                 ** kwargs):
+    def __init__(self, target=None, center=None, radius=None, rotate=True,
+                 precision=None, **kwargs):
         GeneProvider.__init__(self, **kwargs)
         self.radius = radius
         self.rotate = rotate
-        self.target = target
         self.precision = precision
-        self.origin = parse_origin(origin, self.parent.genes)
+        self.target = target
+        self.origin = self.parent.genes[target].compound.donor.coord().data()
+        self.center = parse_origin(center, self.parent.genes)
         self.allele = self.random_transform()
 
     def express(self):
         if self.precision is not None:
-            self.parent.genes[self.target].compound.mol.openState.xform = \
-                M.chimera_xform(M.multiply_matrices(
-                    *numpy_around(self.allele, self.precision).tolist()))
+            self.parent.genes[self.target].compound.mol.openState.xform = M.chimera_xform(
+                M.multiply_matrices(*numpy_around(self.allele, self.precision).tolist()))
         else:
-            self.parent.genes[self.target].compound.mol.openState.xform = \
-                M.chimera_xform(M.multiply_matrices(*self.allele))
+            self.parent.genes[self.target].compound.mol.openState.xform = M.chimera_xform(
+                M.multiply_matrices(*self.allele))
 
     def unexpress(self):
-        self.parent.genes[self.target].compound.mol.openState.xform = \
-            X()
+        self.parent.genes[self.target].compound.mol.openState.xform = X()
 
     def mate(self, mate):
         xf1 = M.chimera_xform(M.multiply_matrices(*self.allele))
@@ -96,10 +94,12 @@ class Search(GeneProvider):
 
     #####
     def random_transform(self):
-        ctf = M.translation_matrix([-x for x in self.origin]).tolist()
-        rot = random_rotation() if self.rotate else UNITY
-        shift = random_translation_step(self.origin, self.radius).tolist()
-        return shift, rot, ctf
+        to_zero = ((1.0, 0.0, 0.0, -self.origin[0]),
+                   (0.0, 1.0, 0.0, -self.origin[1]),
+                   (0.0, 0.0, 1.0, -self.origin[2]))
+        rotation = random_rotation() if self.rotate else UNITY
+        translation = random_translation(self.center, self.radius)
+        return translation, rotation, to_zero
 
 
 # Some useful functions
@@ -147,11 +147,24 @@ def rotate(molecule, at, alpha):
         a.setCoord(r.apply(a.coord()))
 
 
-def rand_xform(center, r, rotate=True):
-    ctf = M.translation_matrix([-x for x in center]).tolist()
-    rot = random_rotation() if rotate else UNITY
-    shift = random_translation_step(center, r).tolist()
-    return shift, rot, ctf
+def rand_xform(origin, destination, r, rotate=True):
+    to_zero = ((1.0, 0.0, 0.0, -origin[0]),
+               (0.0, 1.0, 0.0, -origin[1]),
+               (0.0, 0.0, 1.0, -origin[2]))
+    rotation = random_rotation() if rotate else UNITY
+    translation = random_translation(destination, r)
+    return translation, rotation, to_zero
+
+
+def random_translation(center, r):
+    inside = True
+    while inside:
+        x, y, z = [random.uniform(a - r, a + r) for a in center]
+        if x * x + y * y + z * z > r:
+            inside = False
+    return ((1.0, 0.0, 0.0, x),
+            (0.0, 1.0, 0.0, y),
+            (0.0, 0.0, 1.0, z))
 
 
 def parse_origin(origin, genes=None):
@@ -164,7 +177,7 @@ def parse_origin(origin, genes=None):
             else:
                 atom = next(a for a in genes[mol].compound.mol.atoms
                             if serial == a.name)
-        except StopIteration:  # atom not found
+        except (KeyError, AttributeError, StopIteration):  # atom not found
             raise
         else:
             return atom.coord().data()

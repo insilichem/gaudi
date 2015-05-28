@@ -76,12 +76,6 @@ class Molecule(GeneProvider):
         self._kwargs = kwargs
         self.path = path
         self.symmetry = symmetry
-        self.origin = ZERO
-        if 'gaudi.genes.search' in sys.modules:
-            for g in self.parent.cfg.genes:
-                if g.type == 'gaudi.genes.search' and g.target == self.name:
-                    self.origin = g.origin
-                    break
 
         try:
             self._compoundcache = self._cache['compounds']
@@ -92,6 +86,7 @@ class Molecule(GeneProvider):
 
         self.catalog = self._CATALOG[self.name]
         self.allele = random.choice(self.catalog)
+        # Pre-express so other genes can access residues, atoms and so on
         self.compound = self.get(self.allele)
 
     def __deepcopy__(self, memo):
@@ -116,12 +111,6 @@ class Molecule(GeneProvider):
         self.compound = self.get(self.allele)
         chimera.openModels.add([self.compound.mol], shareXform=True)
         box.pseudobond_to_bond(self.compound.mol)
-
-        try:
-            self.compound.place(chimera.Point(*self.origin))
-        except TypeError:
-            self.origin = search.parse_origin(self.origin, self.parent.genes)
-            self.compound.place(chimera.Point(*self.origin))
 
     def unexpress(self):
         chimera.openModels.remove([self.compound.mol])
@@ -181,12 +170,8 @@ class Molecule(GeneProvider):
         #   base = Compound(molecule=key[0])
         #   base.place(where)
         base = Compound(molecule=key[0])
-        # base.place(self.origin)
         for molpath in key[1:]:
             base.append(Compound(molecule=molpath))
-
-        # if self.flexible:
-        #   base.update_rotatable_bonds()
         base.vertex = vertex
         return base
 
