@@ -37,9 +37,9 @@ import gaudi.parse
 
 
 ZERO = chimera.Point(0.0, 0.0, 0.0)
-UNITY = ((1.0, 0.0, 0.0, 0.0),
-         (0.0, 1.0, 0.0, 0.0),
-         (0.0, 0.0, 1.0, 0.0))
+IDENTITY = ((1.0, 0.0, 0.0, 0.0),
+            (0.0, 1.0, 0.0, 0.0),
+            (0.0, 0.0, 1.0, 0.0))
 logger = logging.getLogger(__name__)
 
 
@@ -61,6 +61,10 @@ class Search(GeneProvider):
         self.allele = self.random_transform()
 
     def express(self):
+        """
+        Multiply all the matrices, convert the result to a chimera.CoordFrame and
+        set that as the xform for the target molecule. If precision is set, round them.
+        """
         if self.precision is not None:
             self.parent.genes[self.target].compound.mol.openState.xform = M.chimera_xform(
                 M.multiply_matrices(*numpy_around(self.allele, self.precision).tolist()))
@@ -69,9 +73,16 @@ class Search(GeneProvider):
                 M.multiply_matrices(*self.allele))
 
     def unexpress(self):
+        """
+        Reset xform to unity matrix
+        """
         self.parent.genes[self.target].compound.mol.openState.xform = X()
 
     def mate(self, mate):
+        """
+        Interpolate the matrices and assign them to each individual.
+        Ind1 gets the rotated interpolation, while Ind2 gets the translation.
+        """
         xf1 = M.chimera_xform(M.multiply_matrices(*self.allele))
         xf2 = M.chimera_xform(M.multiply_matrices(*mate.allele))
         interp = M.xform_matrix(M.interpolate_xforms(xf1, ZERO,
@@ -97,7 +108,7 @@ class Search(GeneProvider):
         to_zero = ((1.0, 0.0, 0.0, -self.origin[0]),
                    (0.0, 1.0, 0.0, -self.origin[1]),
                    (0.0, 0.0, 1.0, -self.origin[2]))
-        rotation = random_rotation() if self.rotate else UNITY
+        rotation = random_rotation() if self.rotate else IDENTITY
         translation = random_translation(self.center, self.radius)
         return translation, rotation, to_zero
 
@@ -151,12 +162,17 @@ def rand_xform(origin, destination, r, rotate=True):
     to_zero = ((1.0, 0.0, 0.0, -origin[0]),
                (0.0, 1.0, 0.0, -origin[1]),
                (0.0, 0.0, 1.0, -origin[2]))
-    rotation = random_rotation() if rotate else UNITY
+    rotation = random_rotation() if rotate else IDENTITY
     translation = random_translation(destination, r)
     return translation, rotation, to_zero
 
 
 def random_translation(center, r):
+    """
+    Get a random point from the cube built with l=r and test if it's within
+    the sphere. Most of the points will be, but not all of them, so get another
+    one until that criteria is met.
+    """
     inside = True
     while inside:
         x, y, z = [random.uniform(a - r, a + r) for a in center]
@@ -168,6 +184,11 @@ def random_translation(center, r):
 
 
 def parse_origin(origin, genes=None):
+    """
+    The center of the sphere can be given as an Atom, or directly as
+    a list of three floats (x,y,z). If it's an Atom, find it and return
+    the xyz coords. If not, just turn the list into a tuple
+    """
     if isinstance(origin, str) and genes:
         mol, serial = gaudi.parse.parse_rawstring(origin)
         try:
