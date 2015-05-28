@@ -25,7 +25,6 @@ the same backbone, which may not be representative of the in-vivo behaviour. Use
 import random
 from collections import OrderedDict
 import logging
-from functools import partial
 # Chimera
 from Rotamers import getRotamers, useRotamer, NoResidueRotamersError
 import SwapRes
@@ -91,7 +90,7 @@ class Rotamers(GeneProvider):
             try:
                 rot = self.get_rotamers(mol, pos, restype)
             except NoResidueRotamersError:  # ALA, GLY...
-                SwapRes.swap(self.residues[(mol, pos)], restype, preserve=True)
+                SwapRes.swap(self.residues[(mol, pos)], restype)
             else:
                 useRotamer(self.residues[(mol, pos)], [rot[int(i * len(rot))]])
             finally:
