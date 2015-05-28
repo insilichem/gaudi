@@ -120,9 +120,9 @@ def prepare_input():
     for g in cfg.genes:
         if g.type == 'gaudi.genes.molecule':
             g.path = build_path(inputdir, g.path)
-            if not os.path.isfile(g.path):
+            if not os.path.exists(g.path):
                 sys.exit(
-                    "ERROR: File" + g.path + "does not exist. Check your input file.\n")
+                    "ERROR: Path " + g.path + " is wrong. Check your input file.\n")
 
     # Create dirs
     try:
