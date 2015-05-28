@@ -22,11 +22,8 @@
 
 # Python
 import os
-import logging
 # Chimera
 import chimera
-
-logger = logging.getLogger(__name__)
 
 
 def atoms_between(atom1, atom2):
@@ -76,30 +73,6 @@ def draw_interactions(interactions, startCol='FF0000', endCol='FFFF00',
                 color = _hex_to_rgb(startCol) + [opacity]
         npb.color = chimera.MaterialColor(*color)
     return pb
-
-
-def enable_logging(path=None, name=None):
-    logger = logging.getLogger('gaudi')
-    logger.setLevel(logging.DEBUG)
-
-    # create CONSOLE handler and set level to error
-    handler = logging.StreamHandler()
-    handler.setLevel(logging.ERROR)
-    formatter = logging.Formatter("%(levelname)s - %(message)s")
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
-
-    # create debug file handler and set level to debug
-    if path and name:
-        handler = logging.FileHandler(
-            os.path.join(path, name + ".gaudi.log"), "w")
-        handler.setLevel(logging.DEBUG)
-        formatter = logging.Formatter(
-            "%(asctime)s - %(name)s - %(levelname)s - %(message)s", "%Y.%m.%d %H:%M:%S")
-        handler.setFormatter(formatter)
-        logger.addHandler(handler)
-
-    return logger
 
 
 def files_in(path, ext=None):

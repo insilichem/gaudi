@@ -35,8 +35,8 @@ Read `README.md` for additional details on useful aliases.
 """
 
 # Python
-from collections import OrderedDict
 from time import strftime
+import logging
 import numpy
 import os
 import sys
@@ -135,20 +135,39 @@ def prepare_input():
     return cfg
 
 
-def suppress_ksdssp(trig_name, my_data, molecules):
+def enable_logging(path=None, name=None):
     """
-    Monkey-patch Chimera triggers to disable KSDSSP computation
+    Register loggers and handlers for both stdout and file
     """
-    for m in molecules.created:
-        m.structureAssigned = True
+    logger = logging.getLogger('gaudi')
+    logger.setLevel(logging.DEBUG)
+
+    # create CONSOLE handler and set level to error
+    handler = logging.StreamHandler()
+    handler.setLevel(logging.ERROR)
+    formatter = logging.Formatter("%(levelname)s - %(message)s")
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+
+    # create debug file handler and set level to debug
+    if path and name:
+        handler = logging.FileHandler(
+            os.path.join(path, name + ".gaudi.log"), "w")
+        handler.setLevel(logging.DEBUG)
+        formatter = logging.Formatter(
+            "%(asctime)s - %(name)s - %(levelname)s - %(message)s", "%Y.%m.%d %H:%M:%S")
+        handler.setFormatter(formatter)
+        logger.addHandler(handler)
+
+    return logger
+
 
 if __name__ == "__main__":
     # Parse input file
     cfg = prepare_input()
 
     # Enable logging to stdout and file
-    logger = gaudi.box.enable_logging(
-        cfg.general.outputpath, cfg.general.name)
+    logger = enable_logging(cfg.general.outputpath, cfg.general.name)
     logger.info('GAUDIasm job started with input %s', sys.argv[1])
 
     # Disable auto ksdssp
