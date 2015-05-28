@@ -171,7 +171,7 @@ if __name__ == "__main__":
     logger.info('GAUDIasm job started with input %s', sys.argv[1])
 
     # Disable auto ksdssp
-    chimera.triggers.addHandler("Model", suppress_ksdssp, None)
+    chimera.triggers.addHandler("Model", gaudi.box.suppress_ksdssp, None)
 
     # Run simulation
     pop, log, paretofront = main(cfg)

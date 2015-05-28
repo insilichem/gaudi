@@ -132,6 +132,14 @@ def pseudobond_to_bond(molecule, remove=False):
         pbm.deletePseudoBondGroup(pbgroup)
 
 
+def suppress_ksdssp(trig_name, my_data, molecules):
+    """
+    Monkey-patch Chimera triggers to disable KSDSSP computation
+    """
+    for m in molecules.created:
+        m.structureAssigned = True
+
+
 def write_individuals(inds, outpath, name, evalfn, remove=True):
     from WriteMol2 import writeMol2
     if not os.path.isdir(outpath):
