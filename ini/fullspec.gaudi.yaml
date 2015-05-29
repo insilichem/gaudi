@@ -105,16 +105,6 @@ objectives:
         # Careful, input order DOES matter
         target: [ $Protein$/123, $Protein$/456, $Ligand$/10, $Ligand$/9]
 
-    -   name: Coordination_RMSD
-        type: gaudi.objectives.coordinationrmsd
-        weight: -1.0
-        target: 'ligand' #also: <serialNumber>, 'auto'
-        geometries: ['tetrahedral'] # check MetalGeom.geomData.geometries.keys()
-        min_atoms: 2 # coordination must have at least min_atoms ligating atoms
-        atom_types: [ 'ND1', 'NE2', 'OD1','OD2', 'O', 'OE1', 'OE2', 'OG1' ]
-        radius: 2.5 # search radius from metal position
-        threshold: 1.0 # max admitted RMSD
-
     -   name: Solvation
         type: gaudi.objectives.solvation
         weight: -1.0
@@ -124,11 +114,17 @@ objectives:
     -   name: Coordination
         type: gaudi.objectives.simplecoordination
         weight: -1.0
+        method: simple # or metalgeom 
         probe: Ligand/1
         radius: 3.5
         atomtypes: [ OE1, OE2, OD1, OD2, ND2 ]
         residues: [Protein/14, Protein/41, Protein/68, Protein/23, Protein/50, Protein/77]
+        min_atoms: 1
         enforce_all_residues: True
+        # params for 'simple'
         distance: 2.5
         angle: 90.0 # metal-ligand-neighbor
-        dihedral: 180 # metal-ligand-neighbor1-neighbor2-
+        dihedral: 180 # metal-ligand-neighbor1-neighbor2
+        # params for 'metalgeom'
+        geometry: tetrahedral # choose from MetalGeom.geomData.geometries.keys()
+        threshold: 1.0 # max admitted RMSD
