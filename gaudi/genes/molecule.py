@@ -78,9 +78,9 @@ class Molecule(GeneProvider):
         self.symmetry = symmetry
 
         try:
-            self._compoundcache = self._cache['compounds']
+            self._compoundcache = self._cache[self.name]
         except KeyError:
-            self._compoundcache = self._cache['compounds'] = LRUCache(300)
+            self._compoundcache = self._cache[self.name] = LRUCache(300)
             self.catalog = self._CATALOG[
                 self.name] = tuple(self._compile_catalog())
 
