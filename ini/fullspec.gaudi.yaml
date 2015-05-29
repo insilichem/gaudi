@@ -112,7 +112,7 @@ objectives:
         target: Ligand
 
     -   name: Coordination
-        type: gaudi.objectives.simplecoordination
+        type: gaudi.objectives.coordination
         weight: -1.0
         method: simple # or metalgeom 
         probe: Ligand/1
