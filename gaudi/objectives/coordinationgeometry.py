@@ -43,7 +43,7 @@ class CoordinationGeometry(ObjectiveProvider):
         self.atom_types = atom_types
         self.radius = radius
         self.threshold = threshold
-        self.molecules = tuple(m.compound.mol for m in self.parent.genes
+        self.molecules = tuple(m.compound.mol for m in self.parent.genes.values()
                                if m.__class__.__name__ == "Molecule")
         mol, serial = gaudi.parse.parse_rawstring(target)
         try:
@@ -70,10 +70,12 @@ class CoordinationGeometry(ObjectiveProvider):
             try:
                 rmsd, center, vectors = MetalGeom.gui.geomDistEval(
                     self.geometry, self.target, test_atoms)
-            except:  # geometry not feasible in current conditions
+            except:  #
+                logger.warning("Geometry not feasible in current conditions")
                 rmsd = -1000 * self.weight
             return rmsd
         else:
+            logger.warning("Could not find enough atoms")
             return -1000 * self.weight
 
     ###
