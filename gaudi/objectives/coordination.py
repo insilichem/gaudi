@@ -146,17 +146,15 @@ class SimpleCoordination(ObjectiveProvider):
         """
         self._update_env()
         atoms = self.env.atoms()
-
-        # Distance
         # (distance, ligand) tuple, sorted by distances
         atoms_by_distance = \
             [(abs(self.distance - self.probe.xformCoord().distance(a.xformCoord())),
               a) for a in atoms if a.name in self.atom_types and a.residue in self.residues]
-        found_residues = set(a.residue for d, a in atoms_by_distance)
         if len(atoms_by_distance) < self.min_atoms:
             logger.warning(
                 "Could not find requested atoms from residues in probe environment")
             raise NotEnoughAtomsError
+        found_residues = set(a.residue for d, a in atoms_by_distance)
         if self.enforce_all_residues and found_residues != self.residues:
             logger.warning(
                 "Some atoms found, but some residues are missing")
