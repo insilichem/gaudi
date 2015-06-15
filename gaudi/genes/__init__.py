@@ -13,10 +13,13 @@
 # Python
 import abc
 import logging
+import os
+import pprint
 # GAUDI
 from gaudi import plugin
 
 logger = logging.getLogger(__name__)
+pp = pprint.PrettyPrinter(4)
 
 
 class GeneProvider(object):
@@ -83,8 +86,11 @@ class GeneProvider(object):
         Perform a crossover with another gene of the same kind.
         """
 
-    @abc.abstractmethod
-    def write(self):
+    def write(self, path, name, *args, **kwargs):
         """
         Write results of expression to a file representation.
         """
+        fullname = os.path.join(path, '{}_{}.txt'.format(name, self.name))
+        with open(fullname, 'w') as f:
+            f.write(pp.pformat(self.allele))
+        return fullname

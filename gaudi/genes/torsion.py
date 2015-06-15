@@ -79,10 +79,8 @@ class Torsion(GeneProvider):
                                                        self.flexibility,
                                                        up=0.5 * self.flexibility)
 
-    def write(self, path, name):
-        pass
-    #####
 
+    #####
     def random_angle(self):
         return random.uniform(-0.5 * self.flexibility, 0.5 * self.flexibility)
 

@@ -114,9 +114,6 @@ class Search(GeneProvider):
             # a new random xform with a given `frac` parameter
             self.allele = self.random_transform()
 
-    def write(self, path, name):
-        pass
-
     #####
     def random_transform(self):
         to_zero = ((1.0, 0.0, 0.0, -self.origin[0]),

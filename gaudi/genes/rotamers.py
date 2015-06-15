@@ -25,6 +25,7 @@ the same backbone, which may not be representative of the in-vivo behaviour. Use
 import random
 from collections import OrderedDict
 import logging
+import os
 # Chimera
 from Rotamers import getRotamers, useRotamer, NoResidueRotamersError
 import SwapRes
