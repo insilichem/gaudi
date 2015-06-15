@@ -138,7 +138,8 @@ objectives:
         ligand: Ligand
         # enable or disable terms in the list, respecting ORDER
         # [distance-dependent pair potentials, intramolecular clashes,
-        # torsion potentials, sas potentials] 
+        # torsion potentials, sas potentials]
         terms: [True, True, False, False]
         sorting: 1 # int between 0-6, read binary help for -S
         cofactor_handling: 1 # int between 0-7, read binary help for -I
+
