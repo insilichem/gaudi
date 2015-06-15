@@ -39,6 +39,7 @@ import itertools
 import random
 import sys
 import logging
+import tempfile
 # Chimera
 import chimera
 import BuildStructure
@@ -142,9 +143,24 @@ class Molecule(GeneProvider):
         if random.random() < self.indpb:
             self.allele = random.choice(self.catalog)
 
-    def write(self, path, name):
-        fullname = os.path.join(
-            path, '{}_{}.mol2'.format(name, self.name))
+    def write(self, path=None, name=None, absolute=None):
+        """
+        Writes full mol2 to disk.
+
+        .. todo::
+
+            It'd be preferable to get a string instead of a file
+        """
+        if path and name:
+            fullname = os.path.join(
+                path, '{}_{}.mol2'.format(name, self.name))
+        elif absolute:
+            fullname = absolute
+        else:
+            fileobject, fullname = tempfile.mkstemp(suffix=gaudi)
+            logger.warning(
+                "No output path provided. Using tempfile %s.", fullname)
+
         writeMol2([self.compound.mol], fullname,
                   temporary=True, multimodelHandling='combined')
         return fullname
