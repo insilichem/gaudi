@@ -39,8 +39,7 @@ class Distance(ObjectiveProvider):
         ObjectiveProvider.__init__(self, **kwargs)
         self.threshold = threshold
         self.tolerance = tolerance
-        self.molecules = tuple(m.compound.mol for m in self.parent.genes
-                               if m.__class__.__name__ == "Molecule")
+        self._probes = probes
 
         mol, serial = gaudi.parse.parse_rawstring(target)
         try:
@@ -59,28 +58,9 @@ class Distance(ObjectiveProvider):
         else:
             self.target = atom
 
-        self.probes = []
-        for probe in probes:
-            mol, serial = gaudi.parse.parse_rawstring(probe)
-            try:
-                if isinstance(serial, int):
-                    atom = next(a for a in self.parent.genes[mol].compound.mol.atoms
-                                if serial == a.serialNumber)
-                else:
-                    atom = next(a for a in self.parent.genes[mol].compound.mol.atoms
-                                if serial == a.name)
-            except KeyError:
-                logger.exception("Molecule not found")
-                raise
-            except StopIteration:
-                logger.exception("No atoms matched for target %s", probe)
-                raise
-            else:
-                self.probes.append(atom)
-
     def evaluate(self):
         distances = []
-        for a in self.probes:
+        for a in self.find_probes():
             d = self._distance(a, self.target)
             if self.threshold == 'covalent':
                 threshold = chimera.Element.bondLength(
@@ -95,7 +75,28 @@ class Distance(ObjectiveProvider):
 
         return numpy.mean(numpy.absolute(distances))
 
+    def find_probes(self):
+        for probe in self._probes:
+            mol, serial = gaudi.parse.parse_rawstring(probe)
+            try:
+                if isinstance(serial, int):
+                    atom = next(a for a in self.parent.genes[mol].compound.mol.atoms
+                                if serial == a.serialNumber)
+                elif serial == 'last':
+                    atom = self.parent.genes[mol].compound.acceptor
+                else:
+                    atom = next(a for a in self.parent.genes[mol].compound.mol.atoms
+                                if serial == a.name)
+            except KeyError:
+                logger.exception("Molecule not found")
+                raise
+            except StopIteration:
+                logger.exception("No atoms matched for target %s", probe)
+                raise
+            else:
+                yield atom
     ###
+
     @staticmethod
     def _distance(atom1, atom2):
         return atom1.xformCoord().distance(atom2.xformCoord())
