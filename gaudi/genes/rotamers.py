@@ -65,7 +65,9 @@ class Rotamers(GeneProvider):
         else:
             self.random_number = None
 
-        self._residues_rawstring = tuple(parse_rawstring(r) for r in residues)
+    def __ready__(self):
+        self._residues_rawstring = tuple(
+            parse_rawstring(r) for r in self._residues)
         for molecule, resid in self._residues_rawstring:
             try:
                 res = next(r for r in self.parent.genes[molecule].compound.mol.residues
@@ -82,7 +84,8 @@ class Rotamers(GeneProvider):
         new = self.__class__(self._residues, self.library, self.mutations,
                              **self._kwargs)
         new.__dict__.update((k, v) for k, v in self.__dict__.items())
-        new.allele = self.allele[:]
+        new.__ready__()
+        new.allele[:] = self.allele[:]
         return new
 
     def express(self):
@@ -129,12 +132,8 @@ class Rotamers(GeneProvider):
                      )
                 )
 
-    def write(self, path, name):
-        pass
-        # rotamerline = '{}.{} {} {} {}\n'.format(res.id.position, res.id.chainId,
-        # self.library.title(), res.type, ' '.join(map(str,rot.chis)))
-
     ###
+
     def choice(self, l):
         """
         Overrides ``random.choice`` with custom one so we can

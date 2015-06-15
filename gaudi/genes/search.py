@@ -50,14 +50,28 @@ def enable(**kwargs):
 class Search(GeneProvider):
 
     def __init__(self, target=None, center=None, radius=None, rotate=True,
-                 precision=None, **kwargs):
+                 precision=None, anchor=None, **kwargs):
         GeneProvider.__init__(self, **kwargs)
         self.radius = radius
         self.rotate = rotate
         self.precision = precision
-        self.target = target
-        self.origin = self.parent.genes[target].compound.donor.coord().data()
-        self.center = parse_origin(center, self.parent.genes)
+        self._target = target
+        self._anchor = anchor
+        self._center = center
+
+    def __ready__(self):
+        self.target = self.parent.genes[self._target]
+        if self._anchor:
+            try:
+                anchor = next(a for a in self.target.compound.mol.atoms
+                              if a.serialNumber == self._anchor)
+            except StopIteration:
+                self.origin = self.target.compound.donor.coord().data()
+            else:
+                self.origin = anchor.coord().data()
+        else:
+            self.origin = self.target.compound.donor.coord().data()
+        self.center = parse_origin(self._center, self.parent.genes)
         self.allele = self.random_transform()
 
     def express(self):
@@ -66,17 +80,17 @@ class Search(GeneProvider):
         set that as the xform for the target molecule. If precision is set, round them.
         """
         if self.precision is not None:
-            self.parent.genes[self.target].compound.mol.openState.xform = M.chimera_xform(
+            self.target.compound.mol.openState.xform = M.chimera_xform(
                 M.multiply_matrices(*numpy_around(self.allele, self.precision).tolist()))
         else:
-            self.parent.genes[self.target].compound.mol.openState.xform = M.chimera_xform(
+            self.target.compound.mol.openState.xform = M.chimera_xform(
                 M.multiply_matrices(*self.allele))
 
     def unexpress(self):
         """
         Reset xform to unity matrix
         """
-        self.parent.genes[self.target].compound.mol.openState.xform = X()
+        self.target.compound.mol.openState.xform = X()
 
     def mate(self, mate):
         """

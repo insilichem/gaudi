@@ -86,6 +86,8 @@ class Molecule(GeneProvider):
 
         self.catalog = self._CATALOG[self.name]
         self.allele = random.choice(self.catalog)
+
+    def __ready__(self):
         # Pre-express so other genes can access residues, atoms and so on
         self.compound = self.get(self.allele)
 
@@ -103,6 +105,7 @@ class Molecule(GeneProvider):
         """
         new = self.__class__(self.path, self.symmetry,
                              **self._kwargs)
+        new.__ready__()
         new.__dict__.update((k, v) for k, v in self.__dict__.items())
         new.allele = self.allele + ()  # make sure we get a NEW allele
         return new

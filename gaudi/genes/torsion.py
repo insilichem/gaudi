@@ -39,20 +39,19 @@ class Torsion(GeneProvider):
         self.target = target
         self.flexibility = 360.0 if flexibility > 360 else flexibility
         self.nonrotatable = ()
+        self.allele = [self.random_angle() for i in xrange(self.max_bonds)]
+
+    def __ready__(self):
         try:
-            self.compound = self.parent.genes[self.target].compound
+            self.molecule = self.parent.genes[self.target]
         except KeyError:
             logger.error("Gene for target %s is not in individual",
                          self.target)
             raise
-        except AttributeError:
-            logger.error("Molecule in %s is not properly expressed",
-                         self.target)
-            raise
         else:
-            self.rotatable_bonds = list(self.get_rotatable_bonds())
+            self.anchor = self._get_anchor()
 
-        self.allele = [self.random_angle() for b in self.rotatable_bonds]
+        self.rotatable_bonds = list(self.get_rotatable_bonds())
 
     def express(self):
         for alpha, br in zip(self.allele, self.rotatable_bonds):
@@ -120,8 +119,9 @@ class Torsion(GeneProvider):
         self.rotatable_bonds = list(self.get_rotatable_bonds())
 
     def __deepcopy__(self, memo):
-        new = self.__class__(self.target, self.flexibility,
+        new = self.__class__(self.target, self.flexibility, self.max_bonds,
                              **self._kwargs)
+        new.__ready__()
         new.__dict__.update((k, v) for k, v in self.__dict__.items())
         new.allele[:] = self.allele[:]
         return new

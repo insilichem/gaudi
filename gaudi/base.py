@@ -69,6 +69,9 @@ class Individual(object):
                                   cxeta=self.cfg.ga.cx_eta,
                                   mteta=self.cfg.ga.cx_eta,
                                   indpb=self.cfg.ga.mut_indpb)
+        for g in self.genes.values():
+            g.__ready__()
+
         self.fitness = gaudi.base.Fitness(parent=self, cache=self._CACHE_OBJ)
 
     def evaluate(self):
