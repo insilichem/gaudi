@@ -103,12 +103,12 @@ objectives:
         threshold: 90.0 #degrees or 'planar'
         # serialnumbers, 3 for angle, 4 for dihedral
         # Careful, input order DOES matter
-        target: [ $Protein$/123, $Protein$/456, $Ligand$/10, $Ligand$/9]
+        target: [ Protein/123, Protein/456, Ligand/10, Ligand/9]
 
     -   name: Solvation
         type: gaudi.objectives.solvation
         weight: -1.0
-        which: 'ses' #or 'sas'
+        which: ses #or 'sas'
         target: Ligand
 
     -   name: Coordination
@@ -128,3 +128,17 @@ objectives:
         # params for 'metalgeom'
         geometry: tetrahedral # choose from MetalGeom.geomData.geometries.keys()
         threshold: 1.0 # max admitted RMSD
+
+    -   name: DSX
+        type: gaudi.objectives.dsx
+        weight: -1.0
+        binary: /path/to/dsx/binary
+        potentials: /path/to/dir/containing/potentials/files
+        protein: Protein
+        ligand: Ligand
+        # enable or disable terms in the list, respecting ORDER
+        # [distance-dependent pair potentials, intramolecular clashes,
+        # torsion potentials, sas potentials] 
+        terms: [True, True, False, False]
+        sorting: 1 # int between 0-6, read binary help for -S
+        cofactor_handling: 1 # int between 0-7, read binary help for -I

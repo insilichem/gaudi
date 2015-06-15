@@ -24,13 +24,6 @@ To handle all this diversity, each construction is cached the first time is buil
 
 This class is a dependency of most of the other genes (and even objectives), so it
 will be requested almost always.
-
-.. todo::
-
-    As a result of the recent migration, some covalent interaction parameters
-    are still present in the code. Ie, `vertex` argument in the keys. A solution
-    must be proposed to get rid of those, probably a new gene that specifies this
-    restrictions (`covalent`, for example).
 """
 
 # Python
@@ -71,20 +64,16 @@ class Molecule(GeneProvider):
     """
     _CATALOG = {}
 
-    def __init__(self, path=None, symmetry=None,
-                 **kwargs):
+    def __init__(self, path=None, symmetry=None, **kwargs):
         GeneProvider.__init__(self, **kwargs)
         self._kwargs = kwargs
         self.path = path
         self.symmetry = symmetry
-
         try:
             self._compoundcache = self._cache[self.name]
         except KeyError:
             self._compoundcache = self._cache[self.name] = LRUCache(300)
-            self.catalog = self._CATALOG[
-                self.name] = tuple(self._compile_catalog())
-
+            self._CATALOG[self.name] = tuple(self._compile_catalog())
         self.catalog = self._CATALOG[self.name]
         self.allele = random.choice(self.catalog)
 
@@ -167,31 +156,20 @@ class Molecule(GeneProvider):
 
     ############
     def __getitem__(self, key):
-        return self.get(key, 0)
+        return self.get(key)
 
-    def get(self, key, vertex=0):
+    def get(self, key):
         # repoze.lru does not raise exceptions, so we must switch to LBYL
-        compound = self._compoundcache.get((key, vertex))
+        compound = self._compoundcache.get(key)
         if not compound:
             compound = self.build(key)
-            self._compoundcache.put((key, compound.vertex), compound)
+            self._compoundcache.put(key, compound)
         return compound
 
     def build(self, key, where=None):
-        vertex = 0
-        # if self.covalent:
-        #   base = Compound()
-        #   base.donor = base.add_dummy_atom(where.neighbors[0], serial=1)
-        #   base.acceptor = base.add_dummy_atom(where, bonded_to=base.donor, serial=2)
-        #   base.append(Compound(molecule=key[0], seed=random.random()))
-        #   vertex = base.vertex
-        # else:
-        #   base = Compound(molecule=key[0])
-        #   base.place(where)
         base = Compound(molecule=key[0])
         for molpath in key[1:]:
             base.append(Compound(molecule=molpath))
-        base.vertex = vertex
         return base
 
     def _compile_catalog(self):
@@ -251,7 +229,6 @@ class Compound(object):
         self.parse_attr()
         self.origin = origin
         self.seed = seed
-        self.vertex = 0
         for k, v in kwargs.items():
             self.__dict__[k] = v
         if not hasattr(self, 'nonrotatable'):
@@ -323,7 +300,6 @@ class Compound(object):
             raise UserError('Specified atom is not part of molecule.')
 
         molecule.place_for_bonding(acceptor)
-        self.vertex = molecule.vertex
         if not donor:
             donor = molecule.donor
         updated_atoms = self.join(molecule, acceptor, donor)
@@ -398,20 +374,18 @@ class Compound(object):
             anchor = self.donor
         search.translate(self.mol, anchor, where)
 
-    def place_for_bonding(self, target, anchor=None, seed=None):
+    def place_for_bonding(self, target, anchor=None):
         if not isinstance(target, chimera.Atom):
             raise UserError('Target must be a chimera.Atom object.')
         if not anchor:
             anchor = self.donor
-        if not seed:
-            seed = self.seed
         # Get target position
-        target_pos, self.vertex = _new_atom_position(
-            target, anchor.element, seed)
+        target_pos = _new_atom_position(
+            target, anchor.element)
         # Place it
         self.place(target_pos)
         # Fix orientation
-        anchor_pos, i = _new_atom_position(anchor, target.element)
+        anchor_pos = _new_atom_position(anchor, target.element)
         search.rotate(
             self.mol, [target.coord(), anchor.coord(), anchor_pos], 0.0)
 
@@ -435,4 +409,4 @@ def _new_atom_position(atom, newelement, seed=0.0):
     neighbors_crd = [a.coord() for a in atom.neighbors]
     points = chimera.bondGeom.bondPositions(atom.coord(), geometry, bond_length,
                                             neighbors_crd)
-    return points[int(seed * len(points))], int(seed * len(points))
+    return points[0]
