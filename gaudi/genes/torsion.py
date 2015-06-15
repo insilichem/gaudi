@@ -34,11 +34,12 @@ logger = logging.getLogger(__name__)
 
 class Torsion(GeneProvider):
 
-    def __init__(self, target=None, flexibility=None, **kwargs):
+    def __init__(self, target=None, flexibility=None, max_bonds=30, **kwargs):
         GeneProvider.__init__(self, **kwargs)
         self._kwargs = kwargs
         self.target = target
         self.flexibility = 360.0 if flexibility > 360 else flexibility
+        self.max_bonds = max_bonds
         self.nonrotatable = ()
         self.allele = [self.random_angle() for i in xrange(self.max_bonds)]
 
@@ -55,31 +56,33 @@ class Torsion(GeneProvider):
         self.rotatable_bonds = list(self.get_rotatable_bonds())
 
     def express(self):
-        for alpha, br in zip(self.allele, self.rotatable_bonds):
+        self.rotatable_bonds[:] = []
+        for alpha, br in izip(self.allele, self.get_rotatable_bonds()):
             try:
-                if all([a.idatmType in ('C2', 'N2') for a in br.bond.atoms]):
+                if all(a.idatmType in ('C2', 'N2') for a in br.bond.atoms):
                     alpha = 0 if alpha < 180 else 180
                 br.adjustAngle(alpha - br.angle, br.rotanchor)
             # A null bondrot was returned -> non-rotatable bond
             except AttributeError:
                 continue
+            else:
+                self.rotatable_bonds.append(br)
 
     def unexpress(self):
         for br in self.rotatable_bonds:
-            br.reset()
+            br.adjustAngle(-br.angle, br.rotanchor)
 
     def mate(self, mate):
-        self.allele[:], mate.allele[:] = deap.tools.cxSimulatedBinaryBounded(
+        self.allele[:], mate.allele[:] = cxSimulatedBinaryBounded(
             self.allele, mate.allele, eta=self.cxeta,
             low=-0.5 * self.flexibility, up=0.5 * self.flexibility)
 
     def mutate(self, indpb):
-        self.allele, = deap.tools.mutPolynomialBounded(self.allele,
-                                                       indpb=self.indpb, eta=self.mteta,
-                                                       low=-0.5 *
-                                                       self.flexibility,
-                                                       up=0.5 * self.flexibility)
-
+        self.allele, = mutPolynomialBounded(self.allele,
+                                            indpb=self.indpb, eta=self.mteta,
+                                            low=-0.5 *
+                                            self.flexibility,
+                                            up=0.5 * self.flexibility)
 
     #####
     def random_angle(self):
@@ -87,16 +90,17 @@ class Torsion(GeneProvider):
 
     def get_rotatable_bonds(self):
         bonds = set(
-            b for a in self.compound.mol.atoms for b in a.bonds if not a.element.isMetal)
+            b for a in self.molecule.compound.mol.atoms for b in a.bonds if not a.element.isMetal)
         bonds = sorted(
             bonds, key=lambda b: min(y.serialNumber for y in b.atoms))
 
+        self.anchor = self._get_anchor()
         existing_bondrots_bonds = []
         for b in bonds:
             if b in existing_bondrots_bonds:
                 continue
             a1, a2 = b.atoms
-            if  a1 not in self.nonrotatable and \
+            if a1 not in self.nonrotatable and \
                     a1.idatmType in ('C3', 'N3', 'C2', 'N2') and \
                     (a1.numBonds > 1 and a2.numBonds > 1) or \
                     a1.name == 'DUM' or a2.name == 'DUM':
@@ -110,12 +114,28 @@ class Torsion(GeneProvider):
                     else:
                         raise
                 else:
-                    br.rotanchor = box.find_nearest(
-                        self.compound.donor, b.atoms)
+                    br.rotanchor = box.find_nearest(self.anchor, b.atoms)
                     yield br
 
     def update_rotatable_bonds(self):
         self.rotatable_bonds = list(self.get_rotatable_bonds())
+
+    def _get_anchor(self):
+        try:
+            search = next(g for g in self.parent.genes.values()
+                          if g.__class__.__name__ == 'Search'
+                          and g.target == self.target)
+        except StopIteration:
+            anchor = self.molecule.compound.donor
+        else:
+            try:
+                anchor = next(a for a in self.molecule.atoms
+                              if a.serialNumber == search.anchor)
+            except (StopIteration, AttributeError):
+                anchor = self.molecule.compound.donor
+
+        anchor.name = 'ANC'
+        return anchor
 
     def __deepcopy__(self, memo):
         new = self.__class__(self.target, self.flexibility, self.max_bonds,
