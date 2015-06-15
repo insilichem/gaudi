@@ -123,7 +123,7 @@ class Rotamers(GeneProvider):
 
     def mutate(self, indpb):
         if random.random() < self.indpb:
-            self.allele = []
+            self.allele[:] = []
             if self.ligation:  # don't forget to get a new random!
                 self.random_number = random.random()
             for res in self.residues.values():

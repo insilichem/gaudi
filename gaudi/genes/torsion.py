@@ -20,10 +20,11 @@ objects.
 # Python
 import random
 import logging
+from itertools import izip
 # Chimera
 import chimera
 # External dependencies
-import deap.tools
+from deap.tools import cxSimulatedBinaryBounded, mutPolynomialBounded
 # GAUDI
 from gaudi.genes import GeneProvider
 from gaudi import box
