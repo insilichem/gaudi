@@ -21,6 +21,7 @@ objects.
 import random
 import logging
 from itertools import izip
+from collections import OrderedDict
 # Chimera
 import chimera
 # External dependencies
@@ -33,6 +34,7 @@ logger = logging.getLogger(__name__)
 
 
 class Torsion(GeneProvider):
+    BONDS_ROTS = {}
 
     def __init__(self, target=None, flexibility=None, max_bonds=30, **kwargs):
         GeneProvider.__init__(self, **kwargs)
@@ -44,15 +46,12 @@ class Torsion(GeneProvider):
         self.allele = [self.random_angle() for i in xrange(self.max_bonds)]
 
     def __ready__(self):
-        try:
-            self.molecule = self.parent.genes[self.target]
-        except KeyError:
+        if self.target not in self.parent.genes:
             logger.error("Gene for target %s is not in individual",
                          self.target)
             raise
-        else:
-            self.anchor = self._get_anchor()
 
+        self.anchor = self._get_anchor()
         self.rotatable_bonds = list(self.get_rotatable_bonds())
 
     def express(self):
@@ -89,36 +88,40 @@ class Torsion(GeneProvider):
         return random.uniform(-0.5 * self.flexibility, 0.5 * self.flexibility)
 
     def get_rotatable_bonds(self):
-        bonds = set(
-            b for a in self.molecule.compound.mol.atoms for b in a.bonds if not a.element.isMetal)
+        atoms = self.parent.genes[self.target].compound.mol.atoms
+        bonds = set(b for a in atoms for b in a.bonds if not a.element.isMetal)
         bonds = sorted(
             bonds, key=lambda b: min(y.serialNumber for y in b.atoms))
 
         self.anchor = self._get_anchor()
-        existing_bondrots_bonds = []
         for b in bonds:
-            if b in existing_bondrots_bonds:
-                continue
-            a1, a2 = b.atoms
-            if a1 not in self.nonrotatable and \
-                    a1.idatmType in ('C3', 'N3', 'C2', 'N2') and \
-                    (a1.numBonds > 1 and a2.numBonds > 1) or \
-                    a1.name == 'DUM' or a2.name == 'DUM':
-                try:
-                    br = chimera.BondRot(b)
-                except (chimera.error, ValueError), v:
-                    if "cycle" in str(v):
-                        continue  # discard bonds in cycles!
-                    elif "already used" in str(v):
-                        continue
+            try:
+                br = self.BONDS_ROTS[b]
+            except KeyError:
+                a1, a2 = b.atoms
+                if a1 not in self.nonrotatable and \
+                        a1.idatmType in ('C3', 'N3', 'C2', 'N2') and \
+                        (a1.numBonds > 1 and a2.numBonds > 1) or \
+                        a1.name == 'DUM' or a2.name == 'DUM':
+                    try:
+                        br = chimera.BondRot(b)
+                    except (chimera.error, ValueError), v:
+                        if "cycle" in str(v):
+                            continue  # discard bonds in cycles!
+                        elif "already used" in str(v):
+                            print str(v)
+                            continue
+                        else:
+                            raise
                     else:
-                        raise
+                        br.rotanchor = box.find_nearest(self.anchor, b.atoms)
+                        self.BONDS_ROTS[b] = br
                 else:
-                    br.rotanchor = box.find_nearest(self.anchor, b.atoms)
-                    yield br
+                    continue
+            yield br
 
     def update_rotatable_bonds(self):
-        self.rotatable_bonds = list(self.get_rotatable_bonds())
+        self.rotatable_bonds[:] = list(self.get_rotatable_bonds())
 
     def _get_anchor(self):
         try:
@@ -126,13 +129,13 @@ class Torsion(GeneProvider):
                           if g.__class__.__name__ == 'Search'
                           and g.target == self.target)
         except StopIteration:
-            anchor = self.molecule.compound.donor
+            anchor = self.parent.genes[self.target].compound.donor
         else:
             try:
-                anchor = next(a for a in self.molecule.atoms
+                anchor = next(a for a in self.parent.genes[self.target].atoms
                               if a.serialNumber == search.anchor)
             except (StopIteration, AttributeError):
-                anchor = self.molecule.compound.donor
+                anchor = self.parent.genes[self.target].compound.donor
 
         anchor.name = 'ANC'
         return anchor
@@ -141,7 +144,7 @@ class Torsion(GeneProvider):
         new = self.__class__(self.target, self.flexibility, self.max_bonds,
                              **self._kwargs)
         new.__ready__()
-        new.__dict__.update((k, v) for k, v in self.__dict__.items())
+        # new.__dict__.update((k, v) for k, v in self.__dict__.items())
         new.allele[:] = self.allele[:]
         return new
 

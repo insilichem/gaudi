@@ -17,6 +17,7 @@
 
 # Python
 from collections import OrderedDict
+from copy import deepcopy
 from zipfile import ZipFile, ZIP_DEFLATED, ZIP_STORED
 import os
 import pprint
@@ -60,10 +61,14 @@ class Individual(object):
     _CACHE = {}
     _CACHE_OBJ = {}
 
-    def __init__(self, cfg=None, cache=None, **kwargs):
+    def __init__(self, cfg=None, cache=None, dummy=False, **kwargs):
         logger.debug("Creating new individual with id %s", id(self))
-        self.genes = OrderedDict()
         self.cfg = cfg
+        if not dummy:
+            self.__ready__()
+
+    def __ready__(self):
+        self.genes = OrderedDict()
         gaudi.plugin.load_plugins(self.cfg.genes, container=self.genes,
                                   cache=self._CACHE, parent=self,
                                   cxeta=self.cfg.ga.cx_eta,
@@ -73,6 +78,14 @@ class Individual(object):
             g.__ready__()
 
         self.fitness = gaudi.base.Fitness(parent=self, cache=self._CACHE_OBJ)
+
+    def __deepcopy__(self, memo):
+        new = self.__class__(cfg=self.cfg, dummy=True)
+        new.genes = deepcopy(self.genes, memo)
+        for g in new.genes.values():
+            g.parent = new
+        new.fitness = deepcopy(self.fitness, memo)
+        return new
 
     def evaluate(self):
         logger.debug("Evaluating individual #%s", id(self))

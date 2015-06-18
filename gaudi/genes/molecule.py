@@ -87,7 +87,7 @@ class Molecule(GeneProvider):
 
         After each generation, DEAP will copy the current population using Python's
         __deepcopy___. Since Chimera uses some C++ wrappers for its own objects, such
-        as atoms, residues and molecules, which don't implement __deepcopy___, this returns and error.
+        as atoms, residues and molecules, which don't implement __deepcopy__, this returns an error.
         These objects shouldn't be copied over anyway (that's why we have a cache), so overriding
         __deepcopy__ in this class circumvents the problem. All we do is ignore the recursivity
         of the original __deepcopy__ to prevent the access to the inner objects. All we keep is a
