@@ -54,6 +54,77 @@ def atoms_by_serial(*serials, **kw):
     return [a for a in kw['atoms'] if a.serialNumber in serials]
 
 
+def create_single_individual(path):
+    """
+    Create an individual within Chimera
+    """
+    def prepare_input(path, parser):
+        """
+        Parses input file and validate paths
+        """
+        import os
+        import logging
+
+        def build_path(basedir, path):
+            """
+            Processes tildes and join paths to base directory of input file.
+            ``os.path.join`` is smart enough to not join two absolute paths, returning
+            the last one provided. ``os.path.normpath`` simplifies joined paths by
+            parsing residual dots or double dots.
+            """
+            return os.path.normpath(os.path.join(basedir, os.path.expanduser(path)))
+
+        # Parse input
+        try:
+            # os.path.realpath prepends the working directory to relative paths
+            path = os.path.abspath(os.path.expanduser(path))
+        except IndexError:
+            print "ERROR: Input file not provided."
+        else:
+            cfg = parser(path)
+            inputdir = os.path.dirname(path)
+
+        # Tilde expansion in paths and abs/rel path support
+        cfg.general.outputpath = build_path(inputdir, cfg.general.outputpath)
+        for g in cfg.genes:
+            if g.type == 'gaudi.genes.molecule':
+                g.path = build_path(inputdir, g.path)
+                if not os.path.exists(g.path):
+                    print "ERROR: Path " + g.path + " is wrong. Check your input file.\n"
+
+        # Create dirs
+        try:
+            os.makedirs(cfg.general.outputpath)
+        except OSError:
+            if os.path.isfile(cfg.general.outputpath):
+                print "ERROR: Output path is already a file. Please change it.\n"
+
+        # Register loggers and handlers for both stdout and file
+        logger = logging.getLogger('gaudi')
+        logger.setLevel(logging.DEBUG)
+
+        # create CONSOLE handler and set level to error
+        handler = logging.StreamHandler()
+        handler.setLevel(logging.DEBUG)
+        formatter = logging.Formatter("%(levelname)s - %(message)s")
+        handler.setFormatter(formatter)
+        logger.addHandler(handler)
+
+        return cfg
+
+    import deap
+    from deap import creator, tools
+    from . import base, plugin, parse
+    cfg = prepare_input(path, parse.Settings)
+    plugin.import_plugins(*cfg.genes)
+    plugin.import_plugins(*cfg.objectives)
+    toolbox = deap.base.Toolbox()
+    toolbox.register("call", (lambda fn, *args, **kwargs: fn(*args, **kwargs)))
+    toolbox.register("individual", toolbox.call, base.Individual, cfg)
+    ind = toolbox.individual()
+    return ind
+
+
 def draw_interactions(interactions, startCol='FF0000', endCol='FFFF00',
                       key=None, name="Custom pseudobonds"):
     if not len(interactions):
