@@ -86,19 +86,19 @@ class Search(GeneProvider):
         Multiply all the matrices, convert the result to a chimera.CoordFrame and
         set that as the xform for the target molecule. If precision is set, round them.
         """
-        self.origin = parse_origin(self._target, self.parent.genes)
+        matrices = self.allele + (self.to_zero,)
         if self.precision is not None:
-            self.parent.genes[self.target].compound.mol.openState.xform = M.chimera_xform(
-                M.multiply_matrices(*numpy_around(self.allele, self.precision).tolist()))
+            self.molecule.openState.xform = M.chimera_xform(
+                M.multiply_matrices(*numpy_around(matrices, self.precision).tolist()))
         else:
-            self.parent.genes[self.target].compound.mol.openState.xform = M.chimera_xform(
-                M.multiply_matrices(*self.allele))
+            self.molecule.openState.xform = M.chimera_xform(
+                M.multiply_matrices(*matrices))
 
     def unexpress(self):
         """
         Reset xform to unity matrix
         """
-        self.parent.genes[self.target].compound.mol.openState.xform = X()
+        self.molecule.openState.xform = X()
 
     def mate(self, mate):
         """
@@ -124,15 +124,14 @@ class Search(GeneProvider):
 
     #####
     def random_transform(self):
-        to_zero = ((1.0, 0.0, 0.0, -self.origin[0]),
-                   (0.0, 1.0, 0.0, -self.origin[1]),
-                   (0.0, 0.0, 1.0, -self.origin[2]))
         rotation = random_rotation() if self.rotate else IDENTITY
         translation = random_translation(self.center, self.radius)
-        return translation, rotation, to_zero
+        return translation, rotation
 
-
+#############
 # Some useful functions
+
+
 def translate(molecule, anchor, target):
     if isinstance(anchor, chimera.Atom):
         anchor = anchor.coord()
