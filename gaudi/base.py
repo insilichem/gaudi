@@ -82,9 +82,11 @@ class Individual(object):
     def __deepcopy__(self, memo):
         new = self.__class__(cfg=self.cfg, dummy=True)
         new.genes = deepcopy(self.genes, memo)
-        for g in new.genes.values():
-            g.parent = new
         new.fitness = deepcopy(self.fitness, memo)
+        new.fitness.parent = new
+        for child in new.genes.values() + new.fitness.objectives.values():
+            child.parent = new
+
         return new
 
     def evaluate(self):

@@ -74,28 +74,16 @@ class Molecule(GeneProvider):
             self._CATALOG[self.name] = tuple(self._compile_catalog())
         self.allele = random.choice(self.catalog)
 
-    def __ready__(self):
-        # Pre-express so other genes can access residues, atoms and so on
-        self.compound = self.get(self.allele)
-
-    def __deepcopy__(self, memo):
+    @property
+    def compound(self):
         """
-        Fixes copy of Chimera unmutable objects (Atoms, Residues, etc)
-
-        After each generation, DEAP will copy the current population using Python's
-        __deepcopy___. Since Chimera uses some C++ wrappers for its own objects, such
-        as atoms, residues and molecules, which don't implement __deepcopy__, this returns an error.
-        These objects shouldn't be copied over anyway (that's why we have a cache), so overriding
-        __deepcopy__ in this class circumvents the problem. All we do is ignore the recursivity
-        of the original __deepcopy__ to prevent the access to the inner objects. All we keep is a
-        reference to them.
+        Get expressed allele on-demand (read-only attribute)
         """
-        new = self.__class__(self.path, self.symmetry,
-                             **self._kwargs)
-        new.__ready__()
-        new.__dict__.update((k, v) for k, v in self.__dict__.items())
-        new.allele = self.allele + ()  # make sure we get a NEW allele
-        return new
+        return self.get(self.allele)
+
+    @property
+    def catalog(self):
+        return self._CATALOG[self.name]
 
     def express(self):
         self.compound = self.get(self.allele)

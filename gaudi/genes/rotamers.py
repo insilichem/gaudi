@@ -85,14 +85,6 @@ class Rotamers(GeneProvider):
                 self.allele.append((self.choice(self.mutations + [res.type]),
                                     random.random()))
 
-    def __deepcopy__(self, memo):
-        new = self.__class__(self._residues, self.library, self.mutations,
-                             **self._kwargs)
-        new.__dict__.update((k, v) for k, v in self.__dict__.items())
-        new.__ready__()
-        new.allele[:] = self.allele[:]
-        return new
-
     def express(self):
         for (mol, pos), (restype, i) in zip(self.residues, self.allele):
             try:

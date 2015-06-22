@@ -136,17 +136,7 @@ class Torsion(GeneProvider):
                               if a.serialNumber == search.anchor)
             except (StopIteration, AttributeError):
                 anchor = self.parent.genes[self.target].compound.donor
-
-        anchor.name = 'ANC'
         return anchor
-
-    def __deepcopy__(self, memo):
-        new = self.__class__(self.target, self.flexibility, self.max_bonds,
-                             **self._kwargs)
-        new.__ready__()
-        # new.__dict__.update((k, v) for k, v in self.__dict__.items())
-        new.allele[:] = self.allele[:]
-        return new
 
 
 def enable(**kwargs):
