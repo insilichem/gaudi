@@ -58,10 +58,9 @@ class ObjectiveProvider(object):
         self.name = name
         self.weight = weight
         self.env = environment
-        try:
-            self._cache = cache[self.name]
-        except KeyError:
-            self._cache = cache[self.name] = {}
+
+    def __ready__(self):
+        pass
 
     @abc.abstractmethod
     def evaluate(self):
