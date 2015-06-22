@@ -48,6 +48,7 @@ class GeneProvider(object):
 
     # This sole line is the magic behind the plugin system!
     __metaclass__ = plugin.PluginMount
+    _cache = {}
 
     def __init__(self, parent=None, name=None, cache=None,
                  cxeta=5.0, mteta=5.0, indpb=0.75,

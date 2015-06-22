@@ -69,12 +69,9 @@ class Molecule(GeneProvider):
         self._kwargs = kwargs
         self.path = path
         self.symmetry = symmetry
-        try:
-            self._compoundcache = self._cache[self.name]
-        except KeyError:
-            self._compoundcache = self._cache[self.name] = LRUCache(300)
+        if self.name not in self._cache:
+            self._cache[self.name] = LRUCache(300)
             self._CATALOG[self.name] = tuple(self._compile_catalog())
-        self.catalog = self._CATALOG[self.name]
         self.allele = random.choice(self.catalog)
 
     def __ready__(self):

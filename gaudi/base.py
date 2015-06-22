@@ -70,14 +70,14 @@ class Individual(object):
     def __ready__(self):
         self.genes = OrderedDict()
         gaudi.plugin.load_plugins(self.cfg.genes, container=self.genes,
-                                  cache=self._CACHE, parent=self,
+                                  parent=self,
                                   cxeta=self.cfg.ga.cx_eta,
                                   mteta=self.cfg.ga.cx_eta,
                                   indpb=self.cfg.ga.mut_indpb)
         for g in self.genes.values():
             g.__ready__()
 
-        self.fitness = gaudi.base.Fitness(parent=self, cache=self._CACHE_OBJ)
+        self.fitness = gaudi.base.Fitness(parent=self)
 
     def __deepcopy__(self, memo):
         new = self.__class__(cfg=self.cfg, dummy=True)
@@ -191,26 +191,22 @@ class Fitness(deap.base.Fitness):
     of every `individual`, it should result in a self-contained object.
 
     :parent:    A reference to the :class:`individual` that cointains the instance.
-    :cache:     A reference to a mutable object that is maintained at `individual` level.
     :args:      Positional arguments that will be passed to `deap.base.Fitness.__init__`
     :kwargs:    Optional arguments that will be passed to `deap.base.Fitness.__init__`
     """
 
-    objectives = OrderedDict()
     wvalues = ()
 
-    def __init__(self, parent=None, cache=None, *args, **kwargs):
+    def __init__(self, parent=None, *args, **kwargs):
         self.parent = parent
         self.weights = self.parent.cfg.weights
         deap.base.Fitness.__init__(self, *args, **kwargs)
-        self.cache = cache
         self.env = chimera.selection.ItemizedSelection()
-
-        if not self.objectives:
-            gaudi.plugin.load_plugins(self.parent.cfg.objectives,
-                                      container=self.objectives,
-                                      cache=self.cache, parent=self.parent,
-                                      environment=self.env)
+        self.objectives = OrderedDict()
+        gaudi.plugin.load_plugins(self.parent.cfg.objectives,
+                                  container=self.objectives,
+                                  parent=self.parent,
+                                  environment=self.env)
 
     def __deepcopy__(self, memo):
         copy_ = self.__class__(parent=self.parent)

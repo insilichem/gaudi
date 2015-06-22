@@ -50,6 +50,7 @@ class ObjectiveProvider(object):
     """
 
     __metaclass__ = plugin.PluginMount
+    _cache = {}
 
     def __init__(self, parent=None, name=None, weight=None, cache=None, environment=None,
                  **kwargs):

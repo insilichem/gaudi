@@ -51,20 +51,24 @@ class Rotamers(GeneProvider):
         self.mutations = mutations
         self.ligation = ligation
         self.allele = []
-        # set (or retrieve) caches
-        try:
-            self.residues = self._cache[self.name + '_res']
-            self.rotamers = self._cache[self.name + '_rot']
-        except KeyError:
-            self.residues = self._cache[self.name + '_res'] = OrderedDict()
-            self.rotamers = self._cache[self.name + '_rot'] = LRUCache(300)
-
-        # find requested residues
+        # set caches
+        if self.name + '_res' not in self._cache:
+            self._cache[self.name + '_res'] = OrderedDict()
+        if self.name + '_rot' not in self._cache:
+            self._cache[self.name + '_rot'] = LRUCache(300)
 
         if self.ligation:
             self.random_number = random.random()
         else:
             self.random_number = None
+
+    @property
+    def residues(self):
+        return self._cache[self.name + '_res']
+
+    @property
+    def rotamers(self):
+        return self._cache[self.name + '_rot']
 
     def __ready__(self):
         self._residues_rawstring = tuple(
