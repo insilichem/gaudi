@@ -58,10 +58,9 @@ class GeneProvider(object):
         self.cxeta = cxeta
         self.mteta = mteta
         self.indpb = indpb
-        try:
-            self._cache = cache[self.name]
-        except KeyError:
-            self._cache = cache[self.name] = {}
+
+    def __ready__(self):
+        pass
 
     @abc.abstractmethod
     def express(self):
