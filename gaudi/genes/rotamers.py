@@ -39,6 +39,10 @@ from gaudi.parse import parse_rawstring
 logger = logging.getLogger(__name__)
 
 
+def enable(**kwargs):
+    return Rotamers(**kwargs)
+
+
 class Rotamers(GeneProvider):
 
     def __init__(self, residues=None, library='Dunbrack',
@@ -144,7 +148,7 @@ class Rotamers(GeneProvider):
 
     def get_rotamers(self, mol, pos, restype):
         rotamers = self.rotamers.get((mol, pos, restype))
-        if not rotamers:
+        if rotamers is None:
             try:
                 rotamers = getRotamers(self.residues[(mol, pos)], resType=restype,
                                        lib=self.library.title())[1]
@@ -155,7 +159,3 @@ class Rotamers(GeneProvider):
             else:
                 self.rotamers.put((mol, pos, restype), rotamers)
         return rotamers
-
-
-def enable(**kwargs):
-    return Rotamers(**kwargs)

@@ -55,9 +55,9 @@ class Search(GeneProvider):
         self.radius = radius
         self.rotate = rotate
         self.precision = precision
-        self.target, self.anchor = target.split('/')
         self._center = center
         self._target = target
+        self.target, self.anchor = target.split('/')
 
     def __ready__(self):
         self.allele = self.random_transform()
