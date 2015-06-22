@@ -145,10 +145,10 @@ class Molecule(GeneProvider):
 
     def get(self, key):
         # repoze.lru does not raise exceptions, so we must switch to LBYL
-        compound = self._compoundcache.get(key)
+        compound = self._cache[self.name].get(key)
         if not compound:
             compound = self.build(key)
-            self._compoundcache.put(key, compound)
+            self._cache[self.name].put(key, compound)
         return compound
 
     def build(self, key, where=None):
