@@ -46,20 +46,20 @@ class Contacts(ObjectiveProvider):
         ObjectiveProvider.__init__(self, **kwargs)
         self.which = which
         self.radius = radius
-        self.molecules = tuple(m.compound.mol for m in self.parent.genes.values()
-                               if m.__class__.__name__ == "Molecule")
-
         self.threshold = threshold
         self.threshold_h = threshold_h
         self.threshold_c = threshold_c
         self.cutoff = cutoff
+        self._probe = probe
 
-        try:
-            self.probe = self.parent.genes[probe].compound.mol
-        except KeyError:
-            raise
-        except AttributeError:
-            raise
+    @property
+    def molecules(self):
+        return tuple(m.compound.mol for m in self.parent.genes.values()
+                     if m.__class__.__name__ == "Molecule")
+
+    @property
+    def probe(self):
+        return self.parent.genes[self._probe].compound.mol
 
     def evaluate(self):
         test_atoms = self._surrounding_atoms()

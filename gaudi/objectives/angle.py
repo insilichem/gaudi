@@ -39,10 +39,27 @@ class Angle(ObjectiveProvider):
         ObjectiveProvider.__init__(self, **kwargs)
         self.threshold = threshold
         self.tolerance = tolerance
-        self.molecules = tuple(m.compound.mol for m in self.parent.genes
-                               if m.__class__.__name__ == "Molecule")
         self._probes = probes
-        self.probes = list(self._getprobes())
+
+    @property
+    def probes(self):
+        for probe in self._probes:
+            mol, serial = gaudi.parse.parse_rawstring(probe)
+            try:
+                if isinstance(serial, int):
+                    atom = next(a for a in self.parent.genes[mol].compound.mol.atoms
+                                if serial == a.serialNumber)
+                else:
+                    atom = next(a for a in self.parent.genes[mol].compound.mol.atoms
+                                if serial == a.name)
+            except KeyError:
+                print "Molecule not found"
+                raise
+            except StopIteration:
+                print "No atoms matched for probe", probe
+                raise
+            else:
+                yield atom
 
     def evaluate(self):
         atoms_coords = [
@@ -61,21 +78,3 @@ class Angle(ObjectiveProvider):
         return delta
 
 # TODO: Probes get lost if rotamers are applied!
-    def _getprobes(self):
-        for probe in self._probes:
-            mol, serial = gaudi.parse.parse_rawstring(probe)
-            try:
-                if isinstance(serial, int):
-                    atom = next(a for a in self.parent.genes[mol].compound.mol.atoms
-                                if serial == a.serialNumber)
-                else:
-                    atom = next(a for a in self.parent.genes[mol].compound.mol.atoms
-                                if serial == a.name)
-            except KeyError:
-                print "Molecule not found"
-                raise
-            except StopIteration:
-                print "No atoms matched for probe", probe
-                raise
-            else:
-                yield atom

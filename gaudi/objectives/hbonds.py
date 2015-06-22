@@ -42,17 +42,19 @@ class Hbonds(ObjectiveProvider):
     def __init__(self, probe=None, distance_tolerance=0.4, angle_tolerance=20.0, radius=5.0,
                  *args, **kwargs):
         ObjectiveProvider.__init__(self, **kwargs)
+        self._probe = probe
         self.distance_tolerance = distance_tolerance
         self.angle_tolerance = angle_tolerance
         self.radius = radius
-        self.molecules = tuple(m.compound.mol for m in self.parent.genes.values()
-                               if m.__class__.__name__ == "Molecule")
-        try:
-            self.probe = self.parent.genes[probe].compound.mol
-        except KeyError:
-            raise
-        except AttributeError:
-            raise
+
+    @property
+    def molecules(self):
+        return tuple(m.compound.mol for m in self.parent.genes.values()
+                     if m.__class__.__name__ == "Molecule")
+
+    @property
+    def probe(self):
+        return self.parent.genes[self._probe].compound.mol
 
     def evaluate(self):
         test_atoms = self.surrounding_atoms()

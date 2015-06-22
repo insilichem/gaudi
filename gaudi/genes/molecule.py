@@ -86,13 +86,11 @@ class Molecule(GeneProvider):
         return self._CATALOG[self.name]
 
     def express(self):
-        self.compound = self.get(self.allele)
         chimera.openModels.add([self.compound.mol], shareXform=True)
         box.pseudobond_to_bond(self.compound.mol)
 
     def unexpress(self):
         chimera.openModels.remove([self.compound.mol])
-        # del self.compound
 
     def mate(self, mate):
         """

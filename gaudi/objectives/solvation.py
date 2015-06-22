@@ -45,19 +45,18 @@ class Solvation(ObjectiveProvider):
     def __init__(self, which='ses', target=None,
                  *args, **kwargs):
         ObjectiveProvider.__init__(self, **kwargs)
+        self._target = target
         self.which = which
-        try:
-            self.target = self.parent.genes[target].compound.mol
-        except KeyError:
-            raise
-        except AttributeError:
-            raise
+
+    @property
+    def target(self):
+        return self.parent.genes[self._target].compound.mol
 
     def evaluate(self):
         try:
             atoms, ses, sas = self._solvation(self.env.atoms())
         except Surface_Calculation_Error:
-            raise Surface_Calculation_Error("""Problem with solvation calc. 
+            raise Surface_Calculation_Error("""Problem with solvation calc.
 Read this: http://www.rbvi.ucsf.edu/chimera/docs/UsersGuide/surfprobs.html""")
         else:
             if self.which == 'ses':

@@ -60,9 +60,26 @@ class Search(GeneProvider):
         self._target = target
 
     def __ready__(self):
-        self.origin = parse_origin(self._target, self.parent.genes)
-        self.center = parse_origin(self._center, self.parent.genes)
         self.allele = self.random_transform()
+
+    @property
+    def center(self):
+        return parse_origin(self._center, self.parent.genes)
+
+    @property
+    def molecule(self):
+        return self.parent.genes[self.target].compound.mol
+
+    @property
+    def origin(self):
+        return parse_origin(self._target, self.parent.genes)
+
+    @property
+    def to_zero(self):
+        origin = self.origin
+        return ((1.0, 0.0, 0.0, -origin[0]),
+                (0.0, 1.0, 0.0, -origin[1]),
+                (0.0, 0.0, 1.0, -origin[2]))
 
     def express(self):
         """

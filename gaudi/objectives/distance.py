@@ -40,15 +40,17 @@ class Distance(ObjectiveProvider):
         self.threshold = threshold
         self.tolerance = tolerance
         self._probes = probes
+        self._mol, self._serial = gaudi.parse.parse_rawstring(target)
 
-        mol, serial = gaudi.parse.parse_rawstring(target)
+    @property
+    def target(self):
         try:
-            if isinstance(serial, int):
-                atom = next(a for a in self.parent.genes[mol].compound.mol.atoms
-                            if serial == a.serialNumber)
+            if isinstance(self._serial, int):
+                atom = next(a for a in self.parent.genes[self._mol].compound.mol.atoms
+                            if self._serial == a.serialNumber)
             else:
-                atom = next(a for a in self.parent.genes[mol].compound.mol.atoms
-                            if serial == a.name)
+                atom = next(a for a in self.parent.genes[self._mol].compound.mol.atoms
+                            if self._serial == a.name)
         except KeyError:
             logger.exception("Molecule not found")
             raise
@@ -56,26 +58,10 @@ class Distance(ObjectiveProvider):
             logger.exception("No atoms matched for target %s", atom)
             raise
         else:
-            self.target = atom
+            return atom
 
-    def evaluate(self):
-        distances = []
-        for a in self.find_probes():
-            d = self._distance(a, self.target)
-            if self.threshold == 'covalent':
-                threshold = chimera.Element.bondLength(
-                    a.element, self.target.element)
-            else:
-                threshold = self.threshold
-            d = d - threshold
-            if d < self.tolerance:
-                distances.append(-1000 * self.weight)
-            else:
-                distances.append(d)
-
-        return numpy.mean(numpy.absolute(distances))
-
-    def find_probes(self):
+    @property
+    def probes(self):
         for probe in self._probes:
             mol, serial = gaudi.parse.parse_rawstring(probe)
             try:
@@ -96,6 +82,23 @@ class Distance(ObjectiveProvider):
             else:
                 yield atom
     ###
+
+    def evaluate(self):
+        distances = []
+        for a in self.probes:
+            d = self._distance(a, self.target)
+            if self.threshold == 'covalent':
+                threshold = chimera.Element.bondLength(
+                    a.element, self.target.element)
+            else:
+                threshold = self.threshold
+            d = d - threshold
+            if d < self.tolerance:
+                distances.append(-1000 * self.weight)
+            else:
+                distances.append(d)
+
+        return numpy.mean(numpy.absolute(distances))
 
     @staticmethod
     def _distance(atom1, atom2):

@@ -51,8 +51,8 @@ class SimpleCoordination(ObjectiveProvider):
                  enforce_all_residues=False, only_one_ligand_per_residue=False, *args, **kwargs):
         ObjectiveProvider.__init__(self, **kwargs)
         self.method = method
-        self.probe = self._getatom(probe)
-        self.residues = set(self._getresidue(*residues))
+        self._probe = probe
+        self._residues = residues
         self.radius = radius
         self.atom_types = atom_types
         self.distance = distance
@@ -61,13 +61,23 @@ class SimpleCoordination(ObjectiveProvider):
         self.min_atoms = min_atoms
         self.only_one_ligand_per_residue = only_one_ligand_per_residue
         self.enforce_all_residues = enforce_all_residues
-        self.molecules = tuple(g.compound.mol for g in self.parent.genes.values()
-                               if g.__class__.__name__ == "Molecule")
-
         if self.method == 'metalgeom':
             self.evaluate = self.evaluate_MetalGeom
         else:
             self.evaluate = self.evaluate_simple
+
+    @property
+    def probe(self):
+        return self._getatom(self._probe)
+
+    @property
+    def molecules(self):
+        return tuple(g.compound.mol for g in self.parent.genes.values()
+                     if g.__class__.__name__ == "Molecule")
+
+    @property
+    def residues(self):
+        return set(self._getresidue(*self._residues))
 
     def evaluate_simple(self):
         """

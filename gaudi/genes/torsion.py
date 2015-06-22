@@ -45,18 +45,8 @@ class Torsion(GeneProvider):
         self.nonrotatable = ()
         self.allele = [self.random_angle() for i in xrange(self.max_bonds)]
 
-    def __ready__(self):
-        if self.target not in self.parent.genes:
-            logger.error("Gene for target %s is not in individual",
-                         self.target)
-            raise
-
-        self.anchor = self._get_anchor()
-        self.rotatable_bonds = list(self.get_rotatable_bonds())
-
     def express(self):
-        self.rotatable_bonds[:] = []
-        for alpha, br in izip(self.allele, self.get_rotatable_bonds()):
+        for alpha, br in izip(self.allele, self.rotatable_bonds):
             try:
                 if all(a.idatmType in ('C2', 'N2') for a in br.bond.atoms):
                     alpha = 0 if alpha < 180 else 180
@@ -64,8 +54,6 @@ class Torsion(GeneProvider):
             # A null bondrot was returned -> non-rotatable bond
             except AttributeError:
                 continue
-            else:
-                self.rotatable_bonds.append(br)
 
     def unexpress(self):
         for br in self.rotatable_bonds:
@@ -87,13 +75,13 @@ class Torsion(GeneProvider):
     def random_angle(self):
         return random.uniform(-0.5 * self.flexibility, 0.5 * self.flexibility)
 
-    def get_rotatable_bonds(self):
+    @property
+    def rotatable_bonds(self):
         atoms = self.parent.genes[self.target].compound.mol.atoms
         bonds = set(b for a in atoms for b in a.bonds if not a.element.isMetal)
         bonds = sorted(
             bonds, key=lambda b: min(y.serialNumber for y in b.atoms))
 
-        self.anchor = self._get_anchor()
         for b in bonds:
             try:
                 br = self.BONDS_ROTS[b]
@@ -123,7 +111,8 @@ class Torsion(GeneProvider):
     def update_rotatable_bonds(self):
         self.rotatable_bonds[:] = list(self.get_rotatable_bonds())
 
-    def _get_anchor(self):
+    @property
+    def anchor(self):
         try:
             search = next(g for g in self.parent.genes.values()
                           if g.__class__.__name__ == 'Search'
