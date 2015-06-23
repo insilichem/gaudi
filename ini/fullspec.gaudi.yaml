@@ -26,6 +26,12 @@ ga:
     similarity_rmsd: 2.5
     history: 0
 
+similarity:
+    # type is the full Python path to similarity function
+    type: gaudi.similarity.rmsd
+    args: [Ligand, 2.5]
+    kwargs: {}
+
 ###
 # GENOME
 ###

@@ -19,10 +19,10 @@
 from collections import OrderedDict
 from copy import deepcopy
 from zipfile import ZipFile, ZIP_DEFLATED, ZIP_STORED
+import logging
 import os
 import pprint
-import math
-import logging
+import sys
 # Chimera
 import chimera
 # External dependencies
@@ -78,11 +78,14 @@ class Individual(object):
             g.__ready__()
 
         self.fitness = Fitness(self.cfg.weights)
+        mod, fn = self.cfg.similarity.type.rsplit('.', 1)
+        self._similarity = getattr(sys.modules[mod], fn)
 
     def __deepcopy__(self, memo):
         new = self.__class__(cfg=self.cfg, dummy=True)
         new.genes = deepcopy(self.genes, memo)
         new.fitness = deepcopy(self.fitness, memo)
+        new._similarity = self._similarity
         for g in new.genes.values():
             g.parent = new
 
@@ -126,29 +129,9 @@ class Individual(object):
         return self,
 
     def similar(self, individual):
-        logger.debug("Comparing RMSD between #%s and #%s",
-                     id(self), id(individual))
-        self.express()
-        compound1 = next(gene for gene in self.genes.values()
-                         if gene.__class__.__name__ == 'Molecule').compound
-        atoms1 = sorted(compound1.mol.atoms, key=lambda x: x.serialNumber)
-        coords1 = [a.coord() for a in atoms1]
-        xf1 = compound1.mol.openState.xform
-        self.unexpress()
-
-        individual.express()
-        compound2 = next(gene for gene in individual.genes.values()
-                         if gene.__class__.__name__ == 'Molecule').compound
-        atoms2 = sorted(compound2.mol.atoms, key=lambda x: x.serialNumber)
-        coords2 = [a.coord() for a in atoms2]
-        xf2 = compound2.mol.openState.xform
-        individual.unexpress()
-
-        sqdist = sum(xf1.apply(a).sqdistance(xf2.apply(b))
-                     for a, b in zip(coords1, coords2))
-        rmsd = math.sqrt(sqdist / ((len(coords1) + len(coords2)) / 2.0))
-        logger.debug("RMSD: %f", rmsd)
-        return rmsd < self.cfg.ga.similarity_rmsd
+        return self._similarity(self, individual,
+                                *self.cfg.similarity.args,
+                                **self.cfg.similarity.kwargs)
 
     def write(self, i):
         """

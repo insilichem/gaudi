@@ -36,6 +36,7 @@ Read `README.md` for additional details on useful aliases.
 
 # Python
 from time import strftime
+from importlib import import_module
 import logging
 import numpy
 import os
@@ -52,6 +53,7 @@ import gaudi
 def main(cfg):
     gaudi.plugin.import_plugins(*cfg.genes)
     gaudi.plugin.import_plugins(*cfg.objectives)
+    import_module(cfg.similarity.type.rsplit('.', 1)[0])
 
     # DEAP setup: Fitness, Individuals, Population
     toolbox = deap.base.Toolbox()
@@ -77,7 +79,11 @@ def main(cfg):
         toolbox.decorate("mutate", history.decorator)
         history.update(population)
 
-    paretofront = deap.tools.ParetoFront(toolbox.similarity)
+    if cfg.ga.pareto:
+        best_individuals = deap.tools.ParetoFront(toolbox.similarity)
+    else:
+        best_individuals = deap.tools.HallOfFame(50,
+                                                 similar=toolbox.similarity)
     stats = deap.tools.Statistics(lambda ind: ind.fitness.values)
     numpy.set_printoptions(precision=cfg.general.precision)
     stats.register("avg", numpy.mean, axis=0)
@@ -89,9 +95,9 @@ def main(cfg):
         population, toolbox,
         mu=int(cfg.ga.mu * cfg.ga.pop), lambda_=int(cfg.ga.lambda_ * cfg.ga.pop),
         cxpb=cfg.ga.cx_pb, mutpb=cfg.ga.mut_pb,
-        ngen=cfg.ga.gens, stats=stats, halloffame=paretofront)
+        ngen=cfg.ga.gens, stats=stats, halloffame=best_individuals)
 
-    return population, log, paretofront
+    return population, log, best_individuals
 
 
 def prepare_input():
@@ -176,14 +182,14 @@ if __name__ == "__main__":
     chimera.triggers.addHandler("Model", gaudi.box.suppress_ksdssp, None)
 
     # Run simulation
-    pop, log, paretofront = main(cfg)
+    pop, log, best = main(cfg)
 
     # Write results
     logger.info('Writing %s results to disk', len(pop))
     results = {'GAUDI.objectives': [
         '{} ({})'.format(obj.name, obj.type) for obj in cfg.objectives]}
     results['GAUDI.results'] = {}
-    for i, ind in enumerate(paretofront):
+    for i, ind in enumerate(best):
         filename = ind.write(i)
         results['GAUDI.results'][os.path.basename(filename)] = \
             [float(f) for f in ind.fitness.values]
