@@ -52,23 +52,21 @@ class Contacts(ObjectiveProvider):
         self.cutoff = cutoff
         self._probe = probe
 
-    @property
-    def molecules(self):
-        return tuple(m.compound.mol for m in self.parent.genes.values()
+    def molecules(self, ind):
+        return tuple(m.compound.mol for m in ind.genes.values()
                      if m.__class__.__name__ == "Molecule")
 
-    @property
-    def probe(self):
-        return self.parent.genes[self._probe].compound.mol
+    def probe(self, ind):
+        return ind.genes[self._probe].compound.mol
 
-    def evaluate(self):
-        test_atoms = self._surrounding_atoms()
+    def evaluate(self, ind):
+        test_atoms = self._surrounding_atoms(ind)
         clashes = DetectClash.detectClash(test_atoms, test=test_atoms, intraRes=True,
                                           interSubmodel=True, clashThreshold=self.threshold,
                                           hbondAllowance=self.threshold_h, assumedMaxVdw=2.1,
                                           bondSeparation=4)
         try:
-            positive, negative = self._parse_clashes_c(clashes)
+            positive, negative = self._parse_clashes_c(clashes, ind)
         except StopIteration:
             positive, negative = 0, 0
 
@@ -81,12 +79,12 @@ class Contacts(ObjectiveProvider):
             return sum(1 - a[3] for a in positive) / 2
 
     ###
-    def _parse_clashes(self, clashes):
+    def _parse_clashes(self, clashes, ind):
         ALIPH = ['C3', [[cg.C, [cg.C, [cg.C, [cg.R, cg.R, cg.R, cg.R]],
                                 cg.R, cg.R]], cg.R, cg.R, cg.R]], [1, 1, 1, 1, 1, 0, 0]
         AROMATIC = set(
-            a for g in cg.findGroup("aromatic ring", self.molecules) for a in g)
-        ALIPHATIC = set(a for g in cg.findGroup(ALIPH, self.molecules)
+            a for g in cg.findGroup("aromatic ring", self.molecules(ind)) for a in g)
+        ALIPHATIC = set(a for g in cg.findGroup(ALIPH, self.molecules(ind))
                         for a in g if a not in AROMATIC)
 
         positive, negative = [], []
@@ -108,9 +106,9 @@ class Contacts(ObjectiveProvider):
 
         return positive, negative
 
-    def _parse_clashes_c(self, clashes):
+    def _parse_clashes_c(self, clashes, ind):
         vdwatoms = set(
-            a for m in self.molecules for a in m.atoms if a.element.name in ('C', 'S'))
+            a for m in self.molecules(ind) for a in m.atoms if a.element.name in ('C', 'S'))
 
         positive, negative = [], []
         for a1, c in clashes.items():
@@ -125,15 +123,16 @@ class Contacts(ObjectiveProvider):
 
         return positive, negative
 
-    def _surrounding_atoms(self):
-        self.env.clear()
-        self.env.add(self.probe.atoms)
-        self.env.merge(chimera.selection.REPLACE,
-                       chimera.specifier.zone(
-                           self.env, 'atom', None, self.radius, self.molecules
-                       )
-                       )
-        return self.env.atoms()
+    def _surrounding_atoms(self, ind):
+        self.zone.clear()
+        self.zone.add(self.probe(ind).atoms)
+        self.zone.merge(chimera.selection.REPLACE,
+                        chimera.specifier.zone(
+                            self.zone, 'atom', None, self.radius, self.molecules(
+                                ind)
+                        )
+                        )
+        return self.zone.atoms()
 
     @staticmethod
     def _lennard_jones(a1, a2):

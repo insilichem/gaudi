@@ -122,7 +122,8 @@ def create_single_individual(path):
     toolbox.register("call", (lambda fn, *args, **kwargs: fn(*args, **kwargs)))
     toolbox.register("individual", toolbox.call, base.Individual, cfg)
     ind = toolbox.individual()
-    return ind
+    environment = deap.base.Environment(cfg)
+    return ind, environment
 
 
 def draw_interactions(interactions, startCol='FF0000', endCol='FFFF00',

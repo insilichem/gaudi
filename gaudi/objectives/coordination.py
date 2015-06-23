@@ -66,20 +66,17 @@ class SimpleCoordination(ObjectiveProvider):
         else:
             self.evaluate = self.evaluate_simple
 
-    @property
-    def probe(self):
-        return self._getatom(self._probe)
+    def probe(self, ind):
+        return self._getatom(ind, self._probe)
 
-    @property
-    def molecules(self):
-        return tuple(g.compound.mol for g in self.parent.genes.values()
+    def molecules(self, ind):
+        return tuple(g.compound.mol for g in ind.genes.values()
                      if g.__class__.__name__ == "Molecule")
 
-    @property
-    def residues(self):
-        return set(self._getresidue(*self._residues))
+    def residues(self, ind):
+        return set(self._getresidue(ind, *self._residues))
 
-    def evaluate_simple(self):
+    def evaluate_simple(self, ind):
         """
         1. For every atom within the search radius that matches the criteria, get:
             - Coordinates for `self.probe`, atom, its immediate neighbor, and next neighbor
@@ -125,7 +122,7 @@ class SimpleCoordination(ObjectiveProvider):
 
             return sum(numpy.average(x) for x in (distances, angles, dihedrals) if x)
 
-    def evaluate_MetalGeom(self):
+    def evaluate_MetalGeom(self, ind):
         """
         1. Get requested atoms sorted by distance
         2. If they meet the minimum quantity, return the rmsd for
@@ -154,8 +151,8 @@ class SimpleCoordination(ObjectiveProvider):
            That way, nearest atoms are computed first.
         2.1. If found atoms do not include some of the requested types, apply penalty.
         """
-        self._update_env()
-        atoms = self.env.atoms()
+        self._update_zone()
+        atoms = self.zone.atoms()
         # (distance, ligand) tuple, sorted by distances
         atoms_by_distance = \
             [(abs(self.distance - self.probe.xformCoord().distance(a.xformCoord())),
@@ -174,7 +171,7 @@ class SimpleCoordination(ObjectiveProvider):
         return atoms_by_distance
 
     # TODO: Probes get lost if rotamers are applied!
-    def _getatom(self, probe):
+    def _getatom(self, ind, probe):
         """
         Parse `Molecule/serialNumber` string and return a chimera.Atom located at
         `Molecule` with serial number `serialNumber`
@@ -182,10 +179,10 @@ class SimpleCoordination(ObjectiveProvider):
         mol, serial = gaudi.parse.parse_rawstring(probe)
         try:
             if isinstance(serial, int):
-                atom = next(a for a in self.parent.genes[mol].compound.mol.atoms
+                atom = next(a for a in ind.genes[mol].compound.mol.atoms
                             if serial == a.serialNumber)
             else:
-                atom = next(a for a in self.parent.genes[mol].compound.mol.atoms
+                atom = next(a for a in ind.genes[mol].compound.mol.atoms
                             if serial == a.name)
         except KeyError:
             logger.exception("Molecule %s not found", mol)
@@ -196,7 +193,7 @@ class SimpleCoordination(ObjectiveProvider):
         else:
             return atom
 
-    def _getresidue(self, *residues):
+    def _getresidue(self, ind, *residues):
         """
         Parse `Molecule/position` string and return a chimera.Residue located at
         `Molecule` with serial number `position`
@@ -204,7 +201,7 @@ class SimpleCoordination(ObjectiveProvider):
         for r in residues:
             mol, pos = gaudi.parse.parse_rawstring(r)
             try:
-                res = next(r for r in self.parent.genes[mol].compound.mol.residues
+                res = next(r for r in ind.genes[mol].compound.mol.residues
                            if pos == r.id.position)
 
             except KeyError:
@@ -216,18 +213,18 @@ class SimpleCoordination(ObjectiveProvider):
             else:
                 yield res
 
-    def _update_env(self):
+    def _update_zone(self, ind):
         """
         Clear existing selection and add atoms within `self.radius` from
         `self.probe`, as long as they belong to one of `self.molecules`
         """
-        self.env.clear()
-        self.env.add(self.probe)
-        self.env.merge(chimera.selection.REPLACE,
-                       chimera.specifier.zone(
-                           self.env, 'atom', None, self.radius, self.molecules)
-                       )
-        return self.env
+        self.zone.clear()
+        self.zone.add(self.probe(ind))
+        self.zone.merge(chimera.selection.REPLACE,
+                        chimera.specifier.zone(
+                            self.zone, 'atom', None, self.radius, self.molecules)
+                        )
+        return self.zone
 
     @staticmethod
     def _get_xform_coord(a):

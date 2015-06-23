@@ -41,16 +41,15 @@ class Angle(ObjectiveProvider):
         self.tolerance = tolerance
         self._probes = probes
 
-    @property
-    def probes(self):
+    def probes(self, ind):
         for probe in self._probes:
             mol, serial = gaudi.parse.parse_rawstring(probe)
             try:
                 if isinstance(serial, int):
-                    atom = next(a for a in self.parent.genes[mol].compound.mol.atoms
+                    atom = next(a for a in ind.genes[mol].compound.mol.atoms
                                 if serial == a.serialNumber)
                 else:
-                    atom = next(a for a in self.parent.genes[mol].compound.mol.atoms
+                    atom = next(a for a in ind.genes[mol].compound.mol.atoms
                                 if serial == a.name)
             except KeyError:
                 print "Molecule not found"
@@ -61,9 +60,9 @@ class Angle(ObjectiveProvider):
             else:
                 yield atom
 
-    def evaluate(self):
+    def evaluate(self, ind):
         atoms_coords = [
-            a.molecule.openState.xform.apply(a.coord()) for a in self.probes]
+            a.molecule.openState.xform.apply(a.coord()) for a in self.probes(ind)]
         delta = 180.0
         try:
             angle = chimera.angle(*atoms_coords)

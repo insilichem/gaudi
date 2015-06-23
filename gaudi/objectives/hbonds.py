@@ -47,23 +47,23 @@ class Hbonds(ObjectiveProvider):
         self.angle_tolerance = angle_tolerance
         self.radius = radius
 
-    @property
-    def molecules(self):
-        return tuple(m.compound.mol for m in self.parent.genes.values()
+    def molecules(self, ind):
+        return tuple(m.compound.mol for m in ind.genes.values()
                      if m.__class__.__name__ == "Molecule")
 
-    @property
-    def probe(self):
-        return self.parent.genes[self._probe].compound.mol
+    def probe(self, ind):
+        return ind.genes[self._probe].compound.mol
 
-    def evaluate(self):
-        test_atoms = self.surrounding_atoms()
-        hbonds = FindHBond.findHBonds(self.molecules, cacheDA=self._cache,
+    def evaluate(self, ind):
+        molecules = self.molecules(ind)
+        probe = self.probe(ind)
+        test_atoms = self.surrounding_atoms(probe, molecules)
+        hbonds = FindHBond.findHBonds(molecules, cacheDA=self._cache,
                                       donors=test_atoms, acceptors=test_atoms,
                                       distSlop=self.distance_tolerance,
                                       angleSlop=self.angle_tolerance)
         hbonds = FindHBond.base.filterHBondsBySel(
-            hbonds, self.probe.atoms, 'any')
+            hbonds, probe.atoms, 'any')
 
         return len(hbonds)
 
@@ -72,12 +72,14 @@ class Hbonds(ObjectiveProvider):
                                            startCol='00FFFF', endCol='00FFFF')
 
     ###
-    def surrounding_atoms(self):
-        self.env.clear()
-        self.env.add(self.probe.atoms)
-        self.env.merge(chimera.selection.REPLACE,
-                       chimera.specifier.zone(
-                           self.env, 'atom', None, self.radius, self.molecules
-                       )
-                       )
-        return self.env.atoms()
+    def surrounding_atoms(self, probe, molecules):
+        self.zone.clear()
+        self.zone.add(probe.atoms)
+        self.zone.merge(chimera.selection.REPLACE,
+                        chimera.specifier.zone(
+                            self.zone, 'atom',
+                            None, self.radius,
+                            molecules
+                        )
+                        )
+        return self.zone.atoms()

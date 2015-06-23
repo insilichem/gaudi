@@ -11,9 +11,9 @@
 ##############
 
 """
-:mod:`gaudi.objectives.angle` calculates the angle formed by three
-given atoms (or the dihedral, if four atoms are given) and returns
-the absolute difference of that angle and the target value.
+:mod:`gaudi.objectives.dsx` wraps the binaries provided by
+Neudert and Klebe at http://pc1664.pharmazie.uni-marburg.de/drugscore/
+and calculates the score of the current pose.
 """
 
 # Python
@@ -45,27 +45,26 @@ class DSX(ObjectiveProvider):
         self.sorting = sorting
         self.cofactor_handling = cofactor_handling
         self.oldworkingdir = os.getcwd()
+        self.tempdir = tempfile._get_default_tempdir()
 
-    @property
-    def protein(self):
-        for gene in self.parent.genes.values():
+    def protein(self, ind):
+        for gene in ind.genes.values():
             if gene.__class__.__name__ == 'Molecule' and gene.name == self.protein_name:
                 return gene
 
-    @property
-    def ligand(self):
-        for gene in self.parent.genes.values():
+    def ligand(self, ind):
+        for gene in ind.genes.values():
             if gene.__class__.__name__ == 'Molecule' and gene.name == self.ligand_name:
                 return gene
 
-    def evaluate(self):
-        tmpfile = os.path.join(tempfile._get_default_tempdir(),
+    def evaluate(self, ind):
+        tmpfile = os.path.join(self.tempdir,
                                next(tempfile._get_candidate_names()))
         proteinpath = '{}_protein.mol2'.format(tmpfile)
         ligandpath = '{}_ligand.mol2'.format(tmpfile)
 
-        self.protein.write(absolute=proteinpath)
-        self.ligand.write(absolute=ligandpath)
+        self.protein(ind).write(absolute=proteinpath)
+        self.ligand(ind).write(absolute=ligandpath)
 
         T0, T1, T2, T3 = [1.0 * t for t in self.terms]
         command = map(str, (self.binary, '-P', proteinpath, '-L', ligandpath,

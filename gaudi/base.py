@@ -77,22 +77,21 @@ class Individual(object):
         for g in self.genes.values():
             g.__ready__()
 
-        self.fitness = gaudi.base.Fitness(parent=self)
+        self.fitness = Fitness(self.cfg.weights)
 
     def __deepcopy__(self, memo):
         new = self.__class__(cfg=self.cfg, dummy=True)
         new.genes = deepcopy(self.genes, memo)
         new.fitness = deepcopy(self.fitness, memo)
-        new.fitness.parent = new
-        for child in new.genes.values() + new.fitness.objectives.values():
-            child.parent = new
+        for g in new.genes.values():
+            g.parent = new
 
         return new
 
-    def evaluate(self):
+    def evaluate(self, environment):
         logger.debug("Evaluating individual #%s", id(self))
         self.express()
-        score = self.fitness.evaluate()
+        score = environment.evaluate(self)
         self.unexpress()
         return score
 
@@ -183,7 +182,7 @@ class Individual(object):
         return zipfilename
 
 
-class Fitness(deap.base.Fitness):
+class Environment(object):
 
     """
     Augmented `Fitness` class to self-include `objectives` objects.
@@ -197,28 +196,35 @@ class Fitness(deap.base.Fitness):
     :kwargs:    Optional arguments that will be passed to `deap.base.Fitness.__init__`
     """
 
-    wvalues = ()
-
-    def __init__(self, parent=None, *args, **kwargs):
-        self.parent = parent
-        self.weights = self.parent.cfg.weights
-        deap.base.Fitness.__init__(self, *args, **kwargs)
-        self.env = chimera.selection.ItemizedSelection()
+    def __init__(self, cfg, *args, **kwargs):
+        self.cfg = cfg
+        self.weights = self.cfg.weights
+        self.zone = chimera.selection.ItemizedSelection()
         self.objectives = OrderedDict()
-        gaudi.plugin.load_plugins(self.parent.cfg.objectives,
+        gaudi.plugin.load_plugins(self.cfg.objectives,
                                   container=self.objectives,
-                                  parent=self.parent,
-                                  environment=self.env)
+                                  zone=self.zone)
 
-    def __deepcopy__(self, memo):
-        copy_ = self.__class__(parent=self.parent)
-        copy_.wvalues = self.wvalues + ()
-        return copy_
-
-    def evaluate(self):
+    def evaluate(self, individual):
         scores = []
+        individual.express()
         for name, obj in self.objectives.items():
-            score = obj.evaluate()
+            score = obj.evaluate(individual)
             scores.append(score)
             logger.debug("%s fitness is %s", name, score)
+        individual.unexpress()
         return scores
+
+
+class Fitness(deap.base.Fitness):
+
+    wvalues = ()
+
+    def __init__(self, weights):
+        self.weights = weights
+        deap.base.Fitness.__init__(self)
+
+    def __deepcopy__(self, memo):
+        new = self.__class__(self.weights)
+        new.wvalues = self.wvalues + ()
+        return new

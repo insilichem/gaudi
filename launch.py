@@ -61,7 +61,9 @@ def main(cfg):
                      deap.tools.initRepeat, list, toolbox.individual)
     population = toolbox.population(n=cfg.ga.pop)
 
-    toolbox.register("evaluate", lambda ind: ind.evaluate())
+    environment = gaudi.base.Environment(cfg)
+
+    toolbox.register("evaluate", lambda ind: environment.evaluate(ind))
     toolbox.register("mate", (lambda ind1, ind2: ind1.mate(ind2)))
     toolbox.register("mutate",
                      (lambda ind, indpb: ind.mutate(indpb)), indpb=cfg.ga.mut_indpb)

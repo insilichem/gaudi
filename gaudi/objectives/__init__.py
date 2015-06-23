@@ -52,12 +52,12 @@ class ObjectiveProvider(object):
     __metaclass__ = plugin.PluginMount
     _cache = {}
 
-    def __init__(self, parent=None, name=None, weight=None, cache=None, environment=None,
+    def __init__(self, parent=None, name=None, weight=None, cache=None, zone=None,
                  **kwargs):
         self.parent = parent
         self.name = name
         self.weight = weight
-        self.env = environment
+        self.zone = zone
 
     def __ready__(self):
         pass

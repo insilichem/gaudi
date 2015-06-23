@@ -42,14 +42,13 @@ class Distance(ObjectiveProvider):
         self._probes = probes
         self._mol, self._serial = gaudi.parse.parse_rawstring(target)
 
-    @property
-    def target(self):
+    def target(self, ind):
         try:
             if isinstance(self._serial, int):
-                atom = next(a for a in self.parent.genes[self._mol].compound.mol.atoms
+                atom = next(a for a in ind.genes[self._mol].compound.mol.atoms
                             if self._serial == a.serialNumber)
             else:
-                atom = next(a for a in self.parent.genes[self._mol].compound.mol.atoms
+                atom = next(a for a in ind.genes[self._mol].compound.mol.atoms
                             if self._serial == a.name)
         except KeyError:
             logger.exception("Molecule not found")
@@ -60,18 +59,17 @@ class Distance(ObjectiveProvider):
         else:
             return atom
 
-    @property
-    def probes(self):
+    def probes(self, ind):
         for probe in self._probes:
             mol, serial = gaudi.parse.parse_rawstring(probe)
             try:
                 if isinstance(serial, int):
-                    atom = next(a for a in self.parent.genes[mol].compound.mol.atoms
+                    atom = next(a for a in ind.genes[mol].compound.mol.atoms
                                 if serial == a.serialNumber)
                 elif serial == 'last':
-                    atom = self.parent.genes[mol].compound.acceptor
+                    atom = ind.genes[mol].compound.acceptor
                 else:
-                    atom = next(a for a in self.parent.genes[mol].compound.mol.atoms
+                    atom = next(a for a in ind.genes[mol].compound.mol.atoms
                                 if serial == a.name)
             except KeyError:
                 logger.exception("Molecule not found")
@@ -83,13 +81,14 @@ class Distance(ObjectiveProvider):
                 yield atom
     ###
 
-    def evaluate(self):
+    def evaluate(self, ind):
         distances = []
-        for a in self.probes:
-            d = self._distance(a, self.target)
+        target = self.target(ind)
+        for a in self.probes(ind):
+            d = self._distance(a, target)
             if self.threshold == 'covalent':
                 threshold = chimera.Element.bondLength(
-                    a.element, self.target.element)
+                    a.element, target.element)
             else:
                 threshold = self.threshold
             d = d - threshold

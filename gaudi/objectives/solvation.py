@@ -27,6 +27,7 @@
 # Python
 import logging
 # Chimera
+import chimera
 import Measure
 import MoleculeSurface
 from MoleculeSurface import Surface_Calculation_Error
@@ -48,13 +49,19 @@ class Solvation(ObjectiveProvider):
         self._target = target
         self.which = which
 
-    @property
-    def target(self):
-        return self.parent.genes[self._target].compound.mol
+    def target(self, ind):
+        return ind.genes[self._target].compound.mol
 
-    def evaluate(self):
+    def molecules(self, ind):
+        return tuple(m.compound.mol for m in ind.genes.values()
+                     if m.__class__.__name__ == "Molecule")
+
+    def evaluate(self, ind):
+        molecules = self.molecules(ind)
+        target = self.target(ind)
         try:
-            atoms, ses, sas = self._solvation(self.env.atoms())
+            atoms, ses, sas = self._solvation(self.zone_atoms(target,
+                                                              molecules))
         except Surface_Calculation_Error:
             raise Surface_Calculation_Error("""Problem with solvation calc.
 Read this: http://www.rbvi.ucsf.edu/chimera/docs/UsersGuide/surfprobs.html""")
@@ -63,9 +70,21 @@ Read this: http://www.rbvi.ucsf.edu/chimera/docs/UsersGuide/surfprobs.html""")
                 surfaces = ses
             elif self.which == 'sas':
                 surfaces = sas
-            return sum(s for (a, s) in zip(atoms, surfaces) if a in self.target.atoms)
+            return sum(s for (a, s) in zip(atoms, surfaces) if a in target.atoms)
 
+    def zone_atoms(self, probe, molecules):
+        self.zone.clear()
+        self.zone.add(probe.atoms)
+        self.zone.merge(chimera.selection.REPLACE,
+                        chimera.specifier.zone(
+                            self.zone, 'atom',
+                            None, self.radius,
+                            molecules
+                        )
+                        )
+        return self.zone.atoms()
     ###
+
     @staticmethod
     def _solvation(atoms):
         xyzr_data = Measure.measure.atom_xyzr(atoms)
