@@ -82,7 +82,7 @@ def main(cfg):
     if cfg.ga.pareto:
         best_individuals = deap.tools.ParetoFront(toolbox.similarity)
     else:
-        best_individuals = deap.tools.HallOfFame(50,
+        best_individuals = deap.tools.HallOfFame(int(0.05 * cfg.ga.pop),
                                                  similar=toolbox.similarity)
     stats = deap.tools.Statistics(lambda ind: ind.fitness.values)
     numpy.set_printoptions(precision=cfg.general.precision)
@@ -191,8 +191,8 @@ if __name__ == "__main__":
     results['GAUDI.results'] = {}
     for i, ind in enumerate(best):
         filename = ind.write(i)
-        results['GAUDI.results'][os.path.basename(filename)] = \
-            [float(f) for f in ind.fitness.values]
+        results['GAUDI.results'][
+            os.path.basename(filename)] = [float(f) for f in ind.fitness.values]
 
     outputpath = os.path.join(cfg.general.outputpath,
                               '{}.gaudi.yaml'.format(cfg.general.name))

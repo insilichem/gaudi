@@ -25,6 +25,7 @@ ga:
     cx_pb: 0.8
     similarity_rmsd: 2.5
     history: 0
+    pareto: False
 
 similarity:
     # type is the full Python path to similarity function
