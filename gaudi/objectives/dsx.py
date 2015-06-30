@@ -81,10 +81,15 @@ class DSX(ObjectiveProvider):
             # 1. Get output filename from stdout (located at working directory)
             # 2. Find line '@RESULTS' and go to sixth line below
             # 3. The score is in the first row of the table, at the third field
-            with open(os.path.join(os.getcwd(), stream.splitlines()[-2].split()[-1])) as f:
+            dsx_results = os.path.join(os.getcwd(),
+                                       stream.splitlines()[-2].split()[-1])
+            with open(dsx_results) as f:
                 lines = f.read().splitlines()
                 i = lines.index('@RESULTS')
                 score = lines[i + 4].split('|')[3].strip()
                 return float(score)
         finally:
+            os.remove(dsx_results)
+            os.remove(proteinpath)
+            os.remove(ligandpath)
             os.chdir(self.oldworkingdir)
