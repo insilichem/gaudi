@@ -64,7 +64,10 @@ class Search(GeneProvider):
 
     @property
     def center(self):
-        return parse_origin(self._center, self.parent.genes)
+        if self._center:
+            return parse_origin(self._center, self.parent.genes)
+        else:
+            return self.origin
 
     @property
     def molecule(self):
