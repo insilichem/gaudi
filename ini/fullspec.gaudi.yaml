@@ -9,7 +9,7 @@
 ##############
 general:
     outputpath: /path/to/output/
-    name: nickel
+    name: anything
     precision: 2
     compress: 1
 
@@ -48,7 +48,7 @@ genes:
 
     -   name: Rotamers
         type: gaudi.genes.rotamers
-        residues: [ $Protein$/233, $Protein$/109]
+        residues: [ Protein/233, Protein/109]
         library: { dynameomics | dunbrack }
         mutations: []
         ligation: False
@@ -68,10 +68,6 @@ genes:
         radius: 5.0
         precision: 3
         rotate: True
-    # -   name: CovalentBond
-    #     type: gaudi.genes.covalent  
-    #     bond:   - [ $Ligand$/DUM, $Protein$/136 ]
-    #             - [ $Ligand$/END, $Protein$/145 ]
 
 ###
 # OBJECTIVES
@@ -144,9 +140,9 @@ objectives:
         protein: Protein
         ligand: Ligand
         # enable or disable terms in the list, respecting ORDER
-        # [distance-dependent pair potentials, intramolecular clashes,
-        # torsion potentials, sas potentials]
-        terms: [True, True, False, False]
+        # [distance-dependent pair potentials, torsion potentials,
+        # intramolecular clashes, sas potentials, hbond potentials]
+        terms: [True, False, False, True, False]
         sorting: 1 # int between 0-6, read binary help for -S
         cofactor_handling: 1 # int between 0-7, read binary help for -I
 
