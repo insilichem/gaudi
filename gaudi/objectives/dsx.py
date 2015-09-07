@@ -66,11 +66,11 @@ class DSX(ObjectiveProvider):
         self.protein(ind).write(absolute=proteinpath)
         self.ligand(ind).write(absolute=ligandpath)
 
-        T0, T1, T2, T3 = [1.0 * t for t in self.terms]
+        T0, T1, T2, T3, T4 = [1.0 * t for t in self.terms]
         command = map(str, (self.binary, '-P', proteinpath, '-L', ligandpath,
                             '-I', self.cofactor_handling, '-S', self.sorting,
-                            '-T0', T0, '-T1', T1, '-T2', T2, '-T3', T3,
-                            '-D', self.potentials))
+                            '-T0', T0, '-T1', T1, '-T2', T2, '-T3', T3, '-T4',
+                            T4, '-D', self.potentials))
         os.chdir(tempfile._get_default_tempdir())
         try:
             stream = subprocess.check_output(command, universal_newlines=True)
