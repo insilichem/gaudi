@@ -22,7 +22,7 @@ import tempfile
 import yaml
 
 gaudi_launch = os.path.join(os.path.dirname(os.path.abspath(sys.argv[0])),
-                            'launch.py')
+                            '..', 'launch.py')
 
 parser = argparse.ArgumentParser(
     description='Benchmarks a set given a template.')
