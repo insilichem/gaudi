@@ -8,8 +8,8 @@
 # Web: https://bitbucket.org/jrgp/gaudi
 ##############
 
-module: distance.py
-path: gaudi.objectives.distance
+file: distance.py
+file: gaudi.objectives.distance
 args:
     weight: 
         - !!python/name:float

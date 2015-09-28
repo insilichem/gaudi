@@ -8,8 +8,8 @@
 # Web: https://bitbucket.org/jrgp/gaudi
 ##############
 
-module: search.py
-path: gaudi.genes.search
+file: search.py
+module: gaudi.genes.search
 args:
     origin: 
         - !!python/name:float

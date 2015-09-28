@@ -8,8 +8,8 @@
 # Web: https://bitbucket.org/jrgp/gaudi
 ##############
 
-module: rotamers.py
-path: gaudi.genes.rotamers
+file: rotamers.py
+module: gaudi.genes.rotamers
 args:
     residues: 
         - !!python/name:str

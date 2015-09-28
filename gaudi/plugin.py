@@ -63,7 +63,7 @@ def import_plugins(*pluginlist):
 
     """
     plugins = []
-    names = set(plugin.type for plugin in pluginlist)
+    names = set(plugin.module for plugin in pluginlist)
     for name in names:
         try:
             module = import_module(name)
@@ -91,7 +91,7 @@ def load_plugins(plugins, container=None, **kwargs):
 
     for plugin in plugins:
         if plugin.name not in container:
-            module = plugin.type
+            module = plugin.module
             kwargs.update(plugin.__dict__)
             container[plugin.name] = sys.modules[module].enable(**kwargs)
             logger.debug("Loaded plugin %s", module)

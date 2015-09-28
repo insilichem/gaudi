@@ -8,8 +8,8 @@
 # Web: https://bitbucket.org/jrgp/gaudi
 ##############
 
-module: coordination.py
-path: gaudi.objectives.coordination
+file: coordination.py
+module: gaudi.objectives.coordination
 args:
     weight: 
         - !!python/name:float 

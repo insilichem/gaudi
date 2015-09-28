@@ -8,8 +8,8 @@
 # Web: https://bitbucket.org/jrgp/gaudi
 ##############
 
-module: torsion.py
-path: gaudi.genes.torsion
+file: torsion.py
+module: gaudi.genes.torsion
 args:
     target: 
         - !!python/name:str

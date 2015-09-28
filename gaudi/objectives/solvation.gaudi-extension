@@ -8,18 +8,18 @@
 # Web: https://bitbucket.org/jrgp/gaudi
 ##############
 
-module: dsx.py
-path: gaudi.objectives.dsx
+file: dsx.py
+module: gaudi.objectives.dsx
 args:
-	weight: 
-		- !!python/name:float
-		- Maximize (1.0) or minimize (-1.0)
-		- -1.0
-	which: 
-		- !!python/name:str
-		- Choose between sas or ses
-		- ses
-	target: 
-		- !!python/name:str
-		- Name of molecule to calculate solvation terms of
-		- Ligand
+    weight: 
+        - !!python/name:float
+        - Maximize (1.0) or minimize (-1.0)
+        - -1.0
+    which: 
+        - !!python/name:str
+        - Choose between sas or ses
+        - ses
+    target: 
+        - !!python/name:str
+        - Name of molecule to calculate solvation terms of
+        - Ligand

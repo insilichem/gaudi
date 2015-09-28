@@ -8,8 +8,8 @@
 # Web: https://bitbucket.org/jrgp/gaudi
 ##############
 
-module: angle.py
-path: gaudi.objectives.angle
+file: angle.py
+module: gaudi.objectives.angle
 args:
     weight: 
         - !!python/name:float

@@ -8,8 +8,8 @@
 # Web: https://bitbucket.org/jrgp/gaudi
 ##############
 
-module: molecule.py
-path: gaudi.genes.molecule
+file: molecule.py
+module: gaudi.genes.molecule
 args:
     path: 
         - !!python/name:str

@@ -8,8 +8,8 @@
 # Web: https://bitbucket.org/jrgp/gaudi
 ##############
 
-module: contacts.py
-path: gaudi.objectives.contacts
+file: contacts.py
+module: gaudi.objectives.contacts
 args:
     weight: 
         - !!python/name:float
