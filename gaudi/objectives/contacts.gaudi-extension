@@ -37,7 +37,7 @@ args:
         - 0.2
     threshold_c: 
         - !!python/name:float
-        -
+        - Compensation in threshold if involved atoms can form H-bond *
         - 0.6
     cutoff: 
         - !!python/name:float

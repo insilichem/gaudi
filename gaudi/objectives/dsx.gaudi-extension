@@ -8,8 +8,8 @@
 # Web: https://bitbucket.org/jrgp/gaudi
 ##############
 
-file: distance.py
-file: gaudi.objectives.distance
+file: dsx.py
+module: gaudi.objectives.dsx
 args:
     weight: 
         - !!python/name:float
@@ -17,11 +17,11 @@ args:
         - -1.0
     binary: 
         - !!python/name:str
-        - Path to DSX binaries (get them from http://pc1664.pharmazie.uni-marburg.de/drugscore/dsx_download.php)
+        - Path to DSX binaries (get them from pc1664.pharmazie.uni-marburg.de/drugscore/dsx_download.php)
         - ''
     potentials: 
         - !!python/name:str
-        - Path to DSX potentials (get them from http://pc1664.pharmazie.uni-marburg.de/drugscore/dsx_download.php)
+        - Path to DSX potentials (get them from pc1664.pharmazie.uni-marburg.de/drugscore/dsx_download.php)
         - ''
     protein: 
         - !!python/name:str
@@ -33,8 +33,8 @@ args:
         - Ligand
     terms: 
         - !!python/name:str
-        - List of booleans to enable (or disable) scoring terms in this order: distance-dependent pair potentials, intramolecular clashes, torsion potentials, sas potentials
-        - [True, True, False, False]
+        - List of booleans to enable (or disable) scoring terms in this order - distance-dependent pair potentials, intramolecular clashes, torsion potentials, sas potentials
+        - True, True, False, False
     sorting:
         - !!python/name:int
         - Sorting mode of DSX. Read binary help for arg -S
@@ -42,3 +42,4 @@ args:
     cofactor_handling:
         - !!python/name:int
         - Cofactor modes are listed in binary help for arg -I
+        - 1

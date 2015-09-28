@@ -8,8 +8,8 @@
 # Web: https://bitbucket.org/jrgp/gaudi
 ##############
 
-file: dsx.py
-module: gaudi.objectives.dsx
+file: hbonds.py
+module: gaudi.objectives.hbonds
 args:
     weight: 
         - !!python/name:float

@@ -8,8 +8,8 @@
 # Web: https://bitbucket.org/jrgp/gaudi
 ##############
 
-file: dsx.py
-module: gaudi.objectives.dsx
+file: solvation.py
+module: gaudi.objectives.solvation
 args:
     weight: 
         - !!python/name:float
