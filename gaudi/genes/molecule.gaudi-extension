@@ -10,13 +10,13 @@
 
 file: molecule.py
 module: gaudi.genes.molecule
-args:
-    path: 
-        - !!python/name:str
-        - 'Path to a mol2 file o mol2-containing directory'
-        - ''
-    simmetry:
-        - !!python/name:str
-        - If path is a folder, list of paired subdirectories 
-        - ''
+# args
+path: 
+    - !!python/name:str
+    - Path to a mol2 file o mol2-containing directory
+    - ''
+simmetry:
+    - !!python/name:str
+    - If path is a folder, list of paired subdirectories 
+    - ''
 

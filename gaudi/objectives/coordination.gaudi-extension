@@ -10,56 +10,56 @@
 
 file: coordination.py
 module: gaudi.objectives.coordination
-args:
-    weight: 
-        - !!python/name:float 
-        - Maximize (1.0) or minimize (-1.0)
-        - -1.0
-    method: 
-        - !!python/name:str 
-        - simple (custom sum of geometrical data) or metalgeom (chimera extension)
-        - simple
-    probe: 
-        - !!python/name:str 
-        - Molecule/atom_serial of metal ion
-        - ''
-    radius: 
-        - !!python/name:float 
-        - Max distance from probe to look for coordinating atoms
-        - 3.5
-    atomtypes: 
-        - !!python/name:str 
-        - Atom types that can coordinate with probe
-        - [ OE1, OE2, OD1, OD2, ND2 ]
-    residues: 
-        - !!python/name:str 
-        - Which residues should coordinate with probe
-        - ''
-    min_atoms: 
-        - !!python/name:int 
-        - Force to find this number of atoms, or apply penalty
-        - 1
-    enforce_all_residues:
-        - !!python/name:bool
-        - If True, all residues in residues must have at least one coordinating atom
-        - False
-    distance: 
-        - !!python/name:float 
-        - Ideal distance of coordination in method simple
-        - 2.5
-    angle: 
-        - !!python/name:float 
-        - Ideal angle of coordination in method simple
-        - 90.0
-    dihedral: 
-        - !!python/name:float 
-        - Ideal dihedral angle of coordination in method simple
-        - 180.0
-    geometry: 
-        - !!python/name:str 
-        - Ideal geometry to match, choose from MetalGeom.geomData.geometries.keys()
-        - tetrahedral
-    threshold: 
-        - !!python/name:float 
-        - Max admitted RMSD (in A) from ideal geometry. If greater, apply penalty
-        - 1.0
+# args:
+weight: 
+    - !!python/name:float 
+    - Maximize (1.0) or minimize (-1.0)
+    - -1.0
+method: 
+    - !!python/name:str 
+    - simple (custom sum of geometrical data) or metalgeom (chimera extension)
+    - simple
+probe: 
+    - !!python/name:str 
+    - Molecule/atom_serial of metal ion
+    - ''
+radius: 
+    - !!python/name:float 
+    - Max distance from probe to look for coordinating atoms
+    - 3.5
+atomtypes: 
+    - !!python/name:str 
+    - Atom types that can coordinate with probe
+    - [ OE1, OE2, OD1, OD2, ND2 ]
+residues: 
+    - !!python/name:str 
+    - Which residues should coordinate with probe
+    - ''
+min_atoms: 
+    - !!python/name:int 
+    - Force to find this number of atoms, or apply penalty
+    - 1
+enforce_all_residues:
+    - !!python/name:bool
+    - If True, all residues in residues must have at least one coordinating atom
+    - False
+distance: 
+    - !!python/name:float 
+    - Ideal distance of coordination in method simple
+    - 2.5
+angle: 
+    - !!python/name:float 
+    - Ideal angle of coordination in method simple
+    - 90.0
+dihedral: 
+    - !!python/name:float 
+    - Ideal dihedral angle of coordination in method simple
+    - 180.0
+geometry: 
+    - !!python/name:str 
+    - Ideal geometry to match, choose from MetalGeom.geomData.geometries.keys()
+    - tetrahedral
+threshold: 
+    - !!python/name:float 
+    - Max admitted RMSD (in A) from ideal geometry. If greater, apply penalty
+    - 1.0

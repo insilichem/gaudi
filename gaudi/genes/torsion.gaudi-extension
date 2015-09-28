@@ -10,12 +10,12 @@
 
 file: torsion.py
 module: gaudi.genes.torsion
-args:
-    target: 
-        - !!python/name:str
-        - Name of molecule that will be torsioned
-        - Ligand
-    flexibility: 
-        - !!python/name:int
-        - Degrees each bond can rotate
-        - 360
+# args
+target: 
+    - !!python/name:str
+    - Name of molecule that will be torsioned
+    - Ligand
+flexibility: 
+    - !!python/name:int
+    - Degrees each bond can rotate
+    - 360

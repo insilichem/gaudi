@@ -10,20 +10,20 @@
 
 file: rotamers.py
 module: gaudi.genes.rotamers
-args:
-    residues: 
-        - !!python/name:str
-        - List of molecule/res_id (ie, [Protein/12, Protein/233])
-        - ''
-    library: 
-        - !!python/name:str
-        - dynameomics or dunbrack
-        - dynameomics
-    mutations: 
-        - !!python/name:str
-        - List of three-letter residues (ie, [ARG, LYS])
-        - ''
-    ligation: 
-        - !!python/name:bool
-        - True or False
-        - False
+# args
+residues: 
+    - !!python/name:str
+    - List of molecule/res_id (ie, [Protein/12, Protein/233])
+    - ''
+library: 
+    - !!python/name:str
+    - dynameomics or dunbrack
+    - dynameomics
+mutations: 
+    - !!python/name:str
+    - List of three-letter residues (ie, [ARG, LYS])
+    - ''
+ligation: 
+    - !!python/name:bool
+    - True or False
+    - False

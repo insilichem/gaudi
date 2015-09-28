@@ -10,36 +10,36 @@
 
 file: contacts.py
 module: gaudi.objectives.contacts
-args:
-    weight: 
-        - !!python/name:float
-        - Maximize (1.0) or minimize (-1.0)
-        - -1.0
-    which: 
-        - !!python/name:str
-        - clashes (steric impediment) or hydrophobic (attractive contact)
-        - clashes
-    probe: 
-        - !!python/name:str
-        - Molecule whose contacts will be calculated
-        - Ligand
-    radius: 
-        - !!python/name:float
-        - Max distance to look for contacting atoms
-        - 0.0
-    threshold: 
-        - !!python/name:float
-        - VdW radii overlap threshold which defines a clash (>) or contact(<)
-        - 0.6
-    threshold_h: 
-        - !!python/name:float
-        - Compensation in threshold if involved atoms can form H-bond
-        - 0.2
-    threshold_c: 
-        - !!python/name:float
-        - Compensation in threshold if involved atoms can form H-bond *
-        - 0.6
-    cutoff: 
-        - !!python/name:float
-        - Max allowed nm^3 of volumetric overlap. If greater, individual is penalized
-        - 100.0
+# args:
+weight: 
+    - !!python/name:float
+    - Maximize (1.0) or minimize (-1.0)
+    - -1.0
+which: 
+    - !!python/name:str
+    - clashes (steric impediment) or hydrophobic (attractive contact)
+    - clashes
+probe: 
+    - !!python/name:str
+    - Molecule whose contacts will be calculated
+    - Ligand
+radius: 
+    - !!python/name:float
+    - Max distance to look for contacting atoms
+    - 0.0
+threshold: 
+    - !!python/name:float
+    - VdW radii overlap threshold which defines a clash (>) or contact(<)
+    - 0.6
+threshold_h: 
+    - !!python/name:float
+    - Compensation in threshold if involved atoms can form H-bond
+    - 0.2
+threshold_c: 
+    - !!python/name:float
+    - Compensation in threshold if involved atoms can form H-bond *
+    - 0.6
+cutoff: 
+    - !!python/name:float
+    - Max allowed nm^3 of volumetric overlap. If greater, individual is penalized
+    - 100.0

@@ -10,24 +10,24 @@
 
 file: hbonds.py
 module: gaudi.objectives.hbonds
-args:
-    weight: 
-        - !!python/name:float
-        - Maximize (1.0) or minimize (-1.0)
-        - -1.0
-    probe: 
-        - !!python/name:str
-        - Name of molecule to look for H bonds
-        - Ligand
-    radius: 
-        - !!python/name:float
-        - Maximum distance from probe to look for a H-bond
-        - 0.0
-    distance_tolerance: 
-        - !!python/name:float
-        - Allowed deviation from ideal bond distance
-        - 0.4
-    angle_tolerance: 
-        - !!python/name:float
-        - Allowed deviation from ideal bond angle
-        - 20.0
+# args:
+weight: 
+    - !!python/name:float
+    - Maximize (1.0) or minimize (-1.0)
+    - -1.0
+probe: 
+    - !!python/name:str
+    - Name of molecule to look for H bonds
+    - Ligand
+radius: 
+    - !!python/name:float
+    - Maximum distance from probe to look for a H-bond
+    - 0.0
+distance_tolerance: 
+    - !!python/name:float
+    - Allowed deviation from ideal bond distance
+    - 0.4
+angle_tolerance: 
+    - !!python/name:float
+    - Allowed deviation from ideal bond angle
+    - 20.0

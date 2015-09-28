@@ -10,20 +10,20 @@
 
 file: search.py
 module: gaudi.genes.search
-args:
-    origin: 
-        - !!python/name:float
-        - List of x, y, z coordinates
-        - [0.0, 0.0, 0.0]
-    radius: 
-        - !!python/name:float
-        - Radius (in A) of movement sphere
-        - 5.0
-    precision: 
-        - !!python/name:int
-        - Decimal numbers of 3D matrix elements
-        - 3
-    rotate: 
-        - !!python/name:bool
-        - True or False
-        - False
+# args
+origin: 
+    - !!python/name:float
+    - List of x, y, z coordinates
+    - [0.0, 0.0, 0.0]
+radius: 
+    - !!python/name:float
+    - Radius (in A) of movement sphere
+    - 5.0
+precision: 
+    - !!python/name:int
+    - Decimal numbers of 3D matrix elements
+    - 3
+rotate: 
+    - !!python/name:bool
+    - True or False
+    - False
