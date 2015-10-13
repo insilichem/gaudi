@@ -87,7 +87,7 @@ def create_single_individual(path):
         # Tilde expansion in paths and abs/rel path support
         cfg.general.outputpath = build_path(inputdir, cfg.general.outputpath)
         for g in cfg.genes:
-            if g.type == 'gaudi.genes.molecule':
+            if g.module == 'gaudi.genes.molecule':
                 g.path = build_path(inputdir, g.path)
                 if not os.path.exists(g.path):
                     print "ERROR: Path " + g.path + " is wrong. Check your input file.\n"

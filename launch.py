@@ -53,7 +53,7 @@ import gaudi
 def main(cfg):
     gaudi.plugin.import_plugins(*cfg.genes)
     gaudi.plugin.import_plugins(*cfg.objectives)
-    import_module(cfg.similarity.type.rsplit('.', 1)[0])
+    import_module(cfg.similarity.module.rsplit('.', 1)[0])
 
     # DEAP setup: Fitness, Individuals, Population
     toolbox = deap.base.Toolbox()
@@ -126,7 +126,7 @@ def prepare_input():
     # Tilde expansion in paths and abs/rel path support
     cfg.general.outputpath = build_path(inputdir, cfg.general.outputpath)
     for g in cfg.genes:
-        if g.type == 'gaudi.genes.molecule':
+        if g.module == 'gaudi.genes.molecule':
             g.path = build_path(inputdir, g.path)
             if not os.path.exists(g.path):
                 sys.exit(
@@ -170,6 +170,22 @@ def enable_logging(path=None, name=None):
     return logger
 
 
+def unbuffer_stdout():
+    class Unbuffered(object):
+
+        def __init__(self, stream):
+            self.stream = stream
+
+        def write(self, data):
+            self.stream.write(data)
+            self.stream.flush()
+
+        def __getattr__(self, attr):
+            return getattr(self.stream, attr)
+
+    sys.stdout = Unbuffered(sys.stdout)
+
+
 if __name__ == "__main__":
     # Parse input file
     cfg = prepare_input()
@@ -177,6 +193,7 @@ if __name__ == "__main__":
     # Enable logging to stdout and file
     logger = enable_logging(cfg.general.outputpath, cfg.general.name)
     logger.info('GAUDIasm job started with input %s', sys.argv[1])
+    unbuffer_stdout()
 
     # Disable auto ksdssp
     chimera.triggers.addHandler("Model", gaudi.box.suppress_ksdssp, None)
@@ -187,7 +204,7 @@ if __name__ == "__main__":
     # Write results
     logger.info('Writing %s results to disk', len(pop))
     results = {'GAUDI.objectives': [
-        '{} ({})'.format(obj.name, obj.type) for obj in cfg.objectives]}
+        '{} ({})'.format(obj.name, obj.module) for obj in cfg.objectives]}
     results['GAUDI.results'] = {}
     for i, ind in enumerate(best):
         filename = ind.write(i)

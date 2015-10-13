@@ -78,7 +78,7 @@ class Individual(object):
             g.__ready__()
 
         self.fitness = Fitness(self.cfg.weights)
-        mod, fn = self.cfg.similarity.type.rsplit('.', 1)
+        mod, fn = self.cfg.similarity.module.rsplit('.', 1)
         self._similarity = getattr(sys.modules[mod], fn)
 
     def __deepcopy__(self, memo):

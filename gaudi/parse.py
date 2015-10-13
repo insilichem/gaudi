@@ -105,4 +105,4 @@ def _test_rebuild(cfg):
 if __name__ == '__main__':
     import sys
     cfg = Settings(sys.argv[1])
-    print [o.type for o in cfg.objective]
+    print [o.module for o in cfg.objective]
