@@ -69,7 +69,7 @@ We will use these to set up GAUDI.
 
 2 - Finally, you can run pip installations with `chimerapip`. Download the latest stable GAUDI wheel from [here](https://bitbucket.org/jrgp/gaudi/downloads) and type:
 
-    chimerapip install /path/to/downloaded/gaudi-version.whl
+    chimerapip install --extra-index-url http://klingon.uab.cat/repo/jaime/pip --trusted-host klingon.uab.cat --allow-unverified gaudi gaudi
 
 
 ## Running a GAUDI job
