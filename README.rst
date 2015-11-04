@@ -23,7 +23,7 @@ Install Chimera and set aliases in Linux
 
 1 - Download the `latest stable copy of UCSF Chimera <http://www.cgl.ucsf.edu/chimera/download.html>`_ and install it with:
 
-.. sourcecode::
+.. code-block:: console
 
     chmod +x chimera-*.bin && ./chimera-*.bin
 
@@ -31,7 +31,7 @@ Install Chimera and set aliases in Linux
 
 3 - Now, create some useful bash aliases. Open ``~/.bashrc`` with your favourite editor and add these lines at the end of the file.
 
-.. sourcecode::
+.. code-block:: bash
 
     chimeracli() { chimera --nogui --silent --script "${*}"; }
     chimerapip() { chimeracli `chimera --root`/bin/pip "${*}"; }
@@ -50,13 +50,13 @@ Install Chimera and set aliases in Windows
 
 4 - Create a profile with the command:
 
-.. sourcecode::
+.. code-block:: console
 
     New-Item –Path $Profile –Type File –Force
 
 5 - Edit the profile with ``notepad $profile`` and add these lines, using the proper value for ``$CHIMERADIR``.
 
-.. sourcecode::
+.. code-block:: console
 
     $CHIMERADIR = "${env:ProgramFiles}\Chimera 1.10.1"
     Set-Alias chimera "$CHIMERADIR\bin\chimera.exe"
@@ -71,7 +71,7 @@ Install GAUDI (platform independent)
 
 With the aliases set above, you can run Chimera from the console by typing ``chimera``. Also, if you want to run a Python script, simply type:
 
-.. sourcecode::
+.. code-block:: console
 
     chimeracli <script.py> <arg1> <arg2> <...>
 
@@ -79,13 +79,13 @@ We will use these to set up GAUDI.
 
 1 - You may have noticed we have included an alias called ``chimerapip``, which will handle the installation of new Python packages *inside* Chimera. However, Chimera does not include ``pip`` by default, so you must install that prior to any other package. In order to do so, download ``get-pip.py`` from `here <https://bootstrap.pypa.io/get-pip.py>`_ and run it with:
 
-.. sourcecode::
+.. code-block:: console
 
     chimeracli /path/to/get-pip.py
 
 2 - Finally, you can run pip installations with ``chimerapip``:
 
-.. sourcecode::
+.. code-block:: console
 
     chimerapip install --extra-index-url http://klingon.uab.cat/repo/jaime/pip --trusted-host klingon.uab.cat --allow-unverified gaudi gaudi
 
@@ -96,6 +96,6 @@ Running a GAUDI job
 
 You only have to run ``launch.py <inputfile>.in.gaudi`` with Chimera's Python. Ie:
 
-.. sourcecode::
+.. code-block:: console
 
     chimeracli /path/to/gaudi/scripts/launch.py /path/to/input/file.in.gaudi
