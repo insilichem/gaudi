@@ -94,8 +94,8 @@ We will use these to set up GAUDI.
 Running a GAUDI job
 -------------------
 
-You only have to run ``launch.py <inputfile>.in.gaudi`` with Chimera's Python. Ie:
+You only have to run ``launch.py <inputfile>.gaudi-input`` with Chimera's Python. Ie:
 
 .. code-block:: console
 
-    chimeracli /path/to/gaudi/scripts/launch.py /path/to/input/file.in.gaudi
+    chimeracli /path/to/gaudi/scripts/launch.py /path/to/input/file.gaudi-input

@@ -26,12 +26,7 @@ how they are evaluated (:package:`objectives`).
 :mod:`gaudi.box` is a placeholder for several small functions that are used across GAUDI.
 """
 
-import base
-import box
-import genes
-import objectives
-import parse
-import plugin
+from .version import __version__, __version_info__, __author__, __copyright__
 
 # Logging
 import logging
