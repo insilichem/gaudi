@@ -25,16 +25,17 @@ Install Chimera and set aliases in Linux
 
 .. code-block:: console
 
-    chmod +x chimera-*.bin && ./chimera-*.bin
+    chmod +x chimera-*.bin && sudo ./chimera-*.bin
 
-2 - Create the desktop and menu shortcuts if you want so. When prompted about creating a symbolic link, please **do it**. Normally, ``/usr/bin`` is fine.
+2 - Create the desktop and menu shortcuts if you want so. When prompted about creating a symbolic link, please **do it**. Normally, ``/usr/bin`` is fine. (That's why you needed that ``sudo``).
 
-3 - Now, create some useful bash aliases. Open ``~/.bashrc`` with your favourite editor and add these lines at the end of the file.
+3 - Now, create some useful bash aliases. Open ``~/.bashrc`` with your favourite editor and paste these lines at the end of the file.
 
 .. code-block:: bash
 
     chimeracli() { chimera --nogui --silent --script "${*}"; }
     chimerapip() { chimeracli `chimera --root`/bin/pip "${*}"; }
+    chimerapy()  { `chimera --root`/bin/python2.7 ${*}; }
 
 
 4 - Save it and apply the changes with ``source ~/.bashrc``. 
@@ -81,7 +82,7 @@ We will use these to set up GAUDI.
 
 .. code-block:: console
 
-    chimeracli /path/to/get-pip.py
+    chimeracli /path/to/downloaded/get-pip.py
 
 2 - Finally, you can run pip installations with ``chimerapip``:
 
@@ -94,8 +95,48 @@ We will use these to set up GAUDI.
 Running a GAUDI job
 -------------------
 
-You only have to run ``launch.py <inputfile>.gaudi-input`` with Chimera's Python. Ie:
+If everything went OK, you will have a ``gaudi`` binary along Chimera binaries. Link it to somewhere in your ``$PATH``, like:
+
+.. code-block:: console
+    
+    # Linux
+    sudo ln -s `chimera --root`/bin/gaudi /usr/local/bin/gaudi
+
+    # Windows Vista/7+ (with administrator access cmd.exe)
+    mklink $CHIMERADIR/bin/gaudi.exe C:/WINDOWS/gaudi.exe
+
+Now, if you type ``gaudi``, you will get the usage screen:
 
 .. code-block:: console
 
-    chimeracli /path/to/gaudi/scripts/launch.py /path/to/input/file.gaudi-input
+    Usage: gaudi [OPTIONS] COMMAND [ARGS]...
+
+      GAUDI: Genetic Algorithms for Universal Design Inference
+
+      By Jaime Rodríguez-Guerra and Jean-Didier Maréchal.
+      https://bitbucket.org/jrgp/gaudi
+
+    Options:
+      --version   Show the version and exit.
+      -h, --help  Show this message and exit.
+
+    Commands:
+      benchmark  Performs the same essay over a dataset.
+      prepare    Create or edit a GAUDI input file.
+      rmsd       Calculate RMSD of results vs reference.
+      run        Launch a GAUDI input file.
+      view       Analyze the results in a GAUDI output file.
+
+
+However, if that doesn't work, there is a manual method you can alias in your ``.bashrc``:
+
+.. code-block:: console
+    
+    gaudi() { chimeracli `chimera --root`/lib/python2.7/site-packages/gaudi/cli/gaudi_cli.py ${*}; }
+
+
+... or PowerShell profile:
+
+.. code-block:: console
+    
+    function gaudi { chimeracli $CHIMERADIR/lib/python2.7/site-packages/gaudi/cli/gaudi_cli.py $args }
