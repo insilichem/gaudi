@@ -1,3 +1,4 @@
+from __future__ import print_function
 import gaudi
 import gaudi.algorithms
 import gaudi.base
@@ -17,4 +18,11 @@ import gaudi.objectives.distance
 import gaudi.objectives.dsx
 import gaudi.objectives.hbonds
 import gaudi.objectives.solvation
-import chimera
+try:
+    import chimera
+except ImportError:
+    print("""
+You must install UCSF Chimera and run GAUDI
+with its own Python interpreter. Check the install guide
+for more details.
+""")

@@ -27,7 +27,7 @@ setup(
     author='Jaime Rodriguez-Guerra Pedregal',
     author_email='jaime.rogue@gmail.com',
     description='A full GUI for launching GAUDI jobs, '
-                'analyze their progress, and examine the results.',
+                'analyzing their progress, and examining their results.',
     long_description=long_description,
     packages=find_packages(),
     include_package_data=True,
@@ -45,12 +45,13 @@ setup(
     install_requires=[
         'PyYaml',
         'deap',
-        'repoze.lru'
+        'repoze.lru',
+        'click'
     ],
     entry_points='''
         [console_scripts]
-        gaudi=gaudi.scripts.launch:main
-        gaudi-rmsd=gaudi.scripts.rmsd:main
-        gaudi-benchmark=gaudi.scripts.benchmarker:main
+        gaudi=gaudi.cli.chimera_wrapper:chimera
+        gaudiv=gaudi.cli.chimera_wrapper:chimera_verbose
     ''',
+    # gaudi=gaudi.cli.gaudi_cli:cli
 )

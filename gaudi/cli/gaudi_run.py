@@ -11,7 +11,7 @@
 ##############
 
 """
-launch -- Run GAUDI essays
+run -- Run GAUDI essays
 ==========================
 
 This script is the main hub for launching GAUDI essays.
@@ -24,9 +24,13 @@ objectives. All in a loosely-coupled approach based on Python modules called on-
 Using `nogui` flag is recommended to speed up the calculations:
 
     cd /path/to/gaudi/installation/directory/
-    /path/to/chimera/bin/chimera --nogui --script "launch.py /path/to/gaudi.yaml"
+    /path/to/chimera/bin/chimera --nogui --script "gaudi_run.py /path/to/gaudi.yaml"
 
-Read `README.md` for additional details on useful aliases.
+If you are using the provided aliases, it would suffice to type:
+
+    gaudi run /path/to/essay.gaudi-input
+
+Read `README.rst` for additional details on useful aliases.
 
 .. todo::
 
@@ -42,7 +46,13 @@ import numpy
 import os
 import sys
 # External dependencies
-import chimera
+try:
+    import chimera
+except ImportError:
+    print("""
+You must install UCSF Chimera and run GAUDI with its own Python interpreter.
+Check the install guide for more details.
+""")
 import deap.creator
 import deap.tools
 import deap.base
@@ -110,7 +120,7 @@ def launch(cfg):
     return population, log, best_individuals
 
 
-def prepare_input():
+def prepare_input(filename):
     """
     Parses input file and validate paths
     """
@@ -124,14 +134,9 @@ def prepare_input():
         return os.path.normpath(os.path.join(basedir, os.path.expanduser(path)))
 
     # Parse input
-    try:
-        # os.path.realpath prepends the working directory to relative paths
-        path = os.path.abspath(os.path.expanduser(sys.argv[1]))
-    except IndexError:
-        sys.exit("ERROR: Input file not provided. \n")
-    else:
-        cfg = gaudi.parse.Settings(path)
-        inputdir = os.path.dirname(path)
+    path = os.path.abspath(os.path.expanduser(filename))
+    cfg = gaudi.parse.Settings(path)
+    inputdir = os.path.dirname(path)
 
     # Tilde expansion in paths and abs/rel path support
     cfg.general.outputpath = build_path(inputdir, cfg.general.outputpath)
@@ -196,9 +201,9 @@ def unbuffer_stdout():
     sys.stdout = Unbuffered(sys.stdout)
 
 
-def main():
+def main(filename):
     # Parse input file
-    cfg = prepare_input()
+    cfg = prepare_input(filename)
 
     # Enable logging to stdout and file
     logger = enable_logging(cfg.general.outputpath, cfg.general.name)
@@ -229,4 +234,7 @@ def main():
         out.write(yaml.dump(results, default_flow_style=False))
 
 if __name__ == "__main__":
-    main()
+    try:
+        main(sys.argv[1])
+    except IndexError:
+        sys.exit("ERROR: Input file not provided. \n")

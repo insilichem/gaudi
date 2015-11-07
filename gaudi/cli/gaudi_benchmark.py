@@ -98,6 +98,9 @@ def run(args):
             i+1, len(dirs), 100 * (i+1) / len(dirs)))
 
 
-if __name__ == "__main__":
+def main():
     args = arguments()
     run(args)
+
+if __name__ == "__main__":
+    main()

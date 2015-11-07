@@ -14,6 +14,8 @@
 :mod:`gaudi.objectives.dsx` wraps the binaries provided by
 Neudert and Klebe at http://pc1664.pharmazie.uni-marburg.de/drugscore/
 and calculates the score of the current pose.
+
+The lower, the better, so usually you will use a -1.0 weight.
 """
 
 # Python

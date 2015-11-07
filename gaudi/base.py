@@ -11,7 +11,7 @@
 ##############
 
 """
-:mod:`gaudi.base` contains the core classes we use to build individuals
+:mod:`~gaudi.base` contains the core classes we use to build individuals
 (potential solutions of the optimization process).
 """
 
