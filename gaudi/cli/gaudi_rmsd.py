@@ -29,59 +29,10 @@ import yaml
 import zipfile
 
 
-def parse_args():
-    parser = argparse.ArgumentParser(
-        description='Benchmarks a set given a template.')
-    parser.add_argument('dataset', metavar='/path/to/dataset', type=str,
-                        help='Location of the benchmark dataset.')
-    parser.add_argument('--file', metavar='gaudi_file', type=str,
-                        default='gaudi.yaml', help='Name of GAUDI output file')
-    parser.add_argument('--ligand', metavar='ligand_name', type=str,
-                                            default='ligand.mol2', help='Tagname of the ligand file')
-    parser.add_argument('--results', metavar='results_dir', type=str,
-                        default='results', help='Subdirectory containing results')
-
-    return parser.parse_args()
-
-
-def ligands_from_zip(d, args):
+def rmsd(dataset, outputfile, reference='reference.mol2', results='results'):
     """
-    Open all the listed solutions in *.gaudi-output file and create
-    a generator that yields the name and mol2 data of the ligand of
-    each solution.
+    Take a benchmark essay and compute RMSD for every solution against the reference.
 
-    As a temporary workaround, the ligand is considered
-    to be the lightest file with a mol2 extension.
-    """
-    with open(os.path.join(args.dataset, d, args.results, args.file)) as f:
-        data = yaml.load(f)
-        for filename in data['GAUDI.results']:
-            # Extract ligand.mol2 from zipfile
-            # Open reference.mol2
-            # Calculate RMSD
-            # Print to file
-            try:
-                z = zipfile.ZipFile(
-                    os.path.join(args.dataset, d, args.results, filename))
-            except zipfile.BadZipfile:
-                print("Not a valid GAUDI result")
-            else:
-                mol2details = [info for info in z.infolist()
-                               if info.filename.endswith('.mol2')]
-                mol2details.sort(key=lambda i: i.file_size)
-                yield mol2details[0].filename, z.open(mol2details[0].filename).read()
-            finally:
-                z.close()
-
-
-def calculate_rmsd(ligand, reference):
-    if ligand is not None and reference is not None:
-        return rdMolAlign.AlignMol(ligand, reference, maxIters=0)
-    return -3.0
-
-
-def run(args):
-    """
     For each folder in dataset, open its results and:
         Extract ligand.mol2 from zipfile
         Open reference.mol2
@@ -93,20 +44,19 @@ def run(args):
         -3.0: Ref and ligand were loaded, but RMSD calculation failed
     """
 
-    with open(os.path.join(args.dataset, 'rmsd.csv'), 'w+') as csvfile:
+    with open(os.path.join(dataset, 'rmsd.csv'), 'w+') as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=['test', 'ligand', 'rmsd'])
         writer.writeheader()
-        for d in os.listdir(args.dataset):
-            ref_path = os.path.join(args.dataset, d, args.ligand)
+        for d in os.listdir(dataset):
             try:
-                reference = Chem.MolFromMol2File(ref_path,
+                reference = Chem.MolFromMol2File(os.path.join(dataset, d, reference),
                                                  sanitize=True, removeHs=False)
             except OSError:
                 print("There was an error with reference from {}".format(d))
                 writer.writerow(
                     {'test': d, 'ligand': 'REF_ERROR', 'rmsd': -1.0})
             else:
-                for name, ligandblock in ligands_from_zip(d, args):
+                for name, ligandblock in ligands_from_zip(dataset, results, outputfile, d):
                     try:
                         ligand = Chem.MolFromMol2Block(ligandblock,
                                                        sanitize=True, removeHs=False)
@@ -121,14 +71,17 @@ def run(args):
                             {'test': d, 'ligand': name, 'rmsd': rmsd})
 
 
-def stats(great_threshold=1.5, good_threshold=2.5):
-    """ Run through the CSV file and get some stats """
-    with open(os.path.join(args.dataset, 'rmsd.csv')) as csvfile:
+def stats(dataset, great_threshold=1.5, good_threshold=2.5):
+    """ 
+    Run through the CSV file and get some stats 
+    """
+
+    with open(os.path.join(dataset, 'rmsd.csv')) as csvfile:
         reader = csv.reader(csvfile, delimiter=',')
         filtered_csv = filter(lambda x: float(x[2]) > 0, reader)
         grouped_csv = itertools.groupby(filtered_csv, lambda x: x[0])
 
-    with open(os.path.join(args.dataset, 'rmsd.txt')) as txt:
+    with open(os.path.join(dataset, 'rmsd.txt')) as txt:
         total, greats, goods, accs, avg_rmsd_first = 0, [], [], [], []
         for k, g in grouped_csv:
             group = list(g)
@@ -158,7 +111,65 @@ def stats(great_threshold=1.5, good_threshold=2.5):
         txt.write('Avg RMSD of first result: {}A\n'.format(
                   numpy.mean(avg_rmsd_first)))
 
+
+# Helpers
+def ligands_from_zip(dataset, results, inputfile, folder):
+    """
+    Open all the listed solutions in *.gaudi-output file and create
+    a generator that yields the name and mol2 data of the ligand of
+    each solution.
+
+    As a temporary workaround, the ligand is considered
+    to be the lightest file with a mol2 extension.
+    """
+
+    with open(os.path.join(dataset, folder, results, inputfile)) as f:
+        data = yaml.load(f)
+        for filename in data['GAUDI.results']:
+            # Extract ligand.mol2 from zipfile
+            # Open reference.mol2
+            # Calculate RMSD
+            # Print to file
+            try:
+                z = zipfile.ZipFile(
+                    os.path.join(dataset, folder, results, filename))
+            except zipfile.BadZipfile:
+                print("Not a valid GAUDI result")
+            else:
+                mol2details = [info for info in z.infolist()
+                               if info.filename.endswith('.mol2')]
+                mol2details.sort(key=lambda i: i.file_size)
+                yield mol2details[0].filename, z.open(mol2details[0].filename).read()
+            finally:
+                z.close()
+
+
+def calculate_rmsd(ligand, reference):
+    """
+    Use RDKit molecule aligner just once, so it calculates the RMSD of both
+    """
+
+    if ligand is not None and reference is not None:
+        return rdMolAlign.AlignMol(ligand, reference, maxIters=0)
+    return -3.0
+
+
 if __name__ == '__main__':
-    args = parse_args()
-    run(args)
-    stats(args)
+    parser = argparse.ArgumentParser(
+        description='Benchmarks a set given a template.')
+    parser.add_argument('dataset', metavar='/path/to/dataset', type=str,
+                        help='Location of the benchmark dataset')
+    parser.add_argument('--outputfile', metavar='gaudi_file', type=str,
+                        default='gaudi.gaudi-output', help='Name of GAUDI output file')
+    parser.add_argument('--reference', metavar='ligand_name', type=str,
+                        default='reference.mol2', help='Reference mol2 to benchmark against')
+    parser.add_argument('--results', metavar='results_dir', type=str,
+                        default='results', help='Subdirectory containing results')
+    parser.add_argument('--good', type=float,
+                        default=2.5, help='Subdirectory containing results')
+    parser.add_argument('--great', type=float,
+                        default=1.5, help='Subdirectory containing results')
+    args = parser.parse_args()
+
+    run(args.dataset, args.inputfile, args.reference, args.results)
+    stats(args.dataset, args.great, args.good)

@@ -51,7 +51,8 @@ def timeit(func, *args, **kwargs):
         ts = time.time()
         result = func(*args, **kwargs)
         te = time.time()
-        click.echo('Finished after {:0>8}'.format(timedelta(seconds=int(te-ts))))
+        click.echo(
+            'Finished after {:0>8}'.format(timedelta(seconds=int(te-ts))))
         return result
     return wrapped
 
@@ -66,7 +67,7 @@ def cli(prog_name='gaudi'):
     By Jaime Rodríguez-Guerra and Jean-Didier Maréchal.
     https://bitbucket.org/jrgp/gaudi
     """
-    pass
+    click.echo('\n')
 
 
 @cli.command()
@@ -105,22 +106,42 @@ def prepare(filename):
 
 
 @cli.command()
-def benchmark():
+@click.argument('dataset')
+@click.argument('template')
+@click.option('--gaudi', '-g', help='Location of gaudi binary',
+              default='gaudi')
+def benchmark(dataset, template, gaudi):
     """
     Performs the same essay over a dataset.
     """
     gaudi_benchmark = test_import('benchmark', 'gaudi_benchmark')
-    gaudi_benchmark.main()
+    ts = time.time()
+    gaudi_benchmark.main(dataset, template, gaudi)
+    te = time.time()
+    click.echo('Finished after {:0>8}'.format(timedelta(seconds=int(te-ts))))
 
 
 @cli.command()
-def rmsd():
+@click.argument('dataset')
+@click.argument('outputfile')
+@click.option('--reference', '-r', help='Filename of the reference molecule',
+              default='reference.mol2')
+@click.option('--results', '-R', help='Subdirectory where results are generated',
+              default='results')
+@click.option('--great', '-G', help='RMSD threshold in A for a solution to be considered great',
+              type=float, default=1.5)
+@click.option('--good', '-g', help='RMSD threshold in A for a solution to be considered good',
+              type=float, default=2.5)
+def rmsd(dataset, outputfile, reference, results, great, good):
     """
     Calculate RMSD of results vs reference.
     """
     gaudi_rmsd = test_import('rmsd', 'gaudi_rmsd')
-    gaudi_rmsd.main()
-
+    ts = time.time()
+    gaudi_rmsd.rmsd(dataset, outputfile, reference, results)
+    gaudi_rmsd.stats(dataset, great, good)
+    te = time.time()
+    click.echo('Finished after {:0>8}'.format(timedelta(seconds=(te-ts))))
 
 if "__main__" == __name__:
     cli(prog_name='gaudi')
