@@ -61,6 +61,45 @@ class Molecule(GeneProvider):
     """
     Interface around the :class:`gaudi.genes.molecule.Compound` to handle
     the GAUDI protocol and caching features.
+
+    Parameters
+    ----------
+    path : str, optional
+        Path to a molecule file or a directory containing dirs of molecule files.
+
+    symmetry : str, optional
+        If `path` is a directory, list of pairs of directories whose chosen
+        mocule must be the same, thus enabling *symmetry*.
+
+    Attributes
+    ----------
+    _CATALOG : dict
+        Class attribute (shared among all `Molecule` instances) that holds
+        all the possible molecules GAUDI can build given current `path`. 
+
+        If `path` is a single molecule file, that's the only possibility, but
+        if it's set to a directory, the engine can potentially build all the
+        combinations of molecule blocks found in those subdirectories.
+
+        Normally, it is accessed via the `catalog` property.
+
+    Notes
+    -----
+    **Use of `_cache`**
+
+    `Molecule` class uses `_cache` to store already built molecules. Its entry in
+    the `_cache` directory is a `repoze.lru.LRUCache` (least recently used) set to
+    a maximum size of 300 entries.
+
+    .. todo ::
+
+        The LRUCache size should be proportional to essay size, depending on 
+        the population size and number of generations, but also taking available
+        memory into account (?).
+
+    The LRUCache is normally accessed with  `get()`. This method tries to return
+    a cached `Molecule` or, if not available, builds it and stores it in the cache.
+
     """
     _CATALOG = {}
 
@@ -83,13 +122,26 @@ class Molecule(GeneProvider):
 
     @property
     def catalog(self):
+        """
+        Returns the catalog entry corresponding to this `Molecule`
+        """
         return self._CATALOG[self.name]
 
     def express(self):
+        """
+        Adds Chimera molecule object to the viewer canvas.
+
+        It also converts pseudobonds (used by Chimera to depict
+        coordinated ligands to metals) to regular bonds.
+        """
         chimera.openModels.add([self.compound.mol], shareXform=True)
         box.pseudobond_to_bond(self.compound.mol)
 
     def unexpress(self):
+        """
+        Removes the Chimera molecule from the viewer canvas
+        (without deleting the object).
+        """
         chimera.openModels.remove([self.compound.mol])
 
     def mate(self, mate):
@@ -139,10 +191,28 @@ class Molecule(GeneProvider):
 
     ############
     def __getitem__(self, key):
+        """Implements dict-like item retrieval"""
         return self.get(key)
 
     def get(self, key):
-        # repoze.lru does not raise exceptions, so we must switch to LBYL
+        """
+        Looks for the compound corresponding to `key` in `_cache`. If found,
+        return it. Else, build it on demand, store it on cache and return it.
+
+        Parameters
+        ----------
+        key : str
+            Path (or combination of) to the requested molecule. It should be
+            extracted from `catalog`.
+
+        Returns
+        -------
+        gaudi.genes.molecule.Compound
+            The result of building the requested molecule.
+
+        """
+
+        # repoze.lru does not raise exceptions, so some LBYL
         compound = self._cache[self.name].get(key)
         if not compound:
             compound = self.build(key)
@@ -150,12 +220,41 @@ class Molecule(GeneProvider):
         return compound
 
     def build(self, key, where=None):
+        """
+        Builds a `Compound` following the recipe contained in `key` through
+        `Compound.append` methods.
+
+        Parameters
+        ----------
+        key : tuple of str
+            Paths to the molecule blocks that comprise the final molecule.
+            A single molecule is just a one-block recipe.
+
+        Returns
+        -------
+        Compound
+            The final molecule result of the sequential appending.
+        """
         base = Compound(molecule=key[0])
         for molpath in key[1:]:
             base.append(Compound(molecule=molpath))
         return base
 
     def _compile_catalog(self):
+        """
+        Computes all the possible combinations of given directories and mol2 files,
+        taking symmetry requirements into account.
+
+        Parameters
+        ----------
+        self.path
+        self.symmetry
+
+        Returns
+        -------
+        set
+            A set of tuples of paths, each indicating a build recipe for a molecule
+        """
         container = set()
         if os.path.isdir(self.path):
             folders = sorted(os.path.join(self.path, d) for d in os.listdir(self.path)
@@ -189,10 +288,52 @@ class Compound(object):
     Wraps `chimera.Molecule` instances and allows to perform copies,
     appending new fragments, free placement and extended attributes.
 
+    Parameters
+    ----------
+    molecule : chimera.Molecule or str, optional
+        The chimera.Molecule object to wrap, or
+
+        'dummy' (for a empty molecule), or
+
+        The path to a mol2 file that will be parsed by Chimera to return 
+        a valid chimera.Molecule object.
+
+    origin : 3-tuple of float, optional
+        Coordinates to the place where the molecule should be placed
+
+    seed : float, optional
+        Random seed, used by the vertex chooser on appending.
+
+    kwargs, optional
+        Additional parameters that should be injected as attributes
+
+    Attributes
+    ----------
+    mol : chimera.Molecule
+    donor : chimera.Atom
+        If self were to be bonded to another Compound, this atom would be
+        the one involved in the bond. By default, first element in
+        chimera.Molecule.atoms
+    acceptor : chimera.Atom
+        If another Compound wanted to be bonded to self, this atom would
+        be the one involved in the bond. By default, last element in
+        chimera.Molecule.atoms
+    origin : 3-tuple of float
+        Default location of `mol` in the 3D canvas.
+    seed : float
+        Randomness seed for vertex computation.
+    rotatable_bonds : list of chimera.Bond
+        Bonds that can be torsioned
+    nonrotatable : list of chimera.Bond
+        Bonds that, although possible, should not be torsiond. Ie, fixed bonds.
+    built_atoms : list of chimera.Atom
+        Memo of already built_atoms
+
     .. todo::
 
-        This was built a while a go (my first class), so it will
-        probably need some refactoring.
+        Instead of a `molecule` parameter overload, think of using
+        equivalent classmethods.
+
     """
 
     def __init__(self, molecule=None, origin=None, seed=0.0, **kwargs):
@@ -255,6 +396,10 @@ class Compound(object):
                 setattr(self, k, d[v] if v in d else v)
 
     def destroy(self):
+        """
+        Removes `mol` from canvas, deletes it and then, deletes
+        self
+        """
         chimera.openModels.close([self.mol])
         del self
 
@@ -347,7 +492,8 @@ class Compound(object):
                 if built not in target.bondsMap and built not in res_atoms:
                     addBond(target, built)
 
-        self.built_atoms.append({a.serialNumber: b for (a, b) in built_atoms.items()})
+        self.built_atoms.append(
+            {a.serialNumber: b for (a, b) in built_atoms.items()})
         return built_atoms
 
     def place(self, where, anchor=None):
