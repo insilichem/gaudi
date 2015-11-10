@@ -22,6 +22,7 @@
 
 # Python
 import os
+import cProfile
 # Chimera
 import chimera
 
@@ -124,6 +125,19 @@ def create_single_individual(path):
     ind = toolbox.individual()
     environment = deap.base.Environment(cfg)
     return ind, environment
+
+
+def do_cprofile(func):
+    def profiled_func(*args, **kwargs):
+        profile = cProfile.Profile()
+        try:
+            profile.enable()
+            result = func(*args, **kwargs)
+            profile.disable()
+            return result
+        finally:
+            profile.dump_stats('cprofile.out')
+    return profiled_func
 
 
 def draw_interactions(interactions, startCol='FF0000', endCol='FFFF00',

@@ -201,6 +201,7 @@ def unbuffer_stdout():
     sys.stdout = Unbuffered(sys.stdout)
 
 
+#@gaudi.box.do_cprofile
 def main(filename):
     # Parse input file
     cfg = prepare_input(filename)
