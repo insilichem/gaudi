@@ -397,8 +397,7 @@ class Compound(object):
 
     def destroy(self):
         """
-        Removes `mol` from canvas, deletes it and then, deletes
-        self
+        Removes `mol` from canvas, deletes it and then, deletes itself
         """
         chimera.openModels.close([self.mol])
         del self
@@ -408,6 +407,26 @@ class Compound(object):
     ####
     def add_dummy_atom(self, where, name='dum', element=None, residue=None,
                        bonded_to=None, serial=None):
+        """
+        Adds a placeholder atom at the coordinates specified by `where`
+
+        Parameters
+        ----------
+        where : chimera.Atom or 3-tuple of float
+            Coordinates of target location. A chimera.Atom can be supplied,
+            in which case its coordinates will be used (via `.coord()`)
+        name : str, optional
+            Name for the new atom
+        element : chimera.Element, optional
+            Element of the new atom
+        residue : chimera.Residue, optional
+            Residue that will incorporate the new atom
+        bonded_to : chimera.Atom, optional
+            Atom that will form a bond with new atom
+        serial : int
+            Serial number that will be assigned to atom
+
+        """
         if isinstance(where, chimera.Atom):
             element = where.element if not element else element
             where = where.coord()
@@ -418,12 +437,49 @@ class Compound(object):
         return addAtom(name, element, residue, where, serial, bonded_to)
 
     def append(self, molecule):
+        """
+        Wrapper around `attach` to add a new molecule to `self`, 
+        using `self.acceptor` as bonding atom.
+
+        Parameters
+        ----------
+        molecule : Compound
+        """
         self.attach(molecule, self.acceptor, molecule.donor)
 
     def prepend(self, molecule):
+        """
+        Wrapper around `attach` to add a new molecule to `self`, 
+        using `self.donor` as bonding atom.
+
+        Parameters
+        ----------
+        molecule : Compound
+        """
         self.attach(molecule, self.donor, molecule.donor)
 
     def attach(self, molecule, acceptor, donor):
+        """
+        Call `join` to bond `molecule` to `self.mol` and updates attributes.
+
+        Parameters
+        ----------
+        molecule : Compound
+            The molecule that will be attached to `self`
+        acceptor : chimera.Atom
+            Atom of `self` that will participate in the new bond
+        donor : chimera.Atom
+            Atom of `molecule` that will participate in the new bond
+
+        .. note ::
+
+            After joining the two molecules together, we have to update the 
+            attributes of self to match the new molecular reality. For example,
+            the atom participating in the bond will not be available for new 
+            bonds (we are forcing linear joining for now), so the new `donor`
+            will be inherited from `molecule`, before deleting the object.
+
+        """
         if acceptor not in self.mol.atoms:
             raise UserError('Specified atom is not part of molecule.')
 
@@ -446,9 +502,71 @@ class Compound(object):
         molecule.destroy()
 
     def join(self, molecule, acceptor, donor, newres=False):
+        """
+        Take a molecule and bond it to `self.mol`, copying the atoms in the 
+        process so they're contained in the same `chimera.Molecule` object.
+
+        Parameters
+        ----------
+        molecule : Compound
+            The molecule that will be attached to `self`
+        acceptor : chimera.Atom
+            Atom of `self` that will participate in the new bond
+        donor : chimera.Atom
+            Atom of `molecule` that will participate in the new bond
+        newres : bool
+            If True, don't reuse `acceptor.residue` for the new molecule,
+            and create a new blank one instead.
+
+        Returns
+        -------
+        built_atoms : dict
+            Maps original atoms in `molecules` to their new counterparts
+            in `self.mol`.
+
+        .. note ::
+
+            Chimera does not allow bonds between different chimera.Molecule
+            objects, so firstly, we have to copy the atoms of `molecule` to 
+            `self.mol` and, only then, make the joining bond.
+
+            It traverses the atoms of `molecule` and adds a copy of each
+            of them to `self.mol` using `chimera.molEdit.addAtom` in the same spot
+            of space. All the bonds are preserved and, finally, bond the two molecules.
+
+            The algorithm starts by adding the bonding atom of `molecule` (`donor`), to
+            the `sprouts` list. Then, the loop starts:
+
+                while sprouts contains atoms:
+                    sprout = sprouts.pop(0)
+
+                    copy sprout to self.mol
+
+                    for each neighbor of sprout
+                        copy neighbor to self.mol
+                        if neighbor itself has more than one neighbor (ie, sprout)
+                            add neighbor to sprouts 
+
+            Along the way, we have to take care of already processed sprouts, so we
+            don't repeat ourselves. That's what the built_atoms dict is for.
+
+            Also, instead of letting addAtom guess new serial numbers, we calculate
+            them beforehand by computing the highest serial number in self.mol 
+            prior to the additions and then incremeting one by one on a per-element
+            basis.
+
+        .. todo ::
+
+            This code is UGLY. Find a better way!
+        """
         target = acceptor
         sprouts = [donor]
         res = _dummy_mol().residues[0] if newres else target.residue
+        # I think I was trying to keep a copy of the original residue,
+        # but this does not copy anything. Since lists are mutable, we
+        # are just aliasing res.atoms with res_atoms.
+        # Maybe I want something like:
+        # res_atoms = res.atoms[:] # ?
         res_atoms = res.atoms
 
         i = max(a.serialNumber for a in self.mol.atoms)
@@ -497,6 +615,22 @@ class Compound(object):
         return built_atoms
 
     def place(self, where, anchor=None):
+        """
+        Convenience wrapper around `translate`, supplying default
+
+        Parameters
+        ----------
+        where : 3-tuple of float, or chimera.Atom
+            Coordinates of destination. If chimera.Atom, use supplied `coord()`
+
+        anchor : chimera.Atom
+            The atom that will guide the translation.
+
+        .. note ::
+            *Anchor atoms* are called that way in the API because I picture them
+            as the one we pick with our hands to drag the molecule to the desired
+            place.
+        """
         if isinstance(where, chimera.Atom):
             where = where.coord()
         if not anchor:
@@ -504,22 +638,45 @@ class Compound(object):
         search.translate(self.mol, anchor, where)
 
     def place_for_bonding(self, target, anchor=None):
+        """
+        Translate `self.mol` to a colavent distance of `target` atom,
+        with an adequate orientation.
+
+        Parameters
+        ----------
+        target : chimera.Atom
+            The atom we are willing to bond later on.
+
+        anchor : chimera.Atom, optional
+
+        """
         if not isinstance(target, chimera.Atom):
             raise UserError('Target must be a chimera.Atom object.')
         if not anchor:
             anchor = self.donor
         # Get target position
-        target_pos = _new_atom_position(
-            target, anchor.element)
+        target_pos = _new_atom_position(target, anchor.element)
         # Place it
         self.place(target_pos)
         # Fix orientation
         anchor_pos = _new_atom_position(anchor, target.element)
-        search.rotate(
-            self.mol, [target.coord(), anchor.coord(), anchor_pos], 0.0)
+        search.rotate(self.mol, [target.coord(), anchor.coord(), anchor_pos], 0.0)
 
 
-def _dummy_mol(name):
+def _dummy_mol(name='dummy'):
+    """
+    Create an empty molecule, with an empty residue. Used for new molecules
+    we intend to create on a per-atom basis.
+
+    Parameters
+    ----------
+    name : str, optional
+
+    Returns
+    -------
+    chimera.Molecule
+
+    """
     m = chimera.Molecule()
     m.name = name
     r = m.newResidue(name, 'het', 1, ' ')
@@ -528,6 +685,27 @@ def _dummy_mol(name):
 
 
 def _new_atom_position(atom, newelement, seed=0.0):
+    """
+    Get suitable coordinates for new atoms that intend to bond to `atom`.
+
+    Parameters
+    ----------
+    atom : chimera.Atom
+        Atom new atoms will be trying to bond to
+    newelement : chimera.Element
+        Element of the atom that will be bonding `atom`.
+    seed : float, optional
+        Residual kwarg of old API. REMOVE THIS!
+
+    Returns
+    -------
+    chimera.Point
+        The first coordinate set in the returned list of possible points.
+
+    .. note ::
+        `newelement` is needed because the bond length depends on the
+        atom types involved in such bond. Ie, C-C != C-N.
+    """
     try:
         geometry = chimera.idatm.typeInfo[atom.idatmType].geometry
     except KeyError:

@@ -50,6 +50,20 @@ def atoms_between(atom1, atom2):
 
 
 def atoms_by_serial(*serials, **kw):
+    """
+    Find atoms in kw['atoms'] with serialNumber = `serials`.
+
+    Parameters
+    ----------
+    serials : int
+        List of serial numbers to match
+    atoms : list of chimera.Atom, optional
+        List of atoms to be traversed while looking for serial numbers
+
+    Returns
+    -------
+    list of chimera.Atom
+    """
     if not kw['atoms']:
         kw['atoms'] = [a for m in chimera.openModels.list() for a in m.atoms]
     return [a for a in kw['atoms'] if a.serialNumber in serials]
@@ -57,7 +71,7 @@ def atoms_by_serial(*serials, **kw):
 
 def create_single_individual(path):
     """
-    Create an individual within Chimera
+    Create an individual within Chimera. Convenience method for Chimera IDLE.
     """
     def prepare_input(path, parser):
         """
@@ -128,6 +142,10 @@ def create_single_individual(path):
 
 
 def do_cprofile(func):
+    """
+    Decorator to cProfile a certain function and output the results
+    to cprofile.out
+    """
     def profiled_func(*args, **kwargs):
         profile = cProfile.Profile()
         try:
@@ -142,6 +160,30 @@ def do_cprofile(func):
 
 def draw_interactions(interactions, startCol='FF0000', endCol='FFFF00',
                       key=None, name="Custom pseudobonds"):
+    """
+    Draw pseudobonds depicting atoms relationships.
+
+    Parameters
+    ----------
+    interactions : list of tuples
+        Each tuple contains an interaction, defined, at least,
+        by the two atoms involved.
+    startCol : str, optional
+        Hex code for the initial color of the pseudobond
+        (closer to the first atom of the pair).
+    endCol : str, optional
+        Hex code for the final color of the pseudobond.
+        (closer to the second atom of the pair)
+    key : int, optional 
+        The index of an interaction tuple that represent the alpha
+        channel in the color used to depict the interaction.
+    name : str, optional
+        Name of the pseudobond group created.
+
+    Returns
+    -------
+    chimera.pseudoBondGroup
+    """
     if not len(interactions):
         return
     pb = chimera.misc.getPseudoBondGroup(name)
@@ -162,6 +204,15 @@ def draw_interactions(interactions, startCol='FF0000', endCol='FFFF00',
 
 
 def files_in(path, ext=None):
+    """
+    Returns all the files in a given directory, filtered by extension if desired.
+
+    Parameters
+    ----------
+    path : str
+    ext : str, optional
+        File extension to filter on.
+    """
     if ext:
         return [os.path.join(path, fn) for fn in next(os.walk(path))[2] if fn.endswith('.' + ext)]
     return [os.path.join(path, fn) for fn in next(os.walk(path))[2]]
@@ -169,7 +220,8 @@ def files_in(path, ext=None):
 
 def find_nearest(anchor, atoms):
     """
-    Returns closer atom from `atoms` to `anchor`
+    Find the atom of `atoms` that is closer to `anchor`, in terms of
+    number of atoms in between.
     """
     try:
         return next(a for a in atoms if a is anchor)
@@ -205,6 +257,13 @@ def highest_atom_indices(r):
 def pseudobond_to_bond(molecule, remove=False):
     """
     Transforms every pseudobond in `molecule` to a covalent bond
+
+    Parameters
+    ----------
+    molecule : chimera.Molecule
+    remove : bool
+        If True, remove original pseudobonds after actual bonds
+        have been created.
     """
     pbgroup = chimera.misc.getPseudoBondGroup(
         "coordination complexes of %s (%s)" %

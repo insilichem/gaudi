@@ -13,6 +13,10 @@
 """
 :mod:`gaudi.parse` parses YAML input files into convenient objects that allow
 per-attribute access to configuration parameters.
+
+.. todo ::
+    
+    Use AttrDict or Bunch instead, and deprecate this shitty code :)
 """
 
 # Python
@@ -105,4 +109,4 @@ def _test_rebuild(cfg):
 if __name__ == '__main__':
     import sys
     cfg = Settings(sys.argv[1])
-    print [o.module for o in cfg.objective]
+    print[o.module for o in cfg.objective]

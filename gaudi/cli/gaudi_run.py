@@ -71,6 +71,14 @@ import gaudi.version
 
 
 def launch(cfg):
+    """
+    Runs a GAUDI essay
+
+    Parameters
+    ----------
+    cfg : gaudi.parse.Settings
+        Parsed YAML dict with attribute-like access
+    """
     gaudi.plugin.import_plugins(*cfg.genes)
     gaudi.plugin.import_plugins(*cfg.objectives)
     import_module(cfg.similarity.module.rsplit('.', 1)[0])
