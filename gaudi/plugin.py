@@ -11,8 +11,9 @@
 ##############
 
 """
-:mod:`gaudi.plugin` provides the basic functionality for the plugin system
+This module provides the basic functionality for the plugin system
 of `genes` and `objectives`.
+
 """
 
 # Python
@@ -33,6 +34,7 @@ class PluginMount(type):
     Metaclass trickery obtained from
     [Marty Alchin's blog](http://martyalchin.com/2008/jan/10/simple-plugin-framework/)
     Each mount point (ie,`genes` and `objectives`), MUST inherit this one.
+
     """
 
     __metaclass__ = abc.ABCMeta
@@ -50,16 +52,18 @@ class PluginMount(type):
             # track of it later.
             cls.plugins.append(cls)
 
+
 # Helper functions
-
-
 def import_plugins(*pluginlist):
     """
     Import requested modules, only once, when launch.py is called and the
     configuration is parsed successfully.
 
-    :pluginlist:    A list of `gaudi.parse.Param` objects that result from
-                    the configuration parsing.
+    Parameters
+    ----------
+    pluginlist : list of gaudi.parse.Param
+        Usually, the genes or objectives list resulting from
+        the configuration parsing.
 
     """
     plugins = []
@@ -82,9 +86,15 @@ def load_plugins(plugins, container=None, **kwargs):
     individual has its own instance, but objectives are treated like a singleton. So,
     they are only instantiated once. That's the reason behind usen a mutable container.
 
-    :plugins:   List of plugins (in form of `gaudi.parse.Param`) to load.
-    :container: If provided, use this container to retain instances across individuals.
-    :kwargs:    Everything else will be passed to the requested plugin instances.
+    Parameters
+    ----------
+    plugins : list of `gaudi.parse.Param`
+        Modules to load. Each Param must have a `module` attr with a full import path.
+    container : dict or dict-like
+        If provided, use this container to retain instances across individuals.
+    kwargs : 
+        Everything else will be passed to the requested plugin instances.
+
     """
     if container is None:
         container = OrderedDict()

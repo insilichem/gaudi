@@ -11,8 +11,9 @@
 ##############
 
 """
-:mod:`gaudi.base` contains the core classes we use to build individuals
+Contains the core classes we use to build individuals
 (potential solutions of the optimization process).
+
 """
 
 # Python
@@ -48,14 +49,30 @@ class Individual(object):
     The defined methods are only wrapper calls to the respective methods of each
     gene.
 
-    :cfg:   The full parsed object from the configuration YAML file.
-    :cache: A mutable object that can be used to store values across instances.
+    Parameters
+    ----------
+
+    cfg : gaudi.parse.Settings
+        The full parsed object from the configuration YAML file.
+    cache : dict or dict-like
+        A mutable object that can be used to store values across instances.
+    dummy : bool
+        If True, create an uninitialized Individual, only containing the 
+        cfg attribute. If false, call `__ready__` and complete initialization.
+
+    Atttributes
+    -----------
+    __CACHE : dict
+        Class attribute that caches gene data across instances
+    __CACHE_OBJ : dict
+        Class attribute taht caches objectives data across instances
 
     .. todo::
 
         :meth:`write` should use Pickle and just save the whole object, but
         Chimera's inmutable objects (Atoms, Residues, etc) get in the way. A
         workaround may be found if we take a look a the session saving code.
+
     """
 
     _CACHE = {}
@@ -68,6 +85,11 @@ class Individual(object):
             self.__ready__()
 
     def __ready__(self):
+        """
+        A *post-init* method used to avoid initialization problems with
+        `__deepcopy__`. It's just the second part of a two-stage
+        `__init__`.
+        """
         self.genes = OrderedDict()
         gaudi.plugin.load_plugins(self.cfg.genes, container=self.genes,
                                   parent=self,
@@ -78,7 +100,7 @@ class Individual(object):
             g.__ready__()
 
         self.fitness = Fitness(self.cfg.weights)
-        mod, fn = self.cfg.similarity.type.rsplit('.', 1)
+        mod, fn = self.cfg.similarity.module.rsplit('.', 1)
         self._similarity = getattr(sys.modules[mod], fn)
 
     def __deepcopy__(self, memo):
@@ -92,6 +114,14 @@ class Individual(object):
         return new
 
     def evaluate(self, environment):
+        """
+        Express individual, evaluate it and unexpress it.
+
+        Parameters
+        ----------
+        environment : Environment
+            Objectives that will evaluate the individual
+        """
         logger.debug("Evaluating individual #%s", id(self))
         self.express()
         score = environment.evaluate(self)
@@ -117,29 +147,62 @@ class Individual(object):
             gene.unexpress()
 
     def mate(self, other):
+        """
+        Recombine genes of `self` with `other`. It simply calls `mate` on
+        each gene instance
+
+        Parameters
+        ----------
+        other : Individual
+            Another individual to mate with.
+        """
         for gene in self.genes.values():
             gene.mate(other.genes[gene.name])
         logger.debug("#%s mated #%s", id(self), id(other))
         return self, other
 
     def mutate(self, indpb):
+        """
+        Trigger a round of possible mutations across all genes
+
+        Parameters
+        ----------
+        indpb : float
+            Probability of suffering a mutation
+        """
         for gene in self.genes.values():
             gene.mutate(indpb)
         logger.debug("#%s mutated", id(self))
         return self,
 
-    def similar(self, individual):
-        return self._similarity(self, individual,
+    def similar(self, other):
+        """
+        Compare `self` and `other` with a similarity function.
+
+        Returns
+        -------
+        bool
+        """
+        return self._similarity(self, other,
                                 *self.cfg.similarity.args,
                                 **self.cfg.similarity.kwargs)
 
     def write(self, i):
         """
-        # Maybe someday we can pickle it all :/
-        filename = os.path.join(path, '{}_{}.pickle.gz'.format(name,i))
-        with gzip.GzipFile(filename, 'wb') as f:
-            cPickle.dump(self, f, 0)
-        return filename
+        Export the individual to a mol2 file
+
+        Parameters
+        ----------
+        i : int
+            Individual identificator in current generation or hall of fame
+
+        .. note :: 
+
+            Maybe someday we can pickle it all :/
+            >>> filename = os.path.join(path, '{}_{}.pickle.gz'.format(name,i))
+            >>> with gzip.GzipFile(filename, 'wb') as f:
+            >>>     cPickle.dump(self, f, 0)
+            >>> return filename
         """
         path = self.cfg.general.outputpath
         name = self.cfg.general.name
@@ -174,9 +237,14 @@ class Environment(object):
     and a helper function to evaluate them all at once. Since Fitness it's an Attribute
     of every `individual`, it should result in a self-contained object.
 
-    :parent:    A reference to the :class:`individual` that cointains the instance.
-    :args:      Positional arguments that will be passed to `deap.base.Fitness.__init__`
-    :kwargs:    Optional arguments that will be passed to `deap.base.Fitness.__init__`
+    Parameters
+    ----------
+    cfg : gaudi.parse.Settings
+        The parsed configuration YAML file that contains objectives information
+    args
+        Positional arguments that will be passed to `deap.base.Fitness.__init__`
+    kwargs
+        Optional arguments that will be passed to `deap.base.Fitness.__init__`
     """
 
     def __init__(self, cfg, *args, **kwargs):
@@ -189,6 +257,9 @@ class Environment(object):
                                   zone=self.zone)
 
     def evaluate(self, individual):
+        """
+        individual : Individual
+        """
         scores = []
         individual.express()
         for name, obj in self.objectives.items():

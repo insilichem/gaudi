@@ -11,27 +11,34 @@
 ##############
 
 """
-launch -- Run GAUDI essays
-==========================
-
-This script is the main hub for launching GAUDI essays.
+`gaudi.cli.gaudi_run` is the main hub for launching GAUDI essays.
 
 It sets up the configuration environment needed by DEAP (responsible for the GA)
 and ties it up to the GAUDI custom classes that shape up the invididuals and
 objectives. All in a loosely-coupled approach based on Python modules called on-demand.
 
-*Usage*. Call it from Chimera with a GAUDI input file as the first and only argument.
+**Usage**. Call it from Chimera with a GAUDI input file as the first and only argument.
 Using `nogui` flag is recommended to speed up the calculations:
+    
+.. code-block :: console
 
     cd /path/to/gaudi/installation/directory/
-    /path/to/chimera/bin/chimera --nogui --script "launch.py /path/to/gaudi.yaml"
+    /path/to/chimera/bin/chimera --nogui --script "gaudi_run.py /path/to/gaudi.yaml"
 
-Read `README.md` for additional details on useful aliases.
+If you are using the provided aliases, it would suffice to type:
+    
+.. code-block :: console
+
+    gaudi run /path/to/essay.gaudi-input
+
+
+Read ``README.rst`` for additional details on useful aliases.
 
 .. todo::
 
     DEAP default algorithm is nice, but we will be needing some custom features. For
     example, handle KeyboardInterrupt not to lose the population, and so on.
+
 """
 
 # Python
@@ -42,18 +49,42 @@ import numpy
 import os
 import sys
 # External dependencies
-import chimera
-import deap
-from deap import creator, tools, base, algorithms
+try:
+    import chimera
+except ImportError:
+    print("""
+You must install UCSF Chimera and run GAUDI with its own Python interpreter.
+Check the install guide for more details.
+""")
+import deap.creator
+import deap.tools
+import deap.base
+import deap.algorithms
 import yaml
 # GAUDI
-import gaudi
+import gaudi.algorithms
+import gaudi.base
+import gaudi.box
+import gaudi.genes
+import gaudi.objectives
+import gaudi.parse
+import gaudi.plugin
+import gaudi.similarity
+import gaudi.version
 
 
-def main(cfg):
+def launch(cfg):
+    """
+    Runs a GAUDI essay
+
+    Parameters
+    ----------
+    cfg : gaudi.parse.Settings
+        Parsed YAML dict with attribute-like access
+    """
     gaudi.plugin.import_plugins(*cfg.genes)
     gaudi.plugin.import_plugins(*cfg.objectives)
-    import_module(cfg.similarity.type.rsplit('.', 1)[0])
+    import_module(cfg.similarity.module.rsplit('.', 1)[0])
 
     # DEAP setup: Fitness, Individuals, Population
     toolbox = deap.base.Toolbox()
@@ -100,7 +131,7 @@ def main(cfg):
     return population, log, best_individuals
 
 
-def prepare_input():
+def prepare_input(filename):
     """
     Parses input file and validate paths
     """
@@ -114,19 +145,14 @@ def prepare_input():
         return os.path.normpath(os.path.join(basedir, os.path.expanduser(path)))
 
     # Parse input
-    try:
-        # os.path.realpath prepends the working directory to relative paths
-        path = os.path.abspath(os.path.expanduser(sys.argv[1]))
-    except IndexError:
-        sys.exit("ERROR: Input file not provided. \n")
-    else:
-        cfg = gaudi.parse.Settings(path)
-        inputdir = os.path.dirname(path)
+    path = os.path.abspath(os.path.expanduser(filename))
+    cfg = gaudi.parse.Settings(path)
+    inputdir = os.path.dirname(path)
 
     # Tilde expansion in paths and abs/rel path support
     cfg.general.outputpath = build_path(inputdir, cfg.general.outputpath)
     for g in cfg.genes:
-        if g.type == 'gaudi.genes.molecule':
+        if g.module == 'gaudi.genes.molecule':
             g.path = build_path(inputdir, g.path)
             if not os.path.exists(g.path):
                 sys.exit(
@@ -170,24 +196,42 @@ def enable_logging(path=None, name=None):
     return logger
 
 
-if __name__ == "__main__":
+def unbuffer_stdout():
+    class Unbuffered(object):
+
+        def __init__(self, stream):
+            self.stream = stream
+
+        def write(self, data):
+            self.stream.write(data)
+            self.stream.flush()
+
+        def __getattr__(self, attr):
+            return getattr(self.stream, attr)
+
+    sys.stdout = Unbuffered(sys.stdout)
+
+
+#@gaudi.box.do_cprofile
+def main(filename):
     # Parse input file
-    cfg = prepare_input()
+    cfg = prepare_input(filename)
 
     # Enable logging to stdout and file
     logger = enable_logging(cfg.general.outputpath, cfg.general.name)
     logger.info('GAUDIasm job started with input %s', sys.argv[1])
+    unbuffer_stdout()
 
     # Disable auto ksdssp
     chimera.triggers.addHandler("Model", gaudi.box.suppress_ksdssp, None)
 
     # Run simulation
-    pop, log, best = main(cfg)
+    pop, log, best = launch(cfg)
 
     # Write results
     logger.info('Writing %s results to disk', len(pop))
     results = {'GAUDI.objectives': [
-        '{} ({})'.format(obj.name, obj.type) for obj in cfg.objectives]}
+        '{} ({})'.format(obj.name, obj.module) for obj in cfg.objectives]}
     results['GAUDI.results'] = {}
     for i, ind in enumerate(best):
         filename = ind.write(i)
@@ -195,8 +239,14 @@ if __name__ == "__main__":
             os.path.basename(filename)] = [float(f) for f in ind.fitness.values]
 
     outputpath = os.path.join(cfg.general.outputpath,
-                              '{}.out.gaudi'.format(cfg.general.name))
+                              '{}.gaudi-output'.format(cfg.general.name))
     with open(outputpath, 'w+') as out:
         out.write('# Generated by GAUDI on {}\n\n'.format(
             strftime("%Y-%m-%d %H:%M:%S")))
         out.write(yaml.dump(results, default_flow_style=False))
+
+if __name__ == "__main__":
+    try:
+        main(sys.argv[1])
+    except IndexError:
+        sys.exit("ERROR: Input file not provided. \n")

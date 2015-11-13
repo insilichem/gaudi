@@ -11,7 +11,7 @@
 ##############
 
 """
-:mod:`gaudi.genes.search` provides spatial exploration of the environment.
+This module provides spatial exploration of the environment.
 
 It works by creating a sphere with radius `self.radius` and origin at
 `self.origin`. The movement is achieved with three matrices that contain
@@ -20,6 +20,7 @@ a translation, a rotation, and a reference position.
 It depends on :class:`gaudi.genes.molecule.Molecule`, since these are the ones
 that will be moved around. Combined with the adequate objectives, this module
 can be used to implement docking experiments.
+
 """
 
 # Python
@@ -48,6 +49,70 @@ def enable(**kwargs):
 
 
 class Search(GeneProvider):
+
+    """
+    Parameters
+    ----------
+    target : str
+        The *anchor* atom of the molecule we want to move, with syntax
+        ``<molecule_name>/<index>``. For example, if we want to move Ligand
+        using atom with serial number = 1 as pivot, we would specify
+        ``Ligand/1``. It's parsed to the actual chimera.Atom later on.
+    center : 3-item list or tuple of float, optional
+        Coordinates to the center of the desired search sphere
+    radius : float
+        Maximum distance from center that the molecule can move
+    rotate : bool, bool
+        If False, don't rotatate the molecule - only translation
+    precision : int, bool
+        Rounds the decimal part of the 3D search matrix to get a coarser
+        model of space. Ie, less points can be accessed, the search is less
+        exhaustive, more variability in less runs.
+
+    Attributes
+    ----------
+    origin : 3-tuple of float
+        The initial position of the requested target molecule. If we don't take this
+        into account, we can't move the molecule around was not originally in the
+        center of the sphere.
+
+    Notes
+    -----
+    **How matricial translation and rotation takes place**
+
+    A single movement is summed up in a 4x3 matrix:
+
+        (
+        (R1, R2, R3, T1),
+        (R4, R5, R6, T2),
+        (R7, R8, R9, T3)
+        )
+
+    R-elements contain the rotation information, while T elements account for
+    the translation movement.
+
+    That matrix can be obtained from multipying three different matrices with
+    this expression:
+
+        multiply_matrices(translation, rotation, to_zero)
+
+    To understand the operation, it must be read from the right:
+
+        1. First, translate the molecule the origin of coordinates 0,0,0
+        2. In that position, the rotation can take place.
+        3. Then, translate to the final coordinates from zero. There's no need
+           to get back to the original position.
+
+    How do we get the needed matrices?
+
+    - ``to_zero``. Record the original position (`origin`) of the molecule and 
+      multiply it by -1. Done with method `to_zero()`.
+
+    - ``rotation``. Obtained directly from ``FitMap.search.random_rotation``
+
+    - ``translation``. Check docstring of ``random_translation()`` in this module.
+
+    """
 
     def __init__(self, target=None, center=None, radius=None, rotate=True,
                  precision=None, **kwargs):
@@ -79,10 +144,16 @@ class Search(GeneProvider):
 
     @property
     def to_zero(self):
-        origin = self.origin
-        return ((1.0, 0.0, 0.0, -origin[0]),
-                (0.0, 1.0, 0.0, -origin[1]),
-                (0.0, 0.0, 1.0, -origin[2]))
+        """
+        Return a translation matrix that takes the molecule from its 
+        original position to the origin of coordinates (0,0,0). 
+
+        Needed for rotations.
+        """
+        x, y, z = self.origin
+        return ((1.0, 0.0, 0.0, -x),
+                (0.0, 1.0, 0.0, -y),
+                (0.0, 0.0, 1.0, -z))
 
     def express(self):
         """
@@ -99,7 +170,7 @@ class Search(GeneProvider):
 
     def unexpress(self):
         """
-        Reset xform to unity matrix
+        Reset xform to unity matrix.
         """
         self.molecule.openState.xform = X()
 
@@ -127,14 +198,16 @@ class Search(GeneProvider):
 
     #####
     def random_transform(self):
+        """
+        Wrapper function to provide translation and rotation in a single call
+        """
         rotation = random_rotation() if self.rotate else IDENTITY
         translation = random_translation(self.center, self.radius)
         return translation, rotation
 
+
 #############
 # Some useful functions
-
-
 def translate(molecule, anchor, target):
     if isinstance(anchor, chimera.Atom):
         anchor = anchor.coord()
@@ -180,9 +253,10 @@ def rotate(molecule, at, alpha):
 
 
 def rand_xform(origin, destination, r, rotate=True):
-    to_zero = ((1.0, 0.0, 0.0, -origin[0]),
-               (0.0, 1.0, 0.0, -origin[1]),
-               (0.0, 0.0, 1.0, -origin[2]))
+    x, y, z = origin
+    to_zero = ((1.0, 0.0, 0.0, -x),
+               (0.0, 1.0, 0.0, -y),
+               (0.0, 0.0, 1.0, -z))
     rotation = random_rotation() if rotate else IDENTITY
     translation = random_translation(destination, r)
     return translation, rotation, to_zero
@@ -193,6 +267,17 @@ def random_translation(center, r):
     Get a random point from the cube built with l=r and test if it's within
     the sphere. Most of the points will be, but not all of them, so get another
     one until that criteria is met.
+
+    Parameters
+    ----------
+    center : 3-tuple of float
+        Coordinates of the center of the search sphere
+    r : float
+        Radius of the search sphere
+
+    Returns
+    -------
+    A translation matrix to a random point in the search sphere, with no rotation.
     """
     inside = True
     while inside:
@@ -208,7 +293,19 @@ def parse_origin(origin, genes=None):
     """
     The center of the sphere can be given as an Atom, or directly as
     a list of three floats (x,y,z). If it's an Atom, find it and return
-    the xyz coords. If not, just turn the list into a tuple
+    the xyz coords. If not, just turn the list into a tuple.
+
+    Parameters
+    ----------
+    origin : 3-item list of coordinates, or chimera.Atom
+    genes : gaudi.parse.Settings.genes
+        List of gene-dicts to look for molecules that may contain
+        the referred atom in `origin`
+
+    Returns
+    -------
+    Tuple of float
+        The x,y,z coordinates
     """
     if isinstance(origin, str) and genes:
         mol, serial = gaudi.parse.parse_rawstring(origin)

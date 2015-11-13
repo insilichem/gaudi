@@ -11,8 +11,9 @@
 ##############
 
 """
-:mod:`gaudi.base` contains the core classes we use to build individuals
-(potential solutions of the optimization process).
+This module contains the similarity functions that are used
+to discard individuals that are not different enough.
+
 """
 
 import logging
@@ -22,6 +23,24 @@ logger = logging.getLogger(__name__)
 
 
 def rmsd(ind1, ind2, subject, threshold):
+    """
+    Returns the RMSD between two individuals
+
+    Parameters
+    ----------
+    ind1, ind2 : gaudi.base.Individual
+    subject : str
+        Name of gaudi.genes.molecule instance to measure
+    threshold : float
+        Maximum RMSD value to consider two individuals as similar.
+        If rmsd > threshold, they are considered different.
+
+    Returns
+    -------
+    bool
+        True if rmsd is within threshold, False otherwise
+
+    """
     logger.debug("Comparing RMSD between #%s and #%s",
                  id(ind1), id(ind2))
     ind1.express()

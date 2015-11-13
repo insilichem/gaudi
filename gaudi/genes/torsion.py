@@ -11,17 +11,17 @@
 ##############
 
 """
-:mod:`gaudi.genes.torsion` helps explore small molecules flexibility.
+This module helps explore small molecules flexibility.
 
-It does so by performing bond rotations in the selected :class:`gaudi.genes.molecule.Molecule`
-objects.
+It does so by performing bond rotations in the selected `gaudi.genes.molecule.Molecule`
+objects, if they exhibit free bond rotations.
+
 """
 
 # Python
 import random
 import logging
 from itertools import izip
-from collections import OrderedDict
 # Chimera
 import chimera
 # External dependencies
@@ -33,7 +33,32 @@ from gaudi import box
 logger = logging.getLogger(__name__)
 
 
+def enable(**kwargs):
+    return Torsion(**kwargs)
+
+
 class Torsion(GeneProvider):
+
+    """
+    Parameters
+    ----------
+    target: str
+        Name of gaudi.genes.molecule instance to perform rotation on
+    flexibility : int or float
+        Maximum number of degrees a bond can rotate
+    max_bonds :
+        Expected number of free rotations in molecule. Needed to store
+        arbitrary rotations. 
+
+    Notes
+    -----
+
+    .. todo ::
+
+        `max_bonds` should be automatically computed, based on ligand
+        expected composition (careful with block-built ligands...)
+
+    """
     BONDS_ROTS = {}
 
     def __init__(self, target=None, flexibility=None, max_bonds=30, **kwargs):
@@ -46,6 +71,9 @@ class Torsion(GeneProvider):
         self.allele = [self.random_angle() for i in xrange(self.max_bonds)]
 
     def express(self):
+        """
+        Apply rotations to rotatable bonds
+        """
         for alpha, br in izip(self.allele, self.rotatable_bonds):
             try:
                 if all(a.idatmType in ('C2', 'N2') for a in br.bond.atoms):
@@ -56,6 +84,9 @@ class Torsion(GeneProvider):
                 continue
 
     def unexpress(self):
+        """
+        Undo the rotations
+        """
         for br in self.rotatable_bonds:
             br.adjustAngle(-br.angle, br.rotanchor)
 
@@ -73,10 +104,35 @@ class Torsion(GeneProvider):
 
     #####
     def random_angle(self):
+        """
+        Returns a random angle within flexibility limits
+        """
         return random.uniform(-0.5 * self.flexibility, 0.5 * self.flexibility)
 
     @property
     def rotatable_bonds(self):
+        """
+        Gets potentially rotatable bonds in molecule
+
+        First, it retrieves all the atoms. Then, the bonds are filtered,
+        discarding coordination (pseudo)bonds and sort them by atom serial.
+
+        For each bond, try to retrieve it from the cache. If unavailable,
+        request a bond rotation object to chimera.BondRot.
+
+        In this step, we have to discard non rotatable atoms (as requested
+        by the user), and make sure the involved atoms are of compatible type.
+        Namely, one of them must be either C3, N3, C2 or N2, and both of them, 
+        non-terminal (more than one neighbor).
+
+        If the bond is valid, get the BondRot object. Chimera will complain
+        if we already have requested that bond previously, or if the bond is in a
+        cycle. Handle those exceptions silently, and get the next bond in that case.
+
+        If no exceptions are raised, then store the rotation anchor in the BondRot
+        object (that's the nearest atom in the bond to the molecular anchor),
+        and store the BondRot object in the rotations cache.
+        """
         atoms = self.parent.genes[self.target].compound.mol.atoms
         bonds = set(b for a in atoms for b in a.bonds if not a.element.isMetal)
         bonds = sorted(
@@ -109,10 +165,20 @@ class Torsion(GeneProvider):
             yield br
 
     def update_rotatable_bonds(self):
+        """
+        Probably unneded now
+        """
         self.rotatable_bonds[:] = list(self.get_rotatable_bonds())
 
     @property
     def anchor(self):
+        """
+        Get the molecular anchor. Ie, the *root* of the rotations, the fixed
+        atom of the molecule.
+
+        Usually, this is the target atom in the Search gene, but if we can't find it,
+        get the ``donor`` atom of the molecule.
+        """
         try:
             search = next(g for g in self.parent.genes.values()
                           if g.__class__.__name__ == 'Search'
@@ -126,7 +192,3 @@ class Torsion(GeneProvider):
             except (StopIteration, AttributeError):
                 anchor = self.parent.genes[self.target].compound.donor
         return anchor
-
-
-def enable(**kwargs):
-    return Torsion(**kwargs)

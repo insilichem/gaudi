@@ -11,7 +11,7 @@
 ##############
 
 """
-:mod:`gaudi.objectives.solvation` calculates SASA and/or SESA for the given system (or region).
+This objective calculates SASA and/or SESA for the given system (or region).
 
 .. note::
 
@@ -22,6 +22,7 @@
     Hopefully, UCSF Chimera 2.0 will implement a custom alternative to MSMS which won't have these
     problems. At least, that's what they stated \
     (here)[http://www.cgl.ucsf.edu/pipermail/chimera-users/2013-February/008497.html].
+
 """
 
 # Python
@@ -43,6 +44,17 @@ def enable(**kwargs):
 
 class Solvation(ObjectiveProvider):
 
+    """
+    Solvation class
+
+    Parameters
+    ----------
+    which : {'ses', 'sas'}
+        Type of solvation to measure
+    target : str
+        Name of the molecule gene being analyzed
+    """
+
     def __init__(self, which='ses', target=None,
                  *args, **kwargs):
         ObjectiveProvider.__init__(self, **kwargs)
@@ -63,8 +75,9 @@ class Solvation(ObjectiveProvider):
             atoms, ses, sas = self._solvation(self.zone_atoms(target,
                                                               molecules))
         except Surface_Calculation_Error:
-            raise Surface_Calculation_Error("""Problem with solvation calc.
-Read this: http://www.rbvi.ucsf.edu/chimera/docs/UsersGuide/surfprobs.html""")
+            raise Surface_Calculation_Error(
+                'Problem with solvation calc. Read this: '
+                'http://www.rbvi.ucsf.edu/chimera/docs/UsersGuide/surfprobs.html')
         else:
             if self.which == 'ses':
                 surfaces = ses
@@ -87,6 +100,9 @@ Read this: http://www.rbvi.ucsf.edu/chimera/docs/UsersGuide/surfprobs.html""")
 
     @staticmethod
     def _solvation(atoms):
+        """
+        The actual wrapper around Chimera's own wrapper of MSMS
+        """
         xyzr_data = Measure.measure.atom_xyzr(atoms)
         surfaces = MoleculeSurface.xyzr_surface_geometry(xyzr_data)
         # return atoms, ses, sas

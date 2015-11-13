@@ -11,7 +11,7 @@
 ##############
 
 """
-:mod:`gaudi.objectives.contacts` provides a wrapper around Chimera's
+This objective provides a wrapper around Chimera's
 `DetectClash` that detects clashes and contacts.
 
 Clashes are understood as steric conflicts that increases the energy
@@ -20,6 +20,7 @@ of the Van der Waals' spheres of the implied atoms.
 
 Contacts are considered as stabilizing, and they are evaluated with a
 Lennard-Jones 12-6 like function.
+
 """
 
 # Python
@@ -39,6 +40,32 @@ def enable(**kwargs):
 
 
 class Contacts(ObjectiveProvider):
+
+    """
+    Contacts class
+
+    Parameters
+    ----------
+    probe : str
+        Name of molecule gene that is object of contacts analysis
+    radius : float
+        Maximum distance from any point of probe that is searched
+        for possible interactions
+    which : {'hydrophobic', 'clashes'}
+        Type of interactions to measure
+    threshold : float, optional
+        Maximum overlap of van-der-Waals spheres that is considered as
+        a contact (attractive). If the overlap is greater, it's 
+        considered a clash (repulsive)
+    threshold_h : float, optional
+        If the involved atoms can form a H-bond, use this threshold instead.
+    treshold_c : float, optional
+        If the involved atoms can form a hydrophobic patch, use this threshold 
+        instead. (sure??)
+    cutoff : float, optional
+        If the overlap volume is greater than this, a penalty is applied. 
+        Useful to filter bad solutions.
+    """
 
     def __init__(self, probe=None, radius=5.0, which='hydrophobic',
                  threshold=0.6, threshold_h=0.2, threshold_c=0.6, cutoff=100.0,
@@ -60,6 +87,10 @@ class Contacts(ObjectiveProvider):
         return ind.genes[self._probe].compound.mol
 
     def evaluate(self, ind):
+        """
+        Get interacting pairs of atoms with DetectClash (Chimera's) and submit them
+        to our parsers.
+        """
         test_atoms = self._surrounding_atoms(ind)
         clashes = DetectClash.detectClash(test_atoms, test=test_atoms, intraRes=True,
                                           interSubmodel=True, clashThreshold=self.threshold,
@@ -107,6 +138,39 @@ class Contacts(ObjectiveProvider):
         return positive, negative
 
     def _parse_clashes_c(self, clashes, ind):
+        """
+        Interpret contacts provided by DetectClash.
+
+        Parameters
+        ----------
+        clashes : dict of dict
+            Output of DetectClash. It's a dict of atoms, whose values are dicts.
+            These subdictionaries contain all the contacting atoms as keys, and
+            the respective distance as values.
+        ind : Individual
+
+        Returns
+        -------
+        positive : list of list
+            Each sublist depict an interaction, with four items: the two involved
+            atoms, their distance, and their Lennard-Jones score.
+        negative : list of list
+            Each sublist depict an interaction, with four items: the two involved
+            atoms, their distance, and their volumetric overlap.
+
+        .. note ::
+            First, collect atoms that can be involved in hydrophobic interactions.
+            Namely, C and S.
+
+            Then, iterate the contacting atoms, getting the distances. For each
+            interaction, analyze the distance and, based on the threshold, determine
+            if it's attractive or repulsive.
+
+            Attractive interactions are weighted with a Lennard-Jones like function
+            (``_lennard_jones``), while repulsive attractions are measured with
+            the volumetric overlap of the involved atoms' Van der Waals spheres.
+
+        """
         vdwatoms = set(
             a for m in self.molecules(ind) for a in m.atoms if a.element.name in ('C', 'S'))
 
@@ -124,6 +188,9 @@ class Contacts(ObjectiveProvider):
         return positive, negative
 
     def _surrounding_atoms(self, ind):
+        """
+        Get atoms in the search zone, based on the molecule and the radius
+        """
         self.zone.clear()
         self.zone.add(self.probe(ind).atoms)
         self.zone.merge(chimera.selection.REPLACE,
@@ -136,6 +203,18 @@ class Contacts(ObjectiveProvider):
 
     @staticmethod
     def _lennard_jones(a1, a2):
+        """
+        VERY rough aproximation of a Lennard-Jones score (12-6).
+
+        Parameters
+        ----------
+        a1, a2 : chimera.Atom
+
+        .. todo ::
+
+            The distance is usually computed in the clash parsers, so get it
+            instead of computing it again. At least, as an optional kw.
+        """
         dist = a1.xformCoord().distance(a2.xformCoord())
         zero = 0.98 * (a1.radius + a2.radius)
         x = zero / dist
@@ -143,8 +222,17 @@ class Contacts(ObjectiveProvider):
 
     @staticmethod
     def _vdw_vol_overlap(a1, a2):
+        """
+        Volumetric overlap of Van der Waals spheres of atoms.
+
+        Parameters
+        ----------
+        a1, a2 : chimera.Atom
+
+        .. note ::
+            Adapted from Eran Eyal, Comput Chem 25: 712-724, 2004
+        """
         PI = 3.14159265359
-        # Adapted from Eran Eyal, Comput Chem 25: 712-724, 2004
         d = a1.xformCoord().distance(a2.xformCoord())
         if not d:
             return 1000

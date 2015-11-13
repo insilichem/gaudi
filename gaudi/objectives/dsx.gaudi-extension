@@ -32,9 +32,9 @@ ligand:
     - Name of Molecule that acts as a ligand
     - Ligand
 terms: 
-    - !!python/name:str
+    - !!python/name:bool
     - List of booleans to enable (or disable) scoring terms in this order - distance-dependent pair potentials, intramolecular clashes, torsion potentials, sas potentials
-    - True, True, False, False
+    - True, True, False, False, True
 sorting:
     - !!python/name:int
     - Sorting mode of DSX. Read binary help for arg -S

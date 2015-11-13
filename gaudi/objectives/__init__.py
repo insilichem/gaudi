@@ -10,6 +10,11 @@
 # Web: https://bitbucket.org/jrgp/gaudi
 ##############
 
+"""
+Objectives are modules that reside in the `gaudi.objectives` package,
+and have a certain class structure
+"""
+
 # Python
 import abc
 import logging

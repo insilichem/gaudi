@@ -11,12 +11,16 @@
 ##############
 
 """
-:mod:`gaudi.parse` parses YAML input files into convenient objects that allow
+This module parses YAML input files into convenient objects that allow
 per-attribute access to configuration parameters.
+
+.. todo ::
+    
+    Use AttrDict or Bunch instead, and deprecate this shitty code :)
+
 """
 
 # Python
-import os
 import logging
 # External dependencies
 import yaml
@@ -26,11 +30,17 @@ logger = logging.getLogger(__name__)
 
 class Settings(object):
 
-    """ Simple parser for YAML settings file.
+    """ 
+    Simple parser for YAML settings file.
 
-    It should be made of dictionaries and
-    lists of dictionaries. The keys will be added as attributes of the returned object.
-    :path:  Path to the yaml file.
+    It should be made of dictionaries and lists of dictionaries. The keys
+    will be added as attributes of the returned object.
+
+    Parameters
+    ----------
+    path : str
+        Path to the yaml file.
+
     """
 
     def __init__(self, path, asDict=False):
@@ -105,4 +115,4 @@ def _test_rebuild(cfg):
 if __name__ == '__main__':
     import sys
     cfg = Settings(sys.argv[1])
-    print [o.type for o in cfg.objective]
+    print[o.module for o in cfg.objective]
