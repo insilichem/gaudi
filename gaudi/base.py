@@ -11,9 +11,6 @@
 ##############
 
 """
-gaudi.base
-==========
-
 Contains the core classes we use to build individuals
 (potential solutions of the optimization process).
 

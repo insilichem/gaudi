@@ -11,11 +11,9 @@
 ##############
 
 """
-Benchmarker
-===========
-
-Sequential runs of a given GAUDI essay in all folders contained under
-given path. Useful for benchmarks.
+`gaudi.cli.gaudi_benchmark` enables sequential runs of a given GAUDI essay 
+in all folders contained under given path. Useful for benchmarks. 
+Run it with ``gaudi benchmark``.
 
 """
 
@@ -29,9 +27,6 @@ import gaudi_run
 
 def main(dataset, templatefile, gaudi='gaudi'):
     """
-    GAUDI Benchmarker
-    =================
-
     Helper script to benchmark a dataset with a base GAUDI input.
 
     Load a common template with at least two ``molecule`` instances:

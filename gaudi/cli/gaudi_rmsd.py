@@ -11,14 +11,12 @@
 ##############
 
 """
-RMSD
-====
-
-This script calculates RMSD between two molecule poses in batch mode.
+`gaudi.cli.gaudi_rmsd` calculates RMSD between two molecule poses in batch mode.
 It should be provided with the path to the folders and the name of the
-reference ligand.
+reference ligand. Run it with ``gaudi rmsd``.
 
-It requires rdkit for fast RMSD calculations.
+.. note ::
+    It requires rdkit for fast RMSD calculations.
 
 """
 

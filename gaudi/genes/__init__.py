@@ -10,6 +10,11 @@
 # Web: https://bitbucket.org/jrgp/gaudi
 ##############
 
+"""
+Genes are modules that reside in the `gaudi.genes` package,
+and have a certain class structure.
+"""
+
 # Python
 import abc
 import logging

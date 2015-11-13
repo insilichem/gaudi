@@ -11,9 +11,6 @@
 ##############
 
 """
-Rotamers
-========
-
 This modules allows to explore side chains flexibility
 in proteins, as well as mutation.
 

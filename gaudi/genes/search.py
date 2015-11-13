@@ -11,9 +11,6 @@
 ##############
 
 """
-Search
-======
-
 This module provides spatial exploration of the environment.
 
 It works by creating a sphere with radius `self.radius` and origin at
@@ -54,8 +51,6 @@ def enable(**kwargs):
 class Search(GeneProvider):
 
     """
-    Search class
-
     Parameters
     ----------
     target : str
@@ -81,42 +76,41 @@ class Search(GeneProvider):
         into account, we can't move the molecule around was not originally in the
         center of the sphere.
 
-    .. note ::
+    Notes
+    -----
+    **How matricial translation and rotation takes place**
 
-        How matricial translation and rotation takes place
-        ==================================================
+    A single movement is summed up in a 4x3 matrix:
 
-        A single movement is summed up in a 4x3 matrix:
+        (
+        (R1, R2, R3, T1),
+        (R4, R5, R6, T2),
+        (R7, R8, R9, T3)
+        )
 
-            (
-            (R1, R2, R3, T1),
-            (R4, R5, R6, T2),
-            (R7, R8, R9, T3)
-            )
+    R-elements contain the rotation information, while T elements account for
+    the translation movement.
 
-        R-elements contain the rotation information, while T elements account for
-        the translation movement.
+    That matrix can be obtained from multipying three different matrices with
+    this expression:
 
-        That matrix can be obtained from multipying three different matrices with
-        this expression:
+        multiply_matrices(translation, rotation, to_zero)
 
-            multiply_matrices(translation, rotation, to_zero)
+    To understand the operation, it must be read from the right:
 
-        To understand the operation, it must be read from the right:
+        1. First, translate the molecule the origin of coordinates 0,0,0
+        2. In that position, the rotation can take place.
+        3. Then, translate to the final coordinates from zero. There's no need
+           to get back to the original position.
 
-            1. First, translate the molecule the origin of coordinates 0,0,0
-            2. In that position, the rotation can take place.
-            3. Then, translate to the final coordinates from zero. There's no need
-               to get back to the original position.
+    How do we get the needed matrices?
 
-        How do we get the needed matrices?
+    - ``to_zero``. Record the original position (`origin`) of the molecule and 
+      multiply it by -1. Done with method `to_zero()`.
 
-        - ``to_zero``. Record the original position (`origin`) of the molecule and 
-          multiply it by -1. Done with method `to_zero()`.
+    - ``rotation``. Obtained directly from ``FitMap.search.random_rotation``
 
-        - ``rotation``. Obtained directly from ``FitMap.search.random_rotation``
-
-        - ``translation``. Check docstring of ``random_translation()`` in this module.
+    - ``translation``. Check docstring of ``random_translation()`` in this module.
 
     """
 

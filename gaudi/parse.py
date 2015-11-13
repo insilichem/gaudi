@@ -11,9 +11,6 @@
 ##############
 
 """
-gaudi.parse
-===========
-
 This module parses YAML input files into convenient objects that allow
 per-attribute access to configuration parameters.
 

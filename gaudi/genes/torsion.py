@@ -11,9 +11,6 @@
 ##############
 
 """
-Torsion
-=======
-
 This module helps explore small molecules flexibility.
 
 It does so by performing bond rotations in the selected `gaudi.genes.molecule.Molecule`
@@ -43,8 +40,6 @@ def enable(**kwargs):
 class Torsion(GeneProvider):
 
     """
-    Torsion class
-
     Parameters
     ----------
     target: str
@@ -54,6 +49,9 @@ class Torsion(GeneProvider):
     max_bonds :
         Expected number of free rotations in molecule. Needed to store
         arbitrary rotations. 
+
+    Notes
+    -----
 
     .. todo ::
 

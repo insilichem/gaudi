@@ -11,9 +11,6 @@
 ##############
 
 """
-Simple Coordination
-===================
-
 This objective performs rough estimations
 of good orientations of ligating residues in a protein to
 coordinate a given metal or small molecule. The geometry is approximated

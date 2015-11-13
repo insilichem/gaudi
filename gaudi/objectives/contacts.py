@@ -11,8 +11,6 @@
 ##############
 
 """
-Contacts
-========
 This objective provides a wrapper around Chimera's
 `DetectClash` that detects clashes and contacts.
 

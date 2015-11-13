@@ -11,26 +11,28 @@
 ##############
 
 """
-run -- Run GAUDI essays
-=======================
-
-This script is the main hub for launching GAUDI essays.
+`gaudi.cli.gaudi_run` is the main hub for launching GAUDI essays.
 
 It sets up the configuration environment needed by DEAP (responsible for the GA)
 and ties it up to the GAUDI custom classes that shape up the invididuals and
 objectives. All in a loosely-coupled approach based on Python modules called on-demand.
 
-*Usage*. Call it from Chimera with a GAUDI input file as the first and only argument.
+**Usage**. Call it from Chimera with a GAUDI input file as the first and only argument.
 Using `nogui` flag is recommended to speed up the calculations:
+    
+.. code-block :: console
 
     cd /path/to/gaudi/installation/directory/
     /path/to/chimera/bin/chimera --nogui --script "gaudi_run.py /path/to/gaudi.yaml"
 
 If you are using the provided aliases, it would suffice to type:
+    
+.. code-block :: console
 
     gaudi run /path/to/essay.gaudi-input
 
-Read `README.rst` for additional details on useful aliases.
+
+Read ``README.rst`` for additional details on useful aliases.
 
 .. todo::
 

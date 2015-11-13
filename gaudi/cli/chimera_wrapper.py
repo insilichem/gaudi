@@ -11,7 +11,8 @@
 ##############
 
 """
-A wrapper around Chimera script launcher to use a single keyword as binary.
+`gaudi.cli.chimera_wrapper` is a wrapper around Chimera script launcher to use 
+a single keyword as binary.
 
 That way, instead of doing chimeracli ``/path/to/gaudi_cli.py``, we can type ``gaudi``
 and let setuptools entry_points figure out the rest.

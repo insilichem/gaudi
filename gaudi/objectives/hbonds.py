@@ -11,9 +11,6 @@
 ##############
 
 """
-Hydrogen Bonds
-==============
-
 This objective is a wrapper around Chimera's `FindHBond`. 
 It returns the number of hydrogen bonds that can be formed
 between the target molecule and its environment.

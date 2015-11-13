@@ -11,9 +11,6 @@
 ##############
 
 """
-gaudi.algorithms
-================
-
 This module implements evolutionary algorithms as seen in DEAP,
 and extends their functionality to make use of GAUDI goodies.
 

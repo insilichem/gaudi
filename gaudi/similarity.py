@@ -11,9 +11,6 @@
 ##############
 
 """
-gaudi.similarity
-================
-
 This module contains the similarity functions that are used
 to discard individuals that are not different enough.
 

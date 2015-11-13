@@ -11,9 +11,6 @@
 ##############
 
 """
-gaudi.box
-=========
-
 This module is a messy collection of useful functions used all along GAUDI.
 
 .. todo::

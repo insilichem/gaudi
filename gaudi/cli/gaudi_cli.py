@@ -12,8 +12,7 @@
 ##############
 
 """
-gaudi - The CLI entry point
-===========================
+`gaudi.cli.gaudi_clip is the CLI entry point for all GAUDI scripts.
 
 Available commands:
 

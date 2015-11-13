@@ -11,9 +11,6 @@
 ##############
 
 """
-Solvation
-=========
-
 This objective calculates SASA and/or SESA for the given system (or region).
 
 .. note::

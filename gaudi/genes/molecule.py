@@ -11,9 +11,6 @@
 ##############
 
 """
-Molecule
-========
-
 This gene implements a wrapper around Chimera.molecule objects
 to expand its original features, such as appending new molecules.
 
