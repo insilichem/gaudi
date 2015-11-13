@@ -37,6 +37,7 @@ class PluginMount(type):
     Metaclass trickery obtained from
     [Marty Alchin's blog](http://martyalchin.com/2008/jan/10/simple-plugin-framework/)
     Each mount point (ie,`genes` and `objectives`), MUST inherit this one.
+
     """
 
     __metaclass__ = abc.ABCMeta
@@ -96,6 +97,7 @@ def load_plugins(plugins, container=None, **kwargs):
         If provided, use this container to retain instances across individuals.
     kwargs : 
         Everything else will be passed to the requested plugin instances.
+
     """
     if container is None:
         container = OrderedDict()

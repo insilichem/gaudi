@@ -33,11 +33,17 @@ logger = logging.getLogger(__name__)
 
 class Settings(object):
 
-    """ Simple parser for YAML settings file.
+    """ 
+    Simple parser for YAML settings file.
 
-    It should be made of dictionaries and
-    lists of dictionaries. The keys will be added as attributes of the returned object.
-    :path:  Path to the yaml file.
+    It should be made of dictionaries and lists of dictionaries. The keys
+    will be added as attributes of the returned object.
+
+    Parameters
+    ----------
+    path : str
+        Path to the yaml file.
+
     """
 
     def __init__(self, path, asDict=False):

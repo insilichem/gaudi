@@ -66,6 +66,7 @@ def atoms_by_serial(*serials, **kw):
     Returns
     -------
     list of chimera.Atom
+
     """
     if not kw['atoms']:
         kw['atoms'] = [a for m in chimera.openModels.list() for a in m.atoms]
@@ -186,6 +187,7 @@ def draw_interactions(interactions, startCol='FF0000', endCol='FFFF00',
     Returns
     -------
     chimera.pseudoBondGroup
+
     """
     if not len(interactions):
         return
@@ -215,6 +217,10 @@ def files_in(path, ext=None):
     path : str
     ext : str, optional
         File extension to filter on.
+
+    Returns
+    -------
+        List of absolute paths
     """
     if ext:
         return [os.path.join(path, fn) for fn in next(os.walk(path))[2] if fn.endswith('.' + ext)]
@@ -267,6 +273,7 @@ def pseudobond_to_bond(molecule, remove=False):
     remove : bool
         If True, remove original pseudobonds after actual bonds
         have been created.
+
     """
     pbgroup = chimera.misc.getPseudoBondGroup(
         "coordination complexes of %s (%s)" %
@@ -289,6 +296,14 @@ def suppress_ksdssp(trig_name, my_data, molecules):
 
 
 def write_individuals(inds, outpath, name, evalfn, remove=True):
+    """
+    Write an individual to disk.
+
+    .. note ::
+
+        Deprecated since an Individual object is able to write itself
+        to disk.
+    """
     from WriteMol2 import writeMol2
     if not os.path.isdir(outpath):
         os.makedirs(outpath)
