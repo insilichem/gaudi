@@ -25,7 +25,6 @@ the same backbone, which may not be representative of the in-vivo behaviour. Use
 import random
 from collections import OrderedDict
 import logging
-import os
 # Chimera
 from Rotamers import getRotamers, useRotamer, NoResidueRotamersError
 import SwapRes
@@ -45,9 +44,35 @@ def enable(**kwargs):
 
 class Rotamers(GeneProvider):
 
+    """
+    Rotamers class
+
+    Parameters
+    ----------
+    residues : list of str
+        Residues to be analyzed with rotamers. This has to be in the form:
+
+            [ Protein/233, Protein/109 ]
+
+        where the first element (before slash) is the gaudi.genes.molecule name
+        and the second element (after slash) is the residue position number in that
+        molecule.
+
+        This list of str is later parsed to the proper chimera.Residue objects
+
+    library : {'Dunbrack', 'Dynameomics'}
+        The rotamer library to use.
+
+    mutations : list of str
+        Aminoacids (in 3-letter codes) rotamers can mutate to.
+
+    ligation : bool
+        If True, all residues will mutate to the same type of aminoacid.
+
+    """
+
     def __init__(self, residues=None, library='Dunbrack',
-                 mutations=[], ligation=False,
-                 **kwargs):
+                 mutations=[], ligation=False, **kwargs):
         GeneProvider.__init__(self, **kwargs)
         self._kwargs = kwargs
         self._residues = residues
@@ -68,13 +93,24 @@ class Rotamers(GeneProvider):
 
     @property
     def residues(self):
+        """
+        Alias to the parsed chimera.Residue cache
+        """
         return self._cache[self.name + '_res']
 
     @property
     def rotamers(self):
+        """
+        Alias to the parsed chimera.Rotamer cache
+        """
         return self._cache[self.name + '_rot']
 
     def __ready__(self):
+        """
+        Second stage of initialization.
+
+        It parses the requested residues strings to actual residues.
+        """
         self._residues_rawstring = tuple(
             parse_rawstring(r) for r in self._residues)
         for molecule, resid in self._residues_rawstring:
@@ -147,6 +183,24 @@ class Rotamers(GeneProvider):
         return l[int(random.random() * len(l))]
 
     def get_rotamers(self, mol, pos, restype):
+        """
+        Gets the requested rotamers out of cache and if not found,
+        creates the library and stores it in the cache.
+
+        Parameters
+        ----------
+        mol : str
+            gaudi.genes.molecule name that contains the residue
+        pos : 
+            Residue position in `mol`
+        restype : 
+            Get rotamers of selected position with this type of residue. It does
+            not need to be the original type, so this allows mutations
+
+        Returns
+        -------
+            List of rotamers returned by ``Rotamers.getRotamers``.
+        """
         rotamers = self.rotamers.get((mol, pos, restype))
         if rotamers is None:
             try:

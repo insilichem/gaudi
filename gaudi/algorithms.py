@@ -11,7 +11,7 @@
 ##############
 
 """
-:mod:`~gaudi.algorithms` implements evolutionary algorithms as seen in DEAP,
+`~gaudi.algorithms` implements evolutionary algorithms as seen in DEAP,
 and extends their functionality to make use of GAUDI goodies.
 
 .. todo::

@@ -32,16 +32,33 @@ import zipfile
 def rmsd(dataset, outputfile, reference='reference.mol2', results='results'):
     """
     Take a benchmark essay and compute RMSD for every solution against the reference.
+    The results are written to ``rmsd.csv`` in `dataset`.
 
-    For each folder in dataset, open its results and:
-        Extract ligand.mol2 from zipfile
-        Open reference.mol2
-        Calculate RMSD
-    Print resulting RMSD values to CSV file
-    If some error occurred, the RMSD value will be set to a negative float:
-        -1.0: The reference molecule could not be loaded
-        -2.0: The ligand molecule could not be loaded
-        -3.0: Ref and ligand were loaded, but RMSD calculation failed
+    Parameters
+    ----------
+    dataset : str
+        Path to previously benchmarked dataset
+    outputfile : str
+        The default name of the output file of each GAUDI essay
+    reference : str, optional
+        Name of the ligand reference molecule to calculate RMSD against
+    results : str, optional
+        Name of the results subdirectory
+
+    .. note ::
+
+        Pseudocode
+        ----------
+
+        >>> For each folder in dataset, open its results and:
+        >>>     Extract ligand.mol2 from zipfile
+        >>>     Open reference.mol2
+        >>>     Calculate RMSD
+        >>> Print resulting RMSD values to CSV file
+        >>> If some error occurred, the RMSD value will be set to a negative float:
+        >>>     -1.0: The reference molecule could not be loaded
+        >>>     -2.0: The ligand molecule could not be loaded
+        >>>     -3.0: Ref and ligand were loaded, but RMSD calculation failed
     """
 
     with open(os.path.join(dataset, 'rmsd.csv'), 'w+') as csvfile:
@@ -56,7 +73,7 @@ def rmsd(dataset, outputfile, reference='reference.mol2', results='results'):
                 writer.writerow(
                     {'test': d, 'ligand': 'REF_ERROR', 'rmsd': -1.0})
             else:
-                for name, ligandblock in ligands_from_zip(dataset, results, outputfile, d):
+                for name, ligandblock in ligands_from_zip(dataset, d, results, outputfile):
                     try:
                         ligand = Chem.MolFromMol2Block(ligandblock,
                                                        sanitize=True, removeHs=False)
@@ -73,7 +90,18 @@ def rmsd(dataset, outputfile, reference='reference.mol2', results='results'):
 
 def stats(dataset, great_threshold=1.5, good_threshold=2.5):
     """ 
-    Run through the CSV file and get some stats 
+    Run through the CSV file and get some stats and print outcome to 
+    ``rmsd.txt`` in `dataset`.
+
+    Parameters
+    ----------
+    dataset : str
+        Path to previously benchmarked and rmsd'd dataset
+    great_threshold : float
+        If RMSD < this value, it's considered *great*
+    great_threshold : float
+        If RMSD < this value, it's considered *good*
+
     """
 
     with open(os.path.join(dataset, 'rmsd.csv')) as csvfile:
@@ -92,7 +120,7 @@ def stats(dataset, great_threshold=1.5, good_threshold=2.5):
             total += 1
             if rmsd < great_threshold:
                 txt.write('{}\t{}\t{}\tGREAT\n'.format(pdb, result, rmsd))
-                if result == 'dock_000_Ligand.mol2':
+                if result.endswith('_000_Ligand.mol2'):
                     accs.append(rmsd)
                 greats.append(rmsd)
                 goods.append(rmsd)
@@ -113,7 +141,7 @@ def stats(dataset, great_threshold=1.5, good_threshold=2.5):
 
 
 # Helpers
-def ligands_from_zip(dataset, results, inputfile, folder):
+def ligands_from_zip(dataset, folder, results, outputfile):
     """
     Open all the listed solutions in *.gaudi-output file and create
     a generator that yields the name and mol2 data of the ligand of
@@ -121,9 +149,21 @@ def ligands_from_zip(dataset, results, inputfile, folder):
 
     As a temporary workaround, the ligand is considered
     to be the lightest file with a mol2 extension.
+
+    Parameters
+    ----------
+    dataset : str
+        Path to benchmarked dataset being analyzed
+    folder : str
+        Path to the entry in dataset being analyzed
+    results : str
+        Path to the results subdirectory in each `folder`
+    outputfile : str
+        Name of the GAUDI output file in `results`
+
     """
 
-    with open(os.path.join(dataset, folder, results, inputfile)) as f:
+    with open(os.path.join(dataset, folder, results, outputfile)) as f:
         data = yaml.load(f)
         for filename in data['GAUDI.results']:
             # Extract ligand.mol2 from zipfile
@@ -147,6 +187,10 @@ def ligands_from_zip(dataset, results, inputfile, folder):
 def calculate_rmsd(ligand, reference):
     """
     Use RDKit molecule aligner just once, so it calculates the RMSD of both
+
+    Parameters
+    ----------
+    ligand, reference : rdkit.Chem.molecule
     """
 
     if ligand is not None and reference is not None:
@@ -171,5 +215,5 @@ if __name__ == '__main__':
                         default=1.5, help='Subdirectory containing results')
     args = parser.parse_args()
 
-    run(args.dataset, args.inputfile, args.reference, args.results)
+    rmsd(args.dataset, args.inputfile, args.reference, args.results)
     stats(args.dataset, args.great, args.good)

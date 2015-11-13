@@ -10,6 +10,19 @@
 # Web: https://bitbucket.org/jrgp/gaudi
 ##############
 
+"""
+A wrapper around Chimera script launcher to use a single keyword as binary.
+
+That way, instead of doing chimeracli ``/path/to/gaudi_cli.py``, we can type ``gaudi``
+and let setuptools entry_points figure out the rest.
+
+.. note ::
+    
+    This approach uses subprocess, so theoretically, we could use a queue to launch several
+    instances in parallel and simulate multiprocessing. However, there are more adequate 
+    strategies we will try first.
+"""
+
 import os
 import sys
 import subprocess
@@ -17,6 +30,14 @@ import gaudi
 
 
 def chimera(verbose=False):
+    """
+    Find Chimera binary and launch gaudi_cli.py script behind the scenes
+
+    Parameters
+    ----------
+    verbose : bool, optional
+        If True, disable ``--silent`` flag and let Chimera print all it wants
+    """
     # Find chimera binary location
     if sys.platform.startswith('linux'):
         chimera = ['chimera']
@@ -40,10 +61,22 @@ def chimera(verbose=False):
 
 
 def chimera_verbose():
+    """
+    Alias to Chimera call with ``--silent`` disabled
+    """
     chimera(verbose=True)
 
 
 def guess_windows_chimera():
+    """
+    Try to find the Chimera binary in Windows, where the installer does not provide
+    a binary in $PATH. It traverses Program Files searching for Chimera installations
+    and takes the most recent one.
+
+    .. todo ::
+
+        Untested!
+    """
     chimera_paths = [d for d in os.listdir(os.environ['PROGRAMFILES'])
                      if d.startswith('Chimera')]
     if not chimera_paths:  # try with 32 bit

@@ -30,12 +30,10 @@ will be requested almost always.
 import os
 import itertools
 import random
-import sys
 import logging
 import tempfile
 # Chimera
 import chimera
-import BuildStructure
 from chimera import UserError
 from chimera.molEdit import addAtom, addBond
 from WriteMol2 import writeMol2
@@ -44,7 +42,7 @@ import deap
 import yaml
 from repoze.lru import LRUCache
 # GAUDI
-from gaudi import box, parse
+from gaudi import box
 from gaudi.genes import GeneProvider
 from gaudi.genes import search
 

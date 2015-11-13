@@ -18,8 +18,6 @@ given path. Useful for benchmarks.
 
 from __future__ import print_function
 import os
-import subprocess
-import sys
 import tempfile
 import yaml
 
@@ -28,10 +26,24 @@ import gaudi_run
 
 def main(dataset, templatefile, gaudi='gaudi'):
     """
+    GAUDI Benchmarker
+    =================
+
+    Helper script to benchmark a dataset with a base GAUDI input.
+
     Load a common template with at least two ``molecule`` instances:
     one called ``Protein`` and a second called ``Ligand``. Then, it replaces
     the original paths in the template with those found in the subsequent
     directories and launches a new Chimera instance to perform the essay.
+
+    Parameters
+    ----------
+    dataset : str
+        Path to the benchmark dataset
+    templatefile : str
+        Path to the base GAUDI input
+    gaudi : str
+        Path to the GAUDI binary
     """
 
     # Load input template
