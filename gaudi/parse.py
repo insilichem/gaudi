@@ -11,16 +11,19 @@
 ##############
 
 """
-:mod:`gaudi.parse` parses YAML input files into convenient objects that allow
+gaudi.parse
+===========
+
+This module parses YAML input files into convenient objects that allow
 per-attribute access to configuration parameters.
 
 .. todo ::
     
     Use AttrDict or Bunch instead, and deprecate this shitty code :)
+
 """
 
 # Python
-import os
 import logging
 # External dependencies
 import yaml

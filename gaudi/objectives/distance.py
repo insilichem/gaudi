@@ -13,9 +13,11 @@
 """
 Distance
 ========
+
 This objective calculates the distance between two
 given atoms. It returns the absolute difference between the calculated
 distance and the target value.
+
 """
 
 # Python

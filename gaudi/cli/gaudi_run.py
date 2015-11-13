@@ -12,7 +12,7 @@
 
 """
 run -- Run GAUDI essays
-==========================
+=======================
 
 This script is the main hub for launching GAUDI essays.
 
@@ -36,6 +36,7 @@ Read `README.rst` for additional details on useful aliases.
 
     DEAP default algorithm is nice, but we will be needing some custom features. For
     example, handle KeyboardInterrupt not to lose the population, and so on.
+
 """
 
 # Python

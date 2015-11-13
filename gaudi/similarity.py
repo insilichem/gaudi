@@ -11,8 +11,12 @@
 ##############
 
 """
-:mod:`gaudi.base` contains the core classes we use to build individuals
-(potential solutions of the optimization process).
+gaudi.similarity
+================
+
+This module contains the similarity functions that are used
+to discard individuals that are not different enough.
+
 """
 
 import logging
@@ -38,6 +42,7 @@ def rmsd(ind1, ind2, subject, threshold):
     -------
     bool
         True if rmsd is within threshold, False otherwise
+
     """
     logger.debug("Comparing RMSD between #%s and #%s",
                  id(ind1), id(ind2))

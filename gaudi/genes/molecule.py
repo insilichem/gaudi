@@ -11,7 +11,10 @@
 ##############
 
 """
-:mod:`gaudi.genes.molecule` implements a wrapper around Chimera.molecule objects
+Molecule
+========
+
+This gene implements a wrapper around Chimera.molecule objects
 to expand its original features, such as appending new molecules.
 
 This allows to build new structures with a couple of building blocks as a starting
@@ -24,6 +27,7 @@ To handle all this diversity, each construction is cached the first time is buil
 
 This class is a dependency of most of the other genes (and even objectives), so it
 will be requested almost always.
+
 """
 
 # Python

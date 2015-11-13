@@ -13,6 +13,7 @@
 """
 Hydrogen Bonds
 ==============
+
 This objective is a wrapper around Chimera's `FindHBond`. 
 It returns the number of hydrogen bonds that can be formed
 between the target molecule and its environment.
@@ -21,6 +22,7 @@ between the target molecule and its environment.
 
     Evaluate the possible HBonds with some kind of function that
     gives a rough idea of the strength (energy) of each of them.
+
 """
 
 # Python

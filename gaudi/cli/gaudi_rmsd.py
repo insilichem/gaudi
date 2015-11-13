@@ -11,11 +11,15 @@
 ##############
 
 """
+RMSD
+====
+
 This script calculates RMSD between two molecule poses in batch mode.
 It should be provided with the path to the folders and the name of the
 reference ligand.
 
 It requires rdkit for fast RMSD calculations.
+
 """
 
 from rdkit import Chem

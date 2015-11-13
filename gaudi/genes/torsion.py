@@ -14,10 +14,11 @@
 Torsion
 =======
 
-`gaudi.genes.torsion` helps explore small molecules flexibility.
+This module helps explore small molecules flexibility.
 
-It does so by performing bond rotations in the selected :class:`gaudi.genes.molecule.Molecule`
+It does so by performing bond rotations in the selected `gaudi.genes.molecule.Molecule`
 objects, if they exhibit free bond rotations.
+
 """
 
 # Python

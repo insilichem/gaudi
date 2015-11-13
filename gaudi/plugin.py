@@ -11,8 +11,12 @@
 ##############
 
 """
-:mod:`gaudi.plugin` provides the basic functionality for the plugin system
+gaudi.plugin
+============
+
+This module provides the basic functionality for the plugin system
 of `genes` and `objectives`.
+
 """
 
 # Python

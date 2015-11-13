@@ -11,7 +11,9 @@
 ##############
 
 """
-:mod:`gaudi.objectives.contacts` provides a wrapper around Chimera's
+Contacts
+========
+This objective provides a wrapper around Chimera's
 `DetectClash` that detects clashes and contacts.
 
 Clashes are understood as steric conflicts that increases the energy
@@ -20,6 +22,7 @@ of the Van der Waals' spheres of the implied atoms.
 
 Contacts are considered as stabilizing, and they are evaluated with a
 Lennard-Jones 12-6 like function.
+
 """
 
 # Python

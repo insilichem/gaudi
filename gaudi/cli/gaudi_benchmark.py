@@ -11,6 +11,9 @@
 ##############
 
 """
+Benchmarker
+===========
+
 Sequential runs of a given GAUDI essay in all folders contained under
 given path. Useful for benchmarks.
 

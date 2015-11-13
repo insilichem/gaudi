@@ -11,8 +11,13 @@
 ##############
 
 """
-`~gaudi.algorithms` implements evolutionary algorithms as seen in DEAP,
+gaudi.algorithms
+================
+
+This module implements evolutionary algorithms as seen in DEAP,
 and extends their functionality to make use of GAUDI goodies.
+
+In its current state, it's just a copy of deap's ea_mu_plus_lambda.
 
 .. todo::
 
@@ -23,6 +28,7 @@ and extends their functionality to make use of GAUDI goodies.
     * Custom debug info
 
     * Genealogy
+
 """
 
 from deap import tools

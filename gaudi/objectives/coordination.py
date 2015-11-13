@@ -12,8 +12,9 @@
 
 """
 Simple Coordination
--------------------
-This module performs rough estimations
+===================
+
+This objective performs rough estimations
 of good orientations of ligating residues in a protein to
 coordinate a given metal or small molecule. The geometry is approximated
 by computing average distances from ligating atoms the metal centre (`self.probe`)
