@@ -11,7 +11,10 @@
 ##############
 
 """
-:mod:`gaudi.objectives.angle` calculates the angle formed by three
+Angle
+=====
+
+This objective calculates the angle formed by three
 given atoms (or the dihedral, if four atoms are given) and returns
 the absolute difference of that angle and the target value.
 """
@@ -33,6 +36,20 @@ def enable(**kwargs):
 
 
 class Angle(ObjectiveProvider):
+
+    """
+    Angle class
+
+    Parameters
+    ----------
+    threshold : float
+        Optimum angle
+    tolerance :
+        Allowed difference
+    probes : list of str
+        Atoms that make the angle, expressed as a series of 
+        <molecule_name>/<serial_number> strings
+    """
 
     def __init__(self, threshold=None, tolerance=-0.1, probes=None,
                  *args, **kwargs):

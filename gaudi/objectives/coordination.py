@@ -11,19 +11,15 @@
 ##############
 
 """
-:mod:`gaudi.objectives.simplecoordination` performs rough estimations
+Simple Coordination
+-------------------
+This module performs rough estimations
 of good orientations of ligating residues in a protein to
 coordinate a given metal or small molecule. The geometry is approximated
 by computing average distances from ligating atoms the metal centre (`self.probe`)
 as well as the angles formed by the probe, the ligating atom and its immediate neighbor.
 Good planarity is assured by a dihedral check.
 
-:probe:     The atom that acts as the metal center
-:radius:    Distance from `probe` where ligating atoms must be found
-:atom_types: Types of atoms that are considered ligands to `probe`
-:residues:  Type of residues that must coordinate to `probe`
-:distance:  Target distance from `probe` to ligating atoms
-:angle:     Target angle `probe`, ligand and neighbor should form ideally
 """
 
 # Python
@@ -45,6 +41,27 @@ def enable(**kwargs):
 
 
 class SimpleCoordination(ObjectiveProvider):
+
+    """
+    SimpleCoordination class
+
+    Parameters
+    ----------
+    probe : str
+        The atom that acts as the metal center, expressed as 
+        <molecule_name>/<atom serial>. This will be parsed later on.
+    radius : float
+        Distance from `probe` where ligating atoms must be found
+    atom_types : list of str
+        Types of atoms that are considered ligands to `probe`
+    residues : list of str
+        Type of residues that must coordinate to `probe`, expressed as
+        <molecule_name>/<residue position>
+    distance : float
+        Target distance from `probe` to ligating atoms
+    angle : float
+        Target angle `probe`, ligand and neighbor should form ideally
+    """
 
     def __init__(self, method='simple', probe=None, radius=None, atom_types=None, residues=None,
                  distance=None, angle=None, dihedral=None, min_atoms=1,

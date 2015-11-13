@@ -11,9 +11,11 @@
 ##############
 
 """
-:mod:`gaudi.objectives.hbonds` is a wrapper around Chimera's
-`FindHBond`. It returns the number of hydrogen bonds that can
-be formed between the target molecule and its environment.
+Hydrogen Bonds
+==============
+This objective is a wrapper around Chimera's `FindHBond`. 
+It returns the number of hydrogen bonds that can be formed
+between the target molecule and its environment.
 
 .. todo::
 
@@ -39,7 +41,24 @@ def enable(**kwargs):
 
 class Hbonds(ObjectiveProvider):
 
-    def __init__(self, probe=None, distance_tolerance=0.4, angle_tolerance=20.0, radius=5.0,
+    """
+    Hbonds class
+
+    Parameters
+    ----------
+    probe : str
+        Name of molecule being object of analysis
+    radius : float
+        Maximum distance from any point of probe that is searched
+        for a possible interaction
+    distance_tolerance : float, optional
+        Allowed deviation from ideal distance to consider a valid H bond.
+    angle_tolerance : float, optional
+        Allowed deviation from ideal angle to consider a valid H bond.
+
+    """
+
+    def __init__(self, probe=None, radius=5.0, distance_tolerance=0.4, angle_tolerance=20.0,
                  *args, **kwargs):
         ObjectiveProvider.__init__(self, **kwargs)
         self._probe = probe
@@ -55,6 +74,11 @@ class Hbonds(ObjectiveProvider):
         return ind.genes[self._probe].compound.mol
 
     def evaluate(self, ind):
+        """
+        Find H bonds within self.radius angstroms from self.probe, and return
+        only those that interact with probe. Ie, discard those hbonds in that search
+        space whose none of their atoms involved are not part of self.probe.
+        """
         molecules = self.molecules(ind)
         probe = self.probe(ind)
         test_atoms = self.surrounding_atoms(probe, molecules)
@@ -68,6 +92,9 @@ class Hbonds(ObjectiveProvider):
         return len(hbonds)
 
     def display(self, bonds):
+        """
+        Mock method to show a graphical depiction of the found H Bonds.
+        """
         return gaudi.box.draw_interactions(bonds, name=self.name,
                                            startCol='00FFFF', endCol='00FFFF')
 

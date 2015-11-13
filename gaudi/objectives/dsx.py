@@ -11,7 +11,9 @@
 ##############
 
 """
-:mod:`gaudi.objectives.dsx` wraps the binaries provided by
+DrugScoreX
+==========
+This objective is a wrapper around the binaries provided by
 Neudert and Klebe at http://pc1664.pharmazie.uni-marburg.de/drugscore/
 and calculates the score of the current pose.
 
@@ -35,6 +37,35 @@ def enable(**kwargs):
 
 class DSX(ObjectiveProvider):
 
+    """
+    DSX class
+
+    Parameters
+    ----------
+    binary : str
+        Path to the DSX binary
+    potentials : str
+        Path to DSX potentials
+    protein : str
+        The molecule name that is acting as a protein
+    ligand : str
+        The molecule name that is acting as a ligand
+    terms : list of bool
+        Enable or disable certain terms in the score function in
+        this order:
+
+            distance-dependent pair potentials, 
+            torsion potentials,
+            intramolecular clashes, 
+            sas potentials, 
+            hbond potentials
+
+    sorting : int
+        Sorting mode. An int between 0-6, read binary help for -S
+    cofactor_handling : int
+        Cofactor handling mode. An int between 0-7, read binary help for -I
+    """
+
     def __init__(self, binary=None, potentials=None, protein='Protein',
                  ligand='Ligand', terms=None, sorting=1, cofactor_handling=1,
                  *args, **kwargs):
@@ -50,16 +81,26 @@ class DSX(ObjectiveProvider):
         self.tempdir = tempfile._get_default_tempdir()
 
     def protein(self, ind):
+        """
+        Get the protein gene
+        """
         for gene in ind.genes.values():
             if gene.__class__.__name__ == 'Molecule' and gene.name == self.protein_name:
                 return gene
 
     def ligand(self, ind):
+        """
+        Get the ligand gene
+        """
         for gene in ind.genes.values():
             if gene.__class__.__name__ == 'Molecule' and gene.name == self.ligand_name:
                 return gene
 
     def evaluate(self, ind):
+        """
+        Run a subprocess calling DSX binary with provided options,
+        and parse the results. Clean tmp files at exit.
+        """
         tmpfile = os.path.join(self.tempdir,
                                next(tempfile._get_candidate_names()))
         proteinpath = '{}_protein.mol2'.format(tmpfile)

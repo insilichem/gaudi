@@ -11,7 +11,9 @@
 ##############
 
 """
-:mod:`gaudi.objectives.distance` calculates the distance between two
+Distance
+========
+This objective calculates the distance between two
 given atoms. It returns the absolute difference between the calculated
 distance and the target value.
 """
@@ -34,6 +36,24 @@ def enable(**kwargs):
 
 class Distance(ObjectiveProvider):
 
+    """
+    Distance class
+
+    Parameters
+    ----------
+    threshold : float
+        Optimum distance to meet
+    tolerance : float
+        Maximum deviation from threshold that is not penalized
+    target : str
+        The atom to measure the distance to, expressed as 
+        <molecule name>/<atom serial>
+    probes : list of str
+        The atoms whose distance to `target` is being measured,
+        expressed as <molecule name>/<atom serial>. If more than one
+        is provided, the average of all of them is returned
+    """
+
     def __init__(self, threshold=None, tolerance=-0.1, target=None, probes=None,
                  *args, **kwargs):
         ObjectiveProvider.__init__(self, **kwargs)
@@ -43,6 +63,9 @@ class Distance(ObjectiveProvider):
         self._mol, self._serial = gaudi.parse.parse_rawstring(target)
 
     def target(self, ind):
+        """
+        Get the target atom
+        """
         try:
             if isinstance(self._serial, int):
                 atom = next(a for a in ind.genes[self._mol].compound.mol.atoms
@@ -60,6 +83,9 @@ class Distance(ObjectiveProvider):
             return atom
 
     def probes(self, ind):
+        """
+        Get the probe atoms
+        """
         for probe in self._probes:
             mol, serial = gaudi.parse.parse_rawstring(probe)
             try:
@@ -82,6 +108,9 @@ class Distance(ObjectiveProvider):
     ###
 
     def evaluate(self, ind):
+        """
+        Measure the distance
+        """
         distances = []
         target = self.target(ind)
         for a in self.probes(ind):
