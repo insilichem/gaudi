@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python2
 
 ##############
 # GAUDIasm: Genetic Algorithms for Universal
@@ -11,16 +11,16 @@
 ##############
 
 """
-`gaudi.cli.chimera_wrapper` is a wrapper around Chimera script launcher to use 
+`gaudi.cli.chimera_wrapper` is a wrapper around Chimera script launcher to use
 a single keyword as binary.
 
 That way, instead of doing chimeracli ``/path/to/gaudi_cli.py``, we can type ``gaudi``
 and let setuptools entry_points figure out the rest.
 
 .. note ::
-    
+
     This approach uses subprocess, so theoretically, we could use a queue to launch several
-    instances in parallel and simulate multiprocessing. However, there are more adequate 
+    instances in parallel and simulate multiprocessing. However, there are more adequate
     strategies we will try first.
 
 """
@@ -52,11 +52,13 @@ def chimera(verbose=False):
     gaudicli = os.path.join(gaudi.__path__[0], 'cli', 'gaudi_cli.py')
 
     # Prepare command
-    script = ' '.join([gaudicli] + sys.argv[1:])
+    silent = ['--silent']
+    args = ['--nogui', '--debug', '--script']
+    script = [' '.join([gaudicli] + sys.argv[1:])]
     if verbose:
-        command = chimera + ['--nogui', '--debug', '--script', script]
+        command = chimera + args + script
     else:
-        command = chimera + ['--nogui', '--debug', '--silent', '--script', script]
+        command = chimera + silent + args + script
 
     # Launch with clean exit
     sys.exit(subprocess.call(command))
@@ -74,23 +76,17 @@ def guess_windows_chimera():
     Try to find the Chimera binary in Windows, where the installer does not provide
     a binary in $PATH. It traverses Program Files searching for Chimera installations
     and takes the most recent one.
-
-    .. todo ::
-
-        Untested!
     """
-    chimera_paths = [d for d in os.listdir(os.environ['PROGRAMFILES'])
-                     if d.startswith('Chimera')]
-    if not chimera_paths:  # try with 32 bit
-        chimera_paths = [d for d in os.listdir(os.environ['PROGRAMFILES(X86)'])
-                         if d.startswith('Chimera')]
-    if not chimera_paths:
-        user_provided = input('Please, specify the installation folder of UCSF Chimera')
-        if os.path.isdir(user_provided):
-            chimera_paths = [user_provided]
-        else:
-            sys.exit("ERROR: Provided directory does not exist.")
+    for programfiles in ('PROGRAMFILES', 'PROGRAMFILES(X86)', 'PROGRAMW6432'):
+        paths = [os.path.join(os.environ[programfiles], d)
+                 for d in os.listdir(os.environ[programfiles])
+                 if d.startswith('Chimera')]
+        if paths:
+            break
+    else:
+        paths = [raw_input('Chimera could not be found. Please, type its location manually.\n'
+                           'It should be something like C:/Program Files/Chimera 1.10.1\n')]
 
-    chimera_paths.sort()
-    latest = chimera_paths[-1]  # get latest version available, if more than one exists
+    paths.sort()
+    latest = paths[-1]  # get latest version available, if more than one exists
     return os.path.join(latest, 'bin', 'chimera.exe')

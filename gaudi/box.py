@@ -25,6 +25,8 @@ import os
 import cProfile
 # Chimera
 import chimera
+# Gaudi
+import gaudi
 
 
 def atoms_between(atom1, atom2):
@@ -138,7 +140,7 @@ def create_single_individual(path):
     toolbox.register("call", (lambda fn, *args, **kwargs: fn(*args, **kwargs)))
     toolbox.register("individual", toolbox.call, base.Individual, cfg)
     ind = toolbox.individual()
-    environment = deap.base.Environment(cfg)
+    environment = gaudi.base.Environment(cfg)
     return ind, environment
 
 

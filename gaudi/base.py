@@ -31,6 +31,7 @@ import deap.base
 import yaml
 # GAUDI
 import gaudi.plugin
+import gaudi.similarity
 
 pp = pprint.PrettyPrinter(4)
 
@@ -57,7 +58,7 @@ class Individual(object):
     cache : dict or dict-like
         A mutable object that can be used to store values across instances.
     dummy : bool
-        If True, create an uninitialized Individual, only containing the 
+        If True, create an uninitialized Individual, only containing the
         cfg attribute. If false, call `__ready__` and complete initialization.
 
     Atttributes

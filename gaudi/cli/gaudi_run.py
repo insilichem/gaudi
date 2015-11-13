@@ -19,14 +19,14 @@ objectives. All in a loosely-coupled approach based on Python modules called on-
 
 **Usage**. Call it from Chimera with a GAUDI input file as the first and only argument.
 Using `nogui` flag is recommended to speed up the calculations:
-    
+
 .. code-block :: console
 
     cd /path/to/gaudi/installation/directory/
     /path/to/chimera/bin/chimera --nogui --script "gaudi_run.py /path/to/gaudi.yaml"
 
 If you are using the provided aliases, it would suffice to type:
-    
+
 .. code-block :: console
 
     gaudi run /path/to/essay.gaudi-input
@@ -52,10 +52,8 @@ import sys
 try:
     import chimera
 except ImportError:
-    print("""
-You must install UCSF Chimera and run GAUDI with its own Python interpreter.
-Check the install guide for more details.
-""")
+    print("You must install UCSF Chimera and run GAUDI with its own Python interpreter.\n"
+          "Check the install guide for more details.")
 import deap.creator
 import deap.tools
 import deap.base
