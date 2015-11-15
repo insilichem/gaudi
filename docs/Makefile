@@ -3,7 +3,7 @@
 
 # You can set these variables from the command line.
 SPHINXOPTS    =
-SPHINXBUILD   = chimera-sphinx-build
+SPHINXBUILD   = `chimera --root`/bin/sphinx-build
 PAPER         =
 BUILDDIR      = _build
 
@@ -52,7 +52,7 @@ clean:
 	rm -rf $(BUILDDIR)/*
 
 html:
-	chimera --nogui --debug --script "/home/jr/.local/UCSF-Chimera64-1.10.2/bin/sphinx-build -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html"
+	chimera --nogui --debug --script "$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html"
 	@echo
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."
 
