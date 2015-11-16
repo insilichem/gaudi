@@ -10,7 +10,7 @@ Located in ``gaudi.objectives``.
 
 
 Angle objective
-----------------------
+---------------
 
 .. automodule:: gaudi.objectives.angle
     :members:
@@ -18,7 +18,7 @@ Angle objective
     :show-inheritance:
 
 Contacts objective
---------------------------------
+------------------
 
 .. automodule:: gaudi.objectives.contacts
     :members:
@@ -26,7 +26,7 @@ Contacts objective
     :show-inheritance:
 
 Simple Coordination objective
-------------------------------------
+-----------------------------
 
 .. automodule:: gaudi.objectives.coordination
     :members:
@@ -34,7 +34,7 @@ Simple Coordination objective
     :show-inheritance:
 
 Distance objective
---------------------------------
+------------------
 
 .. automodule:: gaudi.objectives.distance
     :members:
@@ -42,7 +42,7 @@ Distance objective
     :show-inheritance:
 
 DrugScoreX objective
----------------------------
+--------------------
 
 .. automodule:: gaudi.objectives.dsx
     :members:
@@ -50,7 +50,7 @@ DrugScoreX objective
     :show-inheritance:
 
 Hydrogen bonds objective
-------------------------------
+------------------------
 
 .. automodule:: gaudi.objectives.hbonds
     :members:
@@ -58,7 +58,7 @@ Hydrogen bonds objective
     :show-inheritance:
 
 Solvation terms objective
----------------------------------
+-------------------------
 
 .. automodule:: gaudi.objectives.solvation
     :members:

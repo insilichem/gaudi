@@ -8,7 +8,7 @@ API documentation
 
 
 gaudi.algorithms
------------------------
+----------------
 
 .. automodule:: gaudi.algorithms
     :members:
@@ -16,7 +16,7 @@ gaudi.algorithms
     :show-inheritance:
 
 gaudi.base
------------------
+----------
 
 .. automodule:: gaudi.base
     :members:
@@ -24,7 +24,7 @@ gaudi.base
     :show-inheritance:
 
 gaudi.box
-----------------
+---------
 
 .. automodule:: gaudi.box
     :members:
@@ -32,7 +32,7 @@ gaudi.box
     :show-inheritance:
 
 gaudi.parse
-------------------
+-----------
 
 .. automodule:: gaudi.parse
     :members:
@@ -40,7 +40,7 @@ gaudi.parse
     :show-inheritance:
 
 gaudi.plugin
--------------------
+------------
 
 .. automodule:: gaudi.plugin
     :members:
@@ -48,7 +48,7 @@ gaudi.plugin
     :show-inheritance:
 
 gaudi.similarity
------------------------
+----------------
 
 .. automodule:: gaudi.similarity
     :members:

@@ -8,6 +8,14 @@ Located in ``gaudi.cli``.
     :undoc-members:
     :show-inheritance:
 
+gaudi.cli.gaudi_cli
+-------------------
+
+.. automodule:: gaudi.cli.gaudi_cli
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 gaudi.cli.gaudi_run
 -------------------
 
@@ -49,6 +57,3 @@ gaudi.cli.gaudi_cli
     :members:
     :undoc-members:
     :show-inheritance:
-
-
-
