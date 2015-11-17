@@ -17,22 +17,19 @@ It sets up the configuration environment needed by DEAP (responsible for the GA)
 and ties it up to the GAUDI custom classes that shape up the invididuals and
 objectives. All in a loosely-coupled approach based on Python modules called on-demand.
 
-**Usage**. Call it from Chimera with a GAUDI input file as the first and only argument.
-Using `nogui` flag is recommended to speed up the calculations:
-
-.. code-block :: console
-
-    cd /path/to/gaudi/installation/directory/
-    /path/to/chimera/bin/chimera --nogui --script "gaudi_run.py /path/to/gaudi.yaml"
-
-If you are using the provided aliases, it would suffice to type:
+**Usage**. Simply, type:
 
 .. code-block :: console
 
     gaudi run /path/to/essay.gaudi-input
 
+If the previous does not work, try with the manual mode:
 
-Read ``README.rst`` for additional details on useful aliases.
+.. code-block :: console
+
+    cd /path/to/gaudi/installation/directory/
+    /path/to/chimera/bin/chimera --nogui --script "gaudi_run.py /path/to/essay.gaudi-input"
+
 
 .. todo::
 

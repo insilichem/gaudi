@@ -56,11 +56,11 @@ gaudi.similarity
     :show-inheritance:
 
 
-Subpackages
------------
+Genes, objectives and CLI
+-------------------------
 
 .. toctree::
 
-    gaudi.cli
     gaudi.genes
     gaudi.objectives
+    gaudi.cli

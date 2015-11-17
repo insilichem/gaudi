@@ -328,6 +328,8 @@ class Compound(object):
     built_atoms : list of chimera.Atom
         Memo of already built_atoms
 
+    Notes
+    -----
     .. todo::
 
         Instead of a `molecule` parameter overload, think of using
@@ -470,6 +472,8 @@ class Compound(object):
         donor : chimera.Atom
             Atom of `molecule` that will participate in the new bond
 
+        Notes
+        -----
         .. note ::
 
             After joining the two molecules together, we have to update the 
@@ -523,24 +527,26 @@ class Compound(object):
             Maps original atoms in `molecules` to their new counterparts
             in `self.mol`.
 
+        Notes
+        -----
         .. note ::
 
             Chimera does not allow bonds between different chimera.Molecule
-            objects, so firstly, we have to copy the atoms of `molecule` to 
-            `self.mol` and, only then, make the joining bond.
+            objects, so firstly, we have to copy the atoms of ``molecule`` to 
+            ``self.mol`` and, only then, make the joining bond.
 
-            It traverses the atoms of `molecule` and adds a copy of each
-            of them to `self.mol` using `chimera.molEdit.addAtom` in the same spot
+            It traverses the atoms of ``molecule`` and adds a copy of each
+            of them to ``self.mol`` using ``chimera.molEdit.addAtom`` in the same spot
             of space. All the bonds are preserved and, finally, bond the two molecules.
 
-            The algorithm starts by adding the bonding atom of `molecule` (`donor`), to
-            the `sprouts` list. Then, the loop starts:
+            The algorithm starts by adding the bonding atom of ``molecule`` (``donor``), to
+            the ``sprouts`` list. Then, the loop starts:
+
+            .. code-block:: python
 
                 while sprouts contains atoms:
                     sprout = sprouts.pop(0)
-
                     copy sprout to self.mol
-
                     for each neighbor of sprout
                         copy neighbor to self.mol
                         if neighbor itself has more than one neighbor (ie, sprout)
@@ -550,7 +556,7 @@ class Compound(object):
             don't repeat ourselves. That's what the built_atoms dict is for.
 
             Also, instead of letting addAtom guess new serial numbers, we calculate
-            them beforehand by computing the highest serial number in self.mol 
+            them beforehand by computing the highest serial number in ``self.mol`` 
             prior to the additions and then incremeting one by one on a per-element
             basis.
 
@@ -625,6 +631,8 @@ class Compound(object):
         anchor : chimera.Atom
             The atom that will guide the translation.
 
+        Notes
+        -----
         .. note ::
             *Anchor atoms* are called that way in the API because I picture them
             as the one we pick with our hands to drag the molecule to the desired
@@ -701,6 +709,8 @@ def _new_atom_position(atom, newelement, seed=0.0):
     chimera.Point
         The first coordinate set in the returned list of possible points.
 
+    Notes
+    -----
     .. note ::
         `newelement` is needed because the bond length depends on the
         atom types involved in such bond. Ie, C-C != C-N.
@@ -710,7 +720,7 @@ def _new_atom_position(atom, newelement, seed=0.0):
     except KeyError:
         geometry = 3
         logger.warning("Using %s geometry for atom %s in molecule %s",
-                       geometry, atom, molecule.name)
+                       geometry, atom, atom.molecule.name)
     bond_length = chimera.Element.bondLength(atom.element, newelement)
     neighbors_crd = [a.coord() for a in atom.neighbors]
     points = chimera.bondGeom.bondPositions(atom.coord(), geometry, bond_length,

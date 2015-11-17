@@ -1,13 +1,9 @@
+.. _api.gaudi.objectives:
+
 Objectives 
 ==========
 
-Located in ``gaudi.objectives``.
-
-.. automodule:: gaudi.objectives
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
+These are the built-in objectives in GAUDI. You can also build your own, but these are ready to use.
 
 Angle objective
 ---------------
@@ -65,3 +61,10 @@ Solvation terms objective
     :undoc-members:
     :show-inheritance:
 
+Base class for all objectives
+-----------------------------
+
+.. automodule:: gaudi.objectives
+    :members:
+    :undoc-members:
+    :show-inheritance:

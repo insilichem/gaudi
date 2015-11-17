@@ -1,12 +1,9 @@
+.. _api.gaudi.genes:
+
 Genes
 =====
 
-Located in ``gaudi.genes``.
-
-.. automodule:: gaudi.genes
-    :members:
-    :undoc-members:
-    :show-inheritance:
+These are the built-in genes in GAUDI. You can also build your own, but these are ready to use.
 
 
 Molecule gene
@@ -37,6 +34,15 @@ Torsions gene
 -------------
 
 .. automodule:: gaudi.genes.torsion
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+Base class for all genes
+------------------------
+
+.. automodule:: gaudi.genes
     :members:
     :undoc-members:
     :show-inheritance:

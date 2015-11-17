@@ -49,11 +49,3 @@ gaudi.cli.chimera_wrapper
     :undoc-members:
     :show-inheritance:
 
-
-gaudi.cli.gaudi_cli
--------------------
-
-.. automodule:: gaudi.cli.gaudi_cli
-    :members:
-    :undoc-members:
-    :show-inheritance:

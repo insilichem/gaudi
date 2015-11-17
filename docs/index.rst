@@ -7,13 +7,31 @@
 GAUDIasm: Genetic Algorithms for Universal Design Inference and Atomic Scale Modeling
 ======================================================================================
 
-Contents
-========
+GAUDI helps to sketch new molecular designs that require complex interactions.
+
+.. todo::
+
+    * Better introduction to GAUDI possibilities and features
+
+User guide
+==========
 
 .. toctree::
-    :maxdepth: 2
+    :maxdepth: 1
 
-    api/modules.rst
+    installation.rst
+    usage.rst
+    input.rst
+    output.rst
+    
+
+For developers
+==============
+
+.. toctree::
+    
+    developers.rst
+    api/gaudi.rst
 
 Indices and tables
 ==================
