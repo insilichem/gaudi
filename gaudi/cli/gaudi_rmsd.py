@@ -47,20 +47,20 @@ def rmsd(dataset, outputfile, reference='reference.mol2', results='results'):
     results : str, optional
         Name of the results subdirectory
 
-    .. note ::
+    Notes
+    -----
 
-        Pseudocode
-        ----------
+    .. code-block:: console
 
-        >>> For each folder in dataset, open its results and:
-        >>>     Extract ligand.mol2 from zipfile
-        >>>     Open reference.mol2
-        >>>     Calculate RMSD
-        >>> Print resulting RMSD values to CSV file
-        >>> If some error occurred, the RMSD value will be set to a negative float:
-        >>>     -1.0: The reference molecule could not be loaded
-        >>>     -2.0: The ligand molecule could not be loaded
-        >>>     -3.0: Ref and ligand were loaded, but RMSD calculation failed
+        For each folder in dataset, open its results and:
+            Extract ligand.mol2 from zipfile
+            Open reference.mol2
+            Calculate RMSD
+        Print resulting RMSD values to CSV file
+        If some error occurred, the RMSD value will be set to a negative float:
+            -1.0: The reference molecule could not be loaded
+            -2.0: The ligand molecule could not be loaded
+            -3.0: Ref and ligand were loaded, but RMSD calculation failed
     """
 
     with open(os.path.join(dataset, 'rmsd.csv'), 'w+') as csvfile:
@@ -145,7 +145,7 @@ def stats(dataset, great_threshold=1.5, good_threshold=2.5):
 # Helpers
 def ligands_from_zip(dataset, folder, results, outputfile):
     """
-    Open all the listed solutions in *.gaudi-output file and create
+    Open all the listed solutions in ``*.gaudi-output`` file and create
     a generator that yields the name and mol2 data of the ligand of
     each solution.
 
