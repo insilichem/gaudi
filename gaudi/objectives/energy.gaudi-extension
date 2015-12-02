@@ -18,4 +18,4 @@ weight:
 forcefields:
     - !!python/name:list
     - List of OpenMM forcefields to use
-    - [amber99sbildn.xml', 'tip3p.xml'']
+    - ['amber99sbildn.xml', 'amber99_obc.xml']
