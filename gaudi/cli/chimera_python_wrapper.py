@@ -18,6 +18,7 @@ second subprocess instance inside an already running Python interpreter.
 
 import os
 import sys
+import subprocess
 
 
 def chimera_env():
