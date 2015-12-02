@@ -154,13 +154,6 @@ class Energy(ObjectiveProvider):
         fixer.addMissingAtoms()
         fixer.removeHeterogens(True)
         fixer.addMissingHydrogens(7.0)
-        fixer.findMissingResidues()
-        fixer.findNonstandardResidues()
-        fixer.replaceNonstandardResidues()
-        fixer.findMissingAtoms()
-        fixer.addMissingAtoms()
-        fixer.removeHeterogens(True)
-        fixer.addMissingHydrogens(7.0)
         # Close StringIO!
         pdbfile.close()
         return fixer.topology, fixer.positions
