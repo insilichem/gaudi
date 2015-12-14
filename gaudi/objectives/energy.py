@@ -69,7 +69,7 @@ class Energy(ObjectiveProvider):
 
         if auto_parametrize:
             filenames = [g.path for m in auto_parametrize
-                         for g in self.parent.cfg.genes
+                         for g in self.environment.cfg.genes
                          if g.name == m]
             additional_ffxml = self._gaff2xml(*filenames)
             forcefields.append(additional_ffxml)
@@ -181,6 +181,7 @@ class Energy(ObjectiveProvider):
         pdbfile.close()
         return fixer.topology, fixer.positions
 
+    @staticmethod
     def _gaff2xml(*filenames):
         """
         Use OpenMolTools wrapper to run antechamber programatically
