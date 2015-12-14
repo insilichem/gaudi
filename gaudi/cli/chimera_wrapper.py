@@ -25,7 +25,7 @@ and let setuptools entry_points figure out the rest.
     strategies we will try first.
 
 """
-
+from __future__ import print_function
 import os
 import sys
 import subprocess
@@ -52,9 +52,13 @@ def chimera(verbose=False):
     # Find GAUDI
     gaudicli = os.path.join(gaudi.__path__[0], 'cli', 'gaudi_cli.py')
 
+    # Find CONDA GAUDI environment
+    conda_path = subprocess.check_output(['conda', 'info', '--root']).decode('utf-8').strip()
+    gaudi_env = os.path.join(conda_path, 'envs', 'gaudi', 'lib', 'python2.7', 'site-packages')
+
     # Prepare command
     silent = ['--silent']
-    args = ['--nogui', '--debug', '--script']
+    args = ['--nogui', '--debug', '--pypath', gaudi_env, '--script']
     script = [' '.join([gaudicli] + sys.argv[1:])]
     if verbose:
         command = chimera + args + script

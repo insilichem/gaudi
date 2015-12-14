@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# -*- coding: utf-8 -*-
 
 ##############
 # GAUDIasm: Genetic Algorithms for Universal
@@ -24,14 +23,14 @@ Available commands:
     - rmsd
 
 """
-
+# Python
 import sys
 import time
 from datetime import timedelta
 from importlib import import_module
-
+# 3rd party
 import click
-
+# GAUDI
 import gaudi
 
 
