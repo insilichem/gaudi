@@ -38,6 +38,7 @@ import tempfile
 import chimera
 from chimera import UserError
 from chimera.molEdit import addAtom, addBond
+from AddH import simpleAddHydrogens
 from WriteMol2 import writeMol2
 # External dependencies
 import deap
@@ -71,6 +72,9 @@ class Molecule(GeneProvider):
         If `path` is a directory, list of pairs of directories whose chosen
         mocule must be the same, thus enabling *symmetry*.
 
+    hydrogens : bool, optional
+        Add hydrogens to Molecule (True) or not (False).
+
     Attributes
     ----------
     _CATALOG : dict
@@ -103,11 +107,12 @@ class Molecule(GeneProvider):
     """
     _CATALOG = {}
 
-    def __init__(self, path=None, symmetry=None, **kwargs):
+    def __init__(self, path=None, symmetry=None, hydrogens=False, **kwargs):
         GeneProvider.__init__(self, **kwargs)
         self._kwargs = kwargs
         self.path = path
         self.symmetry = symmetry
+        self.hydrogens = hydrogens
         if self.name not in self._cache:
             self._cache[self.name] = LRUCache(300)
             self._CATALOG[self.name] = tuple(self._compile_catalog())
@@ -238,6 +243,8 @@ class Molecule(GeneProvider):
         base = Compound(molecule=key[0])
         for molpath in key[1:]:
             base.append(Compound(molecule=molpath))
+        if self.hydrogens:
+            base.add_hydrogens()
         return base
 
     def _compile_catalog(self):
@@ -669,6 +676,9 @@ class Compound(object):
         # Fix orientation
         anchor_pos = _new_atom_position(anchor, target.element)
         search.rotate(self.mol, [target.coord(), anchor.coord(), anchor_pos], 0.0)
+
+    def add_hydrogens(self):
+        simpleAddHydrogens([self.mol])
 
 
 def _dummy_mol(name='dummy'):
