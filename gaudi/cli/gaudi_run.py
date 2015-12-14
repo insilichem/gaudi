@@ -109,7 +109,9 @@ def launch(cfg):
     if cfg.ga.pareto:
         best_individuals = deap.tools.ParetoFront(toolbox.similarity)
     else:
-        best_individuals = deap.tools.HallOfFame(int(0.05 * cfg.ga.pop),
+        hof_size_percent = int(0.1 * cfg.ga.pop)
+        hof_size = hof_size_percent if hof_size_percent > 2 else 2
+        best_individuals = deap.tools.HallOfFame(hof_size,
                                                  similar=toolbox.similarity)
     stats = deap.tools.Statistics(lambda ind: ind.fitness.values)
     numpy.set_printoptions(precision=cfg.general.precision)

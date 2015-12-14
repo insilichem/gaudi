@@ -19,3 +19,7 @@ forcefields:
     - !!python/name:list
     - List of OpenMM forcefields to use
     - ['amber99sbildn.xml', 'amber99_obc.xml']
+pH:
+    - !!python/name:float
+    - pH value to use when adding hydrogens to molecule
+    - 7.0

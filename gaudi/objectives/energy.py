@@ -45,6 +45,9 @@ class Energy(ObjectiveProvider):
     forcefields : list of str
         Which forcefields to use
 
+    pH : float
+        pH value used to add hydrogens to molecule
+
     Returns
     -------
     energy : float
@@ -52,16 +55,23 @@ class Energy(ObjectiveProvider):
 
     """
 
-    def __init__(self, forcefields, *args, **kwargs):
+    def __init__(self, forcefields=('amber99sbildn.xml', 'amber99_obc.xml'),
+                 pH=7.0, *args, **kwargs):
         ObjectiveProvider.__init__(self, **kwargs)
         self.forcefields = forcefields
+        self.pH = pH
         self.forcefield = openmm_app.ForceField(*self.forcefields)
         self.topology = None
         self._simulation = None
 
     def evaluate(self, individual):
+        """
+        Calculates the energy of current individual
+        """
         molecules = self.molecules(individual)
-        topology, coordinates = self._chimera_molecule_to_openmm(molecules, self.forcefield)
+        topology, coordinates = self._chimera_molecule_to_openmm(molecules,
+                                                                 self.forcefield,
+                                                                 self.pH)
         # Topology changed -> rebuild universe
         # Instead of checking if the topologies are equivalent,
         # check if GAUDI input can produce more than one topology
@@ -123,7 +133,7 @@ class Energy(ObjectiveProvider):
         return potential_energy._value
 
     @staticmethod
-    def _chimera_molecule_to_openmm(molecules, forcefield):
+    def _chimera_molecule_to_openmm(molecules, forcefield, pH):
         """
         Convert a Chimera Molecule object to OpenMM structure,
         providing topology and coordinates.
@@ -153,7 +163,7 @@ class Energy(ObjectiveProvider):
         fixer.findMissingAtoms()
         fixer.addMissingAtoms()
         fixer.removeHeterogens(True)
-        fixer.addMissingHydrogens(7.0)
+        fixer.addMissingHydrogens(pH)
         # Close StringIO!
         pdbfile.close()
         return fixer.topology, fixer.positions

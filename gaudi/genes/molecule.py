@@ -181,7 +181,7 @@ class Molecule(GeneProvider):
         elif absolute:
             fullname = absolute
         else:
-            fileobject, fullname = tempfile.mkstemp(suffix=gaudi)
+            fileobject, fullname = tempfile.mkstemp(suffix='gaudi')
             logger.warning(
                 "No output path provided. Using tempfile %s.", fullname)
 
