@@ -276,7 +276,7 @@ class Energy(ObjectiveProvider):
 
         Genes that can change topologies:
             - gaudi.genes.rotamers with mutations ON
-            - gaudi.genesl.molecule with block building enabled
+            - gaudi.genes.molecule with block building enabled
 
         Parameters
         ----------
