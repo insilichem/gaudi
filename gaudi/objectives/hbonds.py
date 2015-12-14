@@ -71,7 +71,7 @@ class Hbonds(ObjectiveProvider):
                      if m.__class__.__name__ == "Molecule")
 
     def probe(self, ind):
-        return ind.genes[self._probe].compound.mol
+        return [ind.genes[p].compound.mol for p in self._probe]
 
     def evaluate(self, ind):
         """
@@ -80,14 +80,14 @@ class Hbonds(ObjectiveProvider):
         space whose none of their atoms involved are not part of self.probe.
         """
         molecules = self.molecules(ind)
-        probe = self.probe(ind)
-        test_atoms = self.surrounding_atoms(probe, molecules)
+        probe_atoms = [a for m in self.probe(ind) for a in m.atoms]
+        test_atoms = self._surrounding_atoms(probe_atoms, molecules)
         hbonds = FindHBond.findHBonds(molecules, cacheDA=self._cache,
                                       donors=test_atoms, acceptors=test_atoms,
                                       distSlop=self.distance_tolerance,
                                       angleSlop=self.angle_tolerance)
         hbonds = FindHBond.base.filterHBondsBySel(
-            hbonds, probe.atoms, 'any')
+            hbonds, probe_atoms, 'any')
 
         return len(hbonds)
 
@@ -99,14 +99,10 @@ class Hbonds(ObjectiveProvider):
                                            startCol='00FFFF', endCol='00FFFF')
 
     ###
-    def surrounding_atoms(self, probe, molecules):
+    def _surrounding_atoms(self, atoms, molecules):
         self.zone.clear()
-        self.zone.add(probe.atoms)
+        self.zone.add(atoms)
         self.zone.merge(chimera.selection.REPLACE,
-                        chimera.specifier.zone(
-                            self.zone, 'atom',
-                            None, self.radius,
-                            molecules
-                        )
-                        )
+                        chimera.specifier.zone(self.zone, 'atom', None,
+                                               self.radius, molecules))
         return self.zone.atoms()

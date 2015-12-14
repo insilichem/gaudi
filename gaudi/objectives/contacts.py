@@ -85,7 +85,7 @@ class Contacts(ObjectiveProvider):
                      if m.__class__.__name__ == "Molecule")
 
     def probe(self, ind):
-        return ind.genes[self._probe].compound.mol
+        return [ind.genes[p].compound.mol for p in self._probe]
 
     def evaluate(self, ind):
         """
@@ -172,8 +172,8 @@ class Contacts(ObjectiveProvider):
             the volumetric overlap of the involved atoms' Van der Waals spheres.
 
         """
-        vdwatoms = set(
-            a for m in self.molecules(ind) for a in m.atoms if a.element.name in ('C', 'S'))
+        vdwatoms = set(a for m in self.molecules(ind) for a in m.atoms
+                       if a.element.name in ('C', 'S'))
 
         positive, negative = [], []
         for a1, c in clashes.items():
@@ -193,13 +193,10 @@ class Contacts(ObjectiveProvider):
         Get atoms in the search zone, based on the molecule and the radius
         """
         self.zone.clear()
-        self.zone.add(self.probe(ind).atoms)
+        self.zone.add([a for m in self.probe(ind) for a in m.atoms])
         self.zone.merge(chimera.selection.REPLACE,
-                        chimera.specifier.zone(
-                            self.zone, 'atom', None, self.radius, self.molecules(
-                                ind)
-                        )
-                        )
+                        chimera.specifier.zone(self.zone, 'atom', None,
+                                               self.radius, self.molecules(ind)))
         return self.zone.atoms()
 
     @staticmethod
