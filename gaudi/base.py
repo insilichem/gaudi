@@ -256,7 +256,7 @@ class Environment(object):
         self.objectives = OrderedDict()
         gaudi.plugin.load_plugins(self.cfg.objectives,
                                   container=self.objectives,
-                                  zone=self.zone)
+                                  zone=self.zone, environment=self)
 
     def evaluate(self, individual):
         """
