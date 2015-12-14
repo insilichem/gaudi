@@ -27,6 +27,8 @@ import chimera
 from pdbfixer import PDBFixer
 import simtk.openmm.app as openmm_app
 from simtk import unit, openmm
+from openmoltools.amber import run_antechamber
+from openmoltools.utils import create_ffxml_file
 # GAUDI
 from gaudi.objectives import ObjectiveProvider
 
@@ -44,6 +46,8 @@ class Energy(ObjectiveProvider):
     ----------
     forcefields : list of str
         Which forcefields to use
+    auto_parametrize: list of str
+        List of Molecule instances GAUDI should try to auto parametrize with antechamber.
 
     pH : float
         pH value used to add hydrogens to molecule
@@ -56,13 +60,22 @@ class Energy(ObjectiveProvider):
     """
 
     def __init__(self, forcefields=('amber99sbildn.xml', 'amber99_obc.xml'),
-                 pH=7.0, *args, **kwargs):
+                 pH=7.0, auto_parametrize=None, *args, **kwargs):
         ObjectiveProvider.__init__(self, **kwargs)
-        self.forcefields = forcefields
         self.pH = pH
-        self.forcefield = openmm_app.ForceField(*self.forcefields)
+        self.auto_parametrize = auto_parametrize
         self.topology = None
         self._simulation = None
+
+        if auto_parametrize:
+            filenames = [g.path for m in auto_parametrize
+                         for g in self.parent.cfg.genes
+                         if g.name == m]
+            additional_ffxml = self._gaff2xml(*filenames)
+            forcefields.append(additional_ffxml)
+
+        self.forcefields = forcefields
+        self.forcefield = openmm_app.ForceField(*self.forcefields)
 
     def evaluate(self, individual):
         """
@@ -167,6 +180,29 @@ class Energy(ObjectiveProvider):
         # Close StringIO!
         pdbfile.close()
         return fixer.topology, fixer.positions
+
+    def _gaff2xml(*filenames):
+        """
+        Use OpenMolTools wrapper to run antechamber programatically
+        and auto parametrize requested molecules.
+
+        Parameters
+        ----------
+        filenames: list of str
+            List of the filenames of the molecules to parametrize
+
+        Returns
+        -------
+        ffxmls : StringIO
+            Compiled ffxml file produced by antechamber and openmoltools converter
+        """
+        frcmods, gaffmol2s = [], []
+        for filename in filenames:
+            name = '.'.join(filename.split('.')[:-1])
+            gaffmol2, frcmod = run_antechamber(name, filename)
+            frcmods.append(frcmod)
+            gaffmol2s.append(gaffmol2)
+        return create_ffxml_file(gaffmol2s, frcmods)
 
     @staticmethod
     def _test_topology_equality(t1, t2):
