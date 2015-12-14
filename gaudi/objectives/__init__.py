@@ -37,10 +37,9 @@ class ObjectiveProvider(object):
 
     The base class includes some useful attributes, so don't forget to call
     `ObjectiveProvider.__init__` in your overriden `__init__`. For example,
-    `self.parent` is a reference to the individual to be evaluated, while+
-    `self.env` is a `Chimera.selection.ItemizedSelection` object which is shared among
+    `self.zone` is a `Chimera.selection.ItemizedSelection` object which is shared among
     all objectives. Use that to get atoms in the surrounding of the target gene, and
-    remember to `self.env.clear()` it before use.
+    remember to `self.zone.clear()` it before use.
 
     ---
     From (M.A. itself)[http://martyalchin.com/2008/jan/10/simple-plugin-framework/]:
@@ -58,9 +57,9 @@ class ObjectiveProvider(object):
     __metaclass__ = plugin.PluginMount
     _cache = {}
 
-    def __init__(self, parent=None, name=None, weight=None, cache=None, zone=None,
+    def __init__(self, environment=None, name=None, weight=None, cache=None, zone=None,
                  **kwargs):
-        self.parent = parent
+        self.environment = environment
         self.name = name
         self.weight = weight
         self.zone = zone
