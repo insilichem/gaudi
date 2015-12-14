@@ -172,7 +172,7 @@ class Molecule(GeneProvider):
         if random.random() < self.indpb:
             self.allele = random.choice(self.catalog)
 
-    def write(self, path=None, name=None, absolute=None):
+    def write(self, path=None, name=None, absolute=None, combined_with=None):
         """
         Writes full mol2 to disk.
 
@@ -190,7 +190,10 @@ class Molecule(GeneProvider):
             logger.warning(
                 "No output path provided. Using tempfile %s.", fullname)
 
-        writeMol2([self.compound.mol], fullname,
+        molecules = [self.compound.mol]
+        if combined_with:
+            molecules.extend(ind.compound.mol for ind in combined_with)
+        writeMol2(molecules, fullname,
                   temporary=True, multimodelHandling='combined')
         return fullname
 
