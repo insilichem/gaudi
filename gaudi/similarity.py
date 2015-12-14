@@ -42,24 +42,31 @@ def rmsd(ind1, ind2, subjects, threshold):
         True if rmsd is within threshold, False otherwise
 
     """
-    def molecules_xform_coords_by_name(individual, subjects):
-        individual.express()
-        compounds = []
-        for subject in subjects:
-            for gene in individual.genes.values():
-                if gene.__class__.__name__ == 'Molecule' and gene.name == subject:
-                    compounds.append(gene.compound)
-        atoms = [sorted(compound.mol.atoms, key=lambda x: x.serialNumber)
-                 for compound in compounds]
-        xform_coords = [a.xformCoord() for a in atoms]
-        individual.unexpress()
-        return xform_coords
-
+    # If ligands are not the same molecule, of course they aren't similar
+    molecules1 = [g.allele for g in ind1.genes if g.__class__.__name__ == "Molecule"]
+    molecules2 = [g.allele for g in ind2.genes if g.__class__.__name__ == "Molecule"]
+    if molecules1 != molecules2:
+        return False
+    # else:
     logger.debug("Comparing RMSD between #%s and #%s", id(ind1), id(ind2))
-    coords1 = molecules_xform_coords_by_name(ind1, subjects)
-    coords2 = molecules_xform_coords_by_name(ind2, subjects)
+    coords1 = _molecules_xform_coords_by_name(ind1, subjects)
+    coords2 = _molecules_xform_coords_by_name(ind2, subjects)
 
     sqdist = sum(a.sqdistance(b) for a, b in zip(coords1, coords2))
     rmsd = sqrt(sqdist / ((len(coords1) + len(coords2)) / 2.0))
     logger.debug("RMSD: %f", rmsd)
     return rmsd < threshold
+
+
+def _molecules_xform_coords_by_name(individual, subjects):
+    individual.express()
+    compounds = []
+    for subject in subjects:
+        for gene in individual.genes.values():
+            if gene.__class__.__name__ == 'Molecule' and gene.name == subject:
+                compounds.append(gene.compound)
+    atoms = [sorted(compound.mol.atoms, key=lambda x: x.serialNumber)
+             for compound in compounds]
+    xform_coords = [a.xformCoord() for a in atoms]
+    individual.unexpress()
+    return xform_coords
