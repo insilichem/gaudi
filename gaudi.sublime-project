@@ -15,7 +15,13 @@
 			[
 				".*",
 				"*.sublime*",
-				"*.pyc"
+				"*.pyc",
+				"*~"
+			],
+			"folder_exclude_patterns":
+			[
+				"*.egg-info",
+				"_*"
 			],
 			"name": "GAUDI project",
 			"path": "."
