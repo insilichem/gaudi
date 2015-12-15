@@ -49,8 +49,8 @@ def rmsd(ind1, ind2, subjects, threshold):
             for gene in individual.genes.values():
                 if gene.__class__.__name__ == 'Molecule' and gene.name == subject:
                     compounds.append(gene.compound)
-        atoms = [sorted(compound.mol.atoms, key=lambda x: x.serialNumber)
-                 for compound in compounds]
+        atoms = [a for compound in compounds
+                 for a in sorted(compound.mol.atoms, key=lambda x: x.serialNumber)]
         xform_coords = [a.xformCoord() for a in atoms]
         individual.unexpress()
         return xform_coords
