@@ -43,12 +43,12 @@ def chimera(verbose=False):
     """
     # Find chimera binary location
     if sys.platform.startswith('linux'):
-        chimera = ['chimera']
+        chimera_path = subprocess.check_output(['chimera', '--root']).decode('utf-8').strip()
+        chimera = [os.path.join(chimera_path, 'bin', 'chimera')]
     elif sys.platform.startswith('win'):
         chimera = [guess_windows_chimera()]
     else:
         sys.exit("ERROR: Platform not supported.")
-
     # Find GAUDI
     gaudicli = os.path.join(gaudi.__path__[0], 'cli', 'gaudi_cli.py')
 
@@ -66,7 +66,8 @@ def chimera(verbose=False):
         command = chimera + silent + args + script
 
     # Launch with clean exit
-    sys.exit(subprocess.call(command))
+    # sys.exit(subprocess.call(command))
+    os.execve(chimera[0], command, os.environ)
 
 
 def chimera_verbose():
