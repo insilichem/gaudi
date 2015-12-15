@@ -16,42 +16,59 @@ Experimental wrapper to use Chimera's Python directly, instead of a
 second subprocess instance inside an already running Python interpreter.
 """
 
+from __future__ import print_function
 import os
 import sys
 import subprocess
+import gaudi
 
 
 def chimera_env():
     if 'CHIMERA' not in os.environ:
-        CONDA = guess_conda_env_path()
         CHIMERA = os.environ['CHIMERA'] = os.environ['PYTHONHOME'] = guess_chimera_path()
 
         # PYTHONPATH defines the locations where Python should look for packages and modules
-        os.environ['PYTHONPATH'] = ":".join([
-            os.path.join(CHIMERA, 'bin'),
-            os.path.join(CHIMERA, 'lib'),
-            os.path.join(CHIMERA, 'share'),
-            os.path.join(CHIMERA, 'lib', 'python2.7', 'site-packages'),
-            os.path.join(CONDA, 'lib', 'python2.7', 'site-packages')])
+        # The sys.path corresponds to the system python environment path (conda, probably)
+        os.environ['PYTHONPATH'] = ":".join([os.path.join(CHIMERA, 'bin'),
+                                             os.path.join(CHIMERA, 'share'),
+                                             os.path.join(CHIMERA, 'lib')]
+                                            + sys.path)
 
+        # Load Chimera libraries
+        CHIMERALIB = os.path.join(CHIMERA, 'lib')
         if sys.platform == 'win32':
-            os.environ['PATH'] += ":" + os.path.join(CHIMERA, 'lib')
+            os.environ['PATH'] += ":" + CHIMERALIB
         elif sys.platform == 'darwin':
-            os.environ['DYLD_LIBRARY_PATH'] = '{}:{}'.format(os.environ.get('DYLD_LIBRARY_PATH', ''),
-                                                             os.path.join(CHIMERA, 'lib'))
+            OLDLIB = os.environ.get('DYLD_LIBRARY_PATH', '')
+            os.environ['DYLD_LIBRARY_PATH'] = ':'.join([CHIMERALIB, OLDLIB])
         else:
-            os.environ['LD_LIBRARY_PATH'] = '{}:{}'.format(os.environ.get('LD_LIBRARY_PATH', ''),
-                                                           os.path.join(CHIMERA, 'lib'))
+            OLDLIB = os.environ.get('LD_LIBRARY_PATH', '')
+            os.environ['LD_LIBRARY_PATH'] = ':'.join([CHIMERALIB, OLDLIB])
+
         # Reload Python with modified environment variables
-        os.execve(sys.executable, [sys.executable] + sys.argv, os.environ)
+        if inside_ipython():
+            executable = os.path.join(os.path.dirname(sys.executable), 'ipython')
+        else:
+            executable = sys.executable
+
+        if interactive_mode():
+            sys.argv.insert(0, '-i')
+
+        os.execve(executable, [executable] + sys.argv, os.environ)
 
 
 def chimera_init():
     import chimeraInit
-    basepath = os.path.dirname(os.path.abspath(sys.argv[0]))
-    chimera_pass = os.path.join(basepath, '__pass__.py')
-    chimeraInit.init(['GAUDI', '--script', chimera_pass], nogui=True,
+    from chimera import registration
+    from Midas import midas_text
+
+    # bypass ReadStdin extension & registration
+    old_doRunScript = midas_text.doRunScript
+    registration.checkRegistration = midas_text.doRunScript = lambda *args: None
+    chimeraInit.init(['GAUDI', '--script', ''], nogui=True,
                      eventloop=False, exitonquit=False)
+    midas_text.doRunScript = old_doRunScript
+    del registration, chimeraInit, midas_text
 
 
 def gaudi_init():
@@ -93,18 +110,29 @@ def guess_chimera_path():
                 return path.strip()
 
 
-def guess_conda_env_path():
-    CONDA = subprocess.check_output(['conda', 'info', '--root']).decode('utf-8').strip()
-    gaudi_default = os.path.join(CONDA, 'envs', 'gaudi')
-    if os.path.exists(gaudi_default):
-        return gaudi_default
-    return ''
+def inside_ipython():
+    try:
+        __IPYTHON__
+        return True
+    except NameError:  # IPython not in use
+        return False
 
 
-def main():
+def interactive_mode():
+    return (hasattr(sys, 'ps1') and sys.ps1) or sys.flags.interactive
+
+
+def main(with_gaudi=False):
     chimera_env()
     chimera_init()
-    gaudi_init()
+    if with_gaudi:
+        gaudi_init()
+
+
+def main_with_gaudi():
+    main(with_gaudi=True)
 
 if "__main__" == __name__:
     main()
+    if interactive_mode():
+        print('\nUCSF Chimera is now enabled in this interpreter.')
