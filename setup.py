@@ -54,6 +54,7 @@ setup(
     entry_points='''
         [console_scripts]
         gaudi=gaudi.cli.enable_chimera:main_with_gaudi
+        gaudipy=gaudi.cli.enable_chimera:main_ipython
         gaudiv=gaudi.cli.chimera_wrapper:chimera_verbose
     ''',
 )

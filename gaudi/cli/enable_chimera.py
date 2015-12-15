@@ -20,10 +20,9 @@ from __future__ import print_function
 import os
 import sys
 import subprocess
-import gaudi
 
 
-def chimera_env():
+def chimera_env(force_ipython=False):
     if 'CHIMERA' not in os.environ:
         CHIMERA = os.environ['CHIMERA'] = os.environ['PYTHONHOME'] = guess_chimera_path()
 
@@ -46,12 +45,12 @@ def chimera_env():
             os.environ['LD_LIBRARY_PATH'] = ':'.join([CHIMERALIB, OLDLIB])
 
         # Reload Python with modified environment variables
-        if inside_ipython():
+        if inside_ipython() or force_ipython:
             executable = os.path.join(os.path.dirname(sys.executable), 'ipython')
         else:
             executable = sys.executable
 
-        if interactive_mode():
+        if interactive_mode() or force_ipython:
             sys.argv.insert(0, '-i')
 
         os.execve(executable, [executable] + sys.argv, os.environ)
@@ -65,7 +64,7 @@ def chimera_init():
     # bypass ReadStdin extension & registration
     old_doRunScript = midas_text.doRunScript
     registration.checkRegistration = midas_text.doRunScript = lambda *args: None
-    chimeraInit.init(['GAUDI', '--script', ''], nogui=True,
+    chimeraInit.init(['GAUDI', '--nostatus', '--silent', '--script', ''], nogui=True,
                      eventloop=False, exitonquit=False)
     midas_text.doRunScript = old_doRunScript
     del registration, chimeraInit, midas_text
@@ -122,15 +121,19 @@ def interactive_mode():
     return (hasattr(sys, 'ps1') and sys.ps1) or sys.flags.interactive
 
 
-def main(with_gaudi=False):
+def main():
     chimera_env()
     chimera_init()
-    if with_gaudi:
-        gaudi_init()
+
+
+def main_ipython():
+    chimera_env(force_ipython=True)
+    chimera_init()
 
 
 def main_with_gaudi():
-    main(with_gaudi=True)
+    main()
+    gaudi_init()
 
 if "__main__" == __name__:
     main()
