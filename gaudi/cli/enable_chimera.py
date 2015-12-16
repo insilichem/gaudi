@@ -47,6 +47,7 @@ def chimera_env(force_ipython=False):
         # Reload Python with modified environment variables
         if inside_ipython() or force_ipython:
             executable = os.path.join(os.path.dirname(sys.executable), 'ipython')
+            os.environ['TERM'] = "xterm-256color"
         else:
             executable = sys.executable
 
