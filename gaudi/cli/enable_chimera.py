@@ -53,7 +53,12 @@ def chimera_env(force_ipython=False):
         if interactive_mode() or force_ipython:
             sys.argv.insert(0, '-i')
 
-        os.execve(executable, [executable] + sys.argv, os.environ)
+        try:
+            os.execve(executable, [executable] + sys.argv, os.environ)
+        except OSError:
+            sys.exit("ERROR: {} not found.\n"
+                     "Have you installed IPython in your environment? Use:"
+                     "    conda install ipython".format(executable))
 
 
 def chimera_init():
