@@ -76,6 +76,20 @@ def chimera_init():
     del registration, chimeraInit, midas_text
 
 
+def chimera_test():
+    try:
+        import chimera
+    except ImportError:
+        print('Warning: Could not import Chimera...')
+    else:
+        print()
+        print('-'*70)
+        msg = 'UCSF Chimera is now enabled in this interpreter'
+        padding = ((70-len(msg))/2)-1
+        print(' '*padding, msg, ' '*padding)
+        print('-'*70)
+
+
 def gaudi_init():
     from gaudi.cli.gaudi_cli import cli
     cli(prog_name='gaudi')
@@ -135,6 +149,7 @@ def main():
 def main_ipython():
     chimera_env(force_ipython=True)
     chimera_init()
+    chimera_test()
 
 
 def main_with_gaudi():
@@ -143,5 +158,4 @@ def main_with_gaudi():
 
 if "__main__" == __name__:
     main()
-    if interactive_mode():
-        print('\nUCSF Chimera is now enabled in this interpreter.')
+    chimera_test()
