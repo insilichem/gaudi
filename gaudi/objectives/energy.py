@@ -24,7 +24,6 @@ except ImportError:
     from StringIO import StringIO
 # 3rd party
 import chimera
-from pdbfixer import PDBFixer
 import simtk.openmm.app as openmm_app
 from simtk import unit, openmm
 from openmoltools.amber import run_antechamber
@@ -82,9 +81,7 @@ class Energy(ObjectiveProvider):
         Calculates the energy of current individual
         """
         molecules = self.molecules(individual)
-        topology, coordinates = self._chimera_molecule_to_openmm(molecules,
-                                                                 self.forcefield,
-                                                                 self.pH)
+        topology, coordinates = self._chimera_molecule_to_openmm(*molecules)
         # Topology changed -> rebuild universe
         # Instead of checking if the topologies are equivalent,
         # check if GAUDI input can produce more than one topology
@@ -146,7 +143,7 @@ class Energy(ObjectiveProvider):
         return potential_energy._value
 
     @staticmethod
-    def _chimera_molecule_to_openmm(molecules, forcefield, pH):
+    def _chimera_molecule_to_openmm(*molecules):
         """
         Convert a Chimera Molecule object to OpenMM structure,
         providing topology and coordinates.
@@ -154,7 +151,6 @@ class Energy(ObjectiveProvider):
         Parameters
         ----------
         molecule : chimera.Molecule
-        forcefield: simtk.openmm.app.Forcefield
 
         Returns
         -------
@@ -168,18 +164,8 @@ class Energy(ObjectiveProvider):
             chimera.pdbWrite([molecule], molecule.openState.xform, pdbfile)
         pdbfile.seek(0)
 
-        # Fix missing hydrogens
-        fixer = PDBFixer(pdbfile=pdbfile)
-        fixer.findMissingResidues()
-        fixer.findNonstandardResidues()
-        fixer.replaceNonstandardResidues()
-        fixer.findMissingAtoms()
-        fixer.addMissingAtoms()
-        fixer.removeHeterogens(True)
-        fixer.addMissingHydrogens(pH)
-        # Close StringIO!
-        pdbfile.close()
-        return fixer.topology, fixer.positions
+        molecule = openmm_app.PDBFile(pdbfile)
+        return molecule.topology, molecule.positions
 
     @staticmethod
     def _gaff2xml(*filenames):
