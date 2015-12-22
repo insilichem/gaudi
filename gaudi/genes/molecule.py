@@ -34,6 +34,10 @@ import itertools
 import random
 import logging
 import tempfile
+try:
+    from cStringIO import StringIO
+except ImportError:
+    from StringIO import StringIO
 # Chimera
 import chimera
 from chimera import UserError
@@ -44,6 +48,7 @@ from WriteMol2 import writeMol2
 import deap
 import yaml
 from repoze.lru import LRUCache
+from pdbfixer import PDBFixer
 # GAUDI
 from gaudi import box
 from gaudi.genes import GeneProvider
@@ -74,6 +79,9 @@ class Molecule(GeneProvider):
 
     hydrogens : bool, optional
         Add hydrogens to Molecule (True) or not (False).
+
+    pdbfix : bool, optional
+        Fix potential issues that may cause troubles with OpenMM forcefields.
 
     Attributes
     ----------
@@ -107,12 +115,13 @@ class Molecule(GeneProvider):
     """
     _CATALOG = {}
 
-    def __init__(self, path=None, symmetry=None, hydrogens=False, **kwargs):
+    def __init__(self, path=None, symmetry=None, hydrogens=False, pdbfix=False, **kwargs):
         GeneProvider.__init__(self, **kwargs)
         self._kwargs = kwargs
         self.path = path
         self.symmetry = symmetry
         self.hydrogens = hydrogens
+        self.pdbfix = pdbfix
         if self.name not in self._cache:
             self._cache[self.name] = LRUCache(300)
             self._CATALOG[self.name] = tuple(self._compile_catalog())
@@ -248,6 +257,8 @@ class Molecule(GeneProvider):
             base.append(Compound(molecule=molpath))
         if self.hydrogens:
             base.add_hydrogens()
+        if self.pdbfix:
+            base.apply_pdbfix()
         return base
 
     def _compile_catalog(self):
@@ -682,6 +693,24 @@ class Compound(object):
 
     def add_hydrogens(self):
         simpleAddHydrogens([self.mol])
+
+    def pdbfix(self, pH=7.0):
+        pdbfile = StringIO()
+        for molecule in self.mol:
+            chimera.pdbWrite([molecule], molecule.openState.xform, pdbfile)
+        pdbfile.seek(0)
+
+        fixer = PDBFixer(pdbfile=pdbfile)
+        fixer.findMissingResidues()
+        fixer.findNonstandardResidues()
+        fixer.replaceNonstandardResidues()
+        fixer.findMissingAtoms()
+        fixer.addMissingAtoms()
+        fixer.removeHeterogens(True)
+        fixer.addMissingHydrogens(pH)
+
+        mols = chimera.openModels.open(pdbfile, type="PDB", identifyAs=self.mol.name)
+        self.mol = mols[0]
 
 
 def _dummy_mol(name='dummy'):
