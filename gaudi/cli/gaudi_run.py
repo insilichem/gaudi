@@ -172,7 +172,7 @@ def enable_logging(path=None, name=None):
     Register loggers and handlers for both stdout and file
     """
     logger = logging.getLogger('gaudi')
-    logger.setLevel(logging.DEBUG)
+    logger.setLevel(logging.ERROR)
 
     # create CONSOLE handler and set level to error
     handler = logging.StreamHandler()
