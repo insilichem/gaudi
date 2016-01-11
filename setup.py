@@ -29,8 +29,8 @@ setup(
     license='Free For Educational Use',
     author='Jaime Rodriguez-Guerra Pedregal',
     author_email='jaime.rogue@gmail.com',
-    description='A full GUI for launching GAUDI jobs, '
-                'analyzing their progress, and examining their results.',
+    description='GAUDIasm: Genetic Algorithms for Universal Design Inference '
+                'and Atomic Scale Modeling',
     long_description=long_description,
     packages=find_packages(),
     include_package_data=True,
