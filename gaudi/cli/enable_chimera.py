@@ -23,6 +23,9 @@ import subprocess
 
 
 def chimera_env(force_ipython=False):
+    """
+    Patch current environment variables so Chimera can start up and we can import its modules
+    """
     if 'CHIMERA' not in os.environ:
         CHIMERA = os.environ['CHIMERA'] = os.environ['PYTHONHOME'] = guess_chimera_path()
 
@@ -63,6 +66,9 @@ def chimera_env(force_ipython=False):
 
 
 def chimera_init():
+    """
+    Bypass script loading and initialize Chimera in nogui mode.
+    """
     import chimeraInit
     from chimera import registration
     from Midas import midas_text
@@ -77,6 +83,9 @@ def chimera_init():
 
 
 def chimera_test():
+    """
+    Test if Chimera can be imported
+    """
     try:
         import chimera
     except ImportError:
@@ -91,11 +100,17 @@ def chimera_test():
 
 
 def gaudi_init():
+    """
+    Launch GAUDI
+    """
     from gaudi.cli.gaudi_cli import cli
     cli(prog_name='gaudi')
 
 
 def guess_chimera_path():
+    """
+    Try to guess Chimera installation path
+    """
     # WINDOWS
     if sys.platform.startswith('win'):
         try:
@@ -155,6 +170,7 @@ def main_ipython():
 def main_with_gaudi():
     main()
     gaudi_init()
+
 
 if "__main__" == __name__:
     main()
