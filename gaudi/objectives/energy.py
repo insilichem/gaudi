@@ -58,7 +58,7 @@ class Energy(ObjectiveProvider):
 
     """
 
-    def __init__(self, forcefields=('amber99sbildn.xml', 'amber99_obc.xml'),
+    def __init__(self, forcefields=('amber99sbildn.xml'),
                  pH=7.0, auto_parametrize=None, *args, **kwargs):
         ObjectiveProvider.__init__(self, **kwargs)
         self.pH = pH
@@ -113,10 +113,8 @@ class Energy(ObjectiveProvider):
             system = self.forcefield.createSystem(self.topology,
                                                   nonbondedMethod=openmm_app.CutoffNonPeriodic,
                                                   nonbondedCutoff=1.0*unit.nanometers,
-                                                  constraints=openmm_app.HBonds, rigidWater=True)
-            integrator = openmm.LangevinIntegrator(300*unit.kelvin, 1.0/unit.picoseconds,
-                                                   2.0*unit.femtoseconds)
-            integrator.setConstraintTolerance(0.00001)
+                                                  rigidWater=True, constraints=None)
+            integrator = openmm.VerletIntegrator(0.001)
             self._simulation = openmm_app.Simulation(self.topology, system, integrator)
         return self._simulation
 
