@@ -45,16 +45,17 @@ setup(
         'Operating System :: OS Independent',
         'Topic :: Scientific/Engineering :: Chemistry',
     ],
-    install_requires=[
-        'PyYaml',
-        'deap',
-        'repoze.lru',
-        'click'
-    ],
-    entry_points='''
-        [console_scripts]
-        gaudi=gaudi.cli.enable_chimera:main_with_gaudi
-        gaudipy=gaudi.cli.enable_chimera:main_ipython
-        gaudiv=gaudi.cli.chimera_wrapper:chimera_verbose
-    ''',
+    # The section below is now managed by the conda recipe
+    # install_requires=[
+    #     'PyYaml',
+    #     'deap',
+    #     'repoze.lru',
+    #     'click'
+    # ],
+    # entry_points='''
+    #     [console_scripts]
+    #     gaudi=gaudi.cli.enable_chimera:main_with_gaudi
+    #     gaudipy=gaudi.cli.enable_chimera:main_ipython
+    #     gaudiv=gaudi.cli.chimera_wrapper:chimera_verbose
+    # ''',
 )
