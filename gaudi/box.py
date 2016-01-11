@@ -215,15 +215,18 @@ def files_in(path, ext=None):
     Parameters
     ----------
     path : str
-    ext : str, optional
-        File extension to filter on.
+    ext : list of str, optional
+        File extension(s) to filter on.
 
     Returns
     -------
         List of absolute paths
     """
     if ext:
-        return [os.path.join(path, fn) for fn in next(os.walk(path))[2] if fn.endswith('.' + ext)]
+        if isinstance(ext, str):
+            ext = [ext]
+        return [os.path.join(path, fn) for fn in next(os.walk(path))[2]
+                if fn.split('.')[-1] in ext]
     return [os.path.join(path, fn) for fn in next(os.walk(path))[2]]
 
 
