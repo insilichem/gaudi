@@ -29,6 +29,7 @@ will be requested almost always.
 """
 
 # Python
+from __future__ import print_function
 import os
 import itertools
 import random
@@ -49,6 +50,7 @@ import deap
 import yaml
 from repoze.lru import LRUCache
 from pdbfixer import PDBFixer
+from simtk.openmm.app import PDBFile
 # GAUDI
 from gaudi import box
 from gaudi.genes import GeneProvider
@@ -81,6 +83,7 @@ class Molecule(GeneProvider):
         Add hydrogens to Molecule (True) or not (False).
 
     pdbfix : bool, optional
+        Only for testing and debugging. Better run pdbfixer prior to GAUDI.
         Fix potential issues that may cause troubles with OpenMM forcefields.
 
     Attributes
@@ -114,6 +117,7 @@ class Molecule(GeneProvider):
 
     """
     _CATALOG = {}
+    SUPPORTED_FILETYPES = ('mol2', 'pdb')
 
     def __init__(self, path=None, symmetry=None, hydrogens=False, pdbfix=False, **kwargs):
         GeneProvider.__init__(self, **kwargs)
@@ -282,23 +286,22 @@ class Molecule(GeneProvider):
                              if os.path.isdir(os.path.join(self.path, d)) and not d.startswith('.')
                              and not d.startswith('_'))
             if folders:
-                catalog = itertools.product(*[box.files_in(f, ext='mol2')
+                catalog = itertools.product(*[box.files_in(f, ext=self.SUPPORTED_FILETYPES)
                                               for f in folders])
                 if isinstance(self.symmetry, list):
                     folders_last_level = [os.path.basename(os.path.normpath(f))
                                           for f in folders]
                     for entry in catalog:
                         if all(os.path.basename(entry[folders_last_level.index(s1)]) ==
-                                os.path.basename(
-                                    entry[folders_last_level.index(s2)])
+                                os.path.basename(entry[folders_last_level.index(s2)])
                                 for (s1, s2) in self.symmetry):
                             self.catalog.append(entry)
                 else:
                     container.update(tuple(catalog))
             else:
-                container.update((f,)
-                                 for f in box.files_in(self.path, ext='mol2'))
-        elif os.path.isfile(self.path) and self.path.endswith('.mol2'):
+                container.update((f,) for f in box.files_in(self.path,
+                                                            ext=self.SUPPORTED_FILETYPES))
+        elif os.path.isfile(self.path) and (self.path.split('.')[-1] in self.SUPPORTED_FILETYPES):
             container.add((self.path,))
         return container
 
@@ -692,25 +695,58 @@ class Compound(object):
         search.rotate(self.mol, [target.coord(), anchor.coord(), anchor_pos], 0.0)
 
     def add_hydrogens(self):
+        """
+        Add missing hydrogens to current molecule
+        """
         simpleAddHydrogens([self.mol])
 
-    def pdbfix(self, pH=7.0):
-        pdbfile = StringIO()
-        for molecule in self.mol:
-            chimera.pdbWrite([molecule], molecule.openState.xform, pdbfile)
-        pdbfile.seek(0)
+    def apply_pdbfix(self, pH=7.0):
+        """
+        Run PDBFixer and replace original molecule with new one
+        """
+        self.mol = _apply_pdbfix(self.mol, pH)
 
-        fixer = PDBFixer(pdbfile=pdbfile)
-        fixer.findMissingResidues()
-        fixer.findNonstandardResidues()
-        fixer.replaceNonstandardResidues()
-        fixer.findMissingAtoms()
-        fixer.addMissingAtoms()
-        fixer.removeHeterogens(True)
+
+def _apply_pdbfix(molecule, pH=7.0, add_hydrogens=False):
+    """
+    Run PDBFixer to ammend potential issues in PDB format.
+
+    Parameters
+    ----------
+    molecule : chimera.Molecule
+        Chimera Molecule object to fix.
+    pH : float, optional
+        Target pH for adding missing hydrogens.
+    add_hydrogens : bool, optional
+        Whether to add missing hydrogens or not.
+
+    Returns
+    -------
+    memfile : StringIO
+        An in-memory file with the modified PDB contents
+    """
+    memfile = StringIO()
+    chimera.pdbWrite([molecule], chimera.Xform(), memfile)
+    chimera.openModels.close([molecule])
+    memfile.seek(0)
+    fixer = PDBFixer(pdbfile=memfile)
+    fixer.findMissingResidues()
+    fixer.findNonstandardResidues()
+    fixer.replaceNonstandardResidues()
+    fixer.findMissingAtoms()
+    fixer.addMissingAtoms()
+    fixer.removeHeterogens(True)
+    if add_hydrogens:
         fixer.addMissingHydrogens(pH)
+    memfile.close()
 
-        mols = chimera.openModels.open(pdbfile, type="PDB", identifyAs=self.mol.name)
-        self.mol = mols[0]
+    memfile = StringIO()
+    PDBFile.writeFile(fixer.topology, fixer.positions, memfile)
+    memfile.seek(0)
+    molecule = chimera.openModels.open(memfile, type="PDB", identifyAs=molecule.name)[0]
+    chimera.openModels.remove([molecule])
+    memfile.close()
+    return molecule
 
 
 def _dummy_mol(name='dummy'):
