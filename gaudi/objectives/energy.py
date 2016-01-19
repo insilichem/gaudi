@@ -280,3 +280,22 @@ class Energy(ObjectiveProvider):
                     return False
 
         return True
+
+
+def calculate_energy(filename, forcefield=None):
+    if forcefield is None:
+        forcefield = ['amber99sbildn.xml']
+
+    mol = openmm_app.PDBFile(filename)
+    ff = openmm_app.ForceField(*forcefield)
+    system = ff.createSystem(mol.topology,
+                             nonbondedMethod=openmm_app.CutoffNonPeriodic,
+                             nonbondedCutoff=1.0*unit.nanometers,
+                             rigidWater=True, constraints=None)
+    integrator = openmm_app.VerletIntegrator(0.001)
+    sim = openmm_app.Simulation(mol.topology, system, integrator)
+    sim.context.setPositions(mol.positions)
+    state = sim.context.getState(getEnergy=True)
+    potential_energy = state.getPotentialEnergy()
+
+    return potential_energy._value
