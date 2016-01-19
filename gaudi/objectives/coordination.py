@@ -25,9 +25,12 @@ Good planarity is assured by a dihedral check.
 import math
 import logging
 import numpy
+from math import acos, degrees
 # Chimera
 import chimera
-import MetalGeom
+from chimera import cross, Xform, Plane, angle, Point
+from chimera.match import matchPositions
+from MetalGeom.geomData import geometries as MG_geometries
 # GAUDI
 from gaudi.objectives import ObjectiveProvider
 import gaudi.parse
@@ -63,7 +66,7 @@ class SimpleCoordination(ObjectiveProvider):
     """
 
     def __init__(self, method='simple', probe=None, radius=None, atom_types=None, residues=None,
-                 distance=None, angle=None, dihedral=None, min_atoms=1,
+                 distance=None, angle=None, dihedral=None, min_atoms=1, geometry='tetrahedral',
                  enforce_all_residues=False, only_one_ligand_per_residue=False, *args, **kwargs):
         ObjectiveProvider.__init__(self, **kwargs)
         self.method = method
@@ -79,6 +82,7 @@ class SimpleCoordination(ObjectiveProvider):
         self.enforce_all_residues = enforce_all_residues
         if self.method == 'metalgeom':
             self.evaluate = self.evaluate_MetalGeom
+            self.geometry = MG_geometries[geometry]
         else:
             self.evaluate = self.evaluate_simple
 
@@ -151,11 +155,12 @@ class SimpleCoordination(ObjectiveProvider):
             return -1000 * self.weight
         else:
             try:
-                rmsd, center, vectors = MetalGeom.gui.geomDistEval(
-                    self.geometry, self.target, test_atoms)
+                max_ligands = len(self.geometry.normVecs)
+                rmsd = geomDistEval_patched(
+                    self.geometry, self.probe.xformCoord(),
+                    [a.xformCoord() for a in test_atoms[:max_ligands]])
             except:  #
-                logger.warning(
-                    "Geometry not feasible in current conditions")
+                logger.warning("Geometry not feasible in current conditions")
                 rmsd = -1000 * self.weight
             return rmsd
 
@@ -174,13 +179,11 @@ class SimpleCoordination(ObjectiveProvider):
             [(abs(self.distance - self.probe.xformCoord().distance(a.xformCoord())),
               a) for a in atoms if a.name in self.atom_types and a.residue in self.residues]
         if len(atoms_by_distance) < self.min_atoms:
-            logger.warning(
-                "Could not find requested atoms from residues in probe environment")
+            logger.warning("Could not find requested atoms from residues in probe environment")
             raise NotEnoughAtomsError
         found_residues = set(a.residue for d, a in atoms_by_distance)
         if self.enforce_all_residues and found_residues != self.residues:
-            logger.warning(
-                "Some atoms found, but some residues are missing")
+            logger.warning("Some atoms found, but some residues are missing")
             raise SomeResiduesMissingError
 
         atoms_by_distance.sort()
@@ -256,3 +259,122 @@ class NotEnoughAtomsError(Exception):
 
 class SomeResiduesMissingError(Exception):
     pass
+
+
+def geomDistEval_patched(geom, metal_coord, ligands_coords):
+    """
+    Return RMSD of given geometry with best polyhedron built with metal_coord
+    as center and ligands_coords as possible vertices.
+
+    Parameters
+    ----------
+    geom : MetalGeom.Geometry.Geometry
+        Geometry of desired coordination. Get it from MetalGeom.geomData.geometries.
+    metal_coord : chimera.Point
+        Coordinates of metal ion
+    ligands_coords : list of chimera.Point
+        Coordinates of each of the potential ligand atoms
+
+    Returns
+    -------
+    rmsd : float
+        RMSD value of ideal polyhedron alignment with given coordinates
+    """
+
+    if len(ligands_coords) == 1:
+        return (0.0, None, None)
+    mc = metal_coord
+    lcoords = ligands_coords
+    lvecs = [lc - mc for lc in lcoords]
+
+    for lv in lvecs:
+        lv.normalize()
+    # (1), (2): pick primary, secondary
+    npv, nsv = lvecs[:2]
+    nsvpt = Point(*nsv.data())
+    origin = Point()
+    # (3) for each vector in the geometry
+    bestCorrespondence = None
+    for i1, nv1 in enumerate(geom.normVecs):
+        # (3a) orient towards primary
+        rotAxis = cross(nv1, npv)
+        cos = nv1 * npv
+        ang = degrees(acos(cos))
+        if rotAxis.length > 0:
+            xf1 = Xform.rotation(rotAxis, ang)
+        elif cos > 0:
+            xf1 = Xform.identity()
+        else:
+            xf1 = Xform.rotation(1.0, 0.0, 0.0, 180.0)
+        plane1 = Plane(origin, cross(npv, nsv))
+        # (3b) for each other vector in the geometry
+        for i2, nv2 in enumerate(geom.normVecs):
+            if i1 == i2:
+                continue
+            # (3b1) orient towards secondary
+            xfnv2 = xf1.apply(nv2)
+            # Vectors have no rounding tolerance for equality tests
+            # if npv == xfnv2 or npv == -xfnv2:
+            ang = angle(npv, xfnv2)
+            if ang < 0.00001 or ang > 179.99999:
+                xf2 = Xform.identity()
+            else:
+                plane2 = Plane(origin, cross(npv, xfnv2))
+                ang = angle(plane1.normal, plane2.normal)
+                if plane1.distance(Point(*xfnv2.data())) > 0.0:
+                    angles = [0.0 - ang, 180.0 - ang]
+                else:
+                    angles = [ang, ang - 180.0]
+                bestD = None
+                for ang in angles:
+                    xf = Xform.rotation(npv, ang)
+                    d = nsvpt.sqdistance(Point(*xf.apply(xfnv2)))
+                    if bestD == None or d < bestD:
+                        bestD = d
+                        xf2 = xf
+            # (3b2) find correspondences between remaining
+            #   ligands and other vectors, closest first
+            xf = Xform.identity()
+            xf.multiply(xf2)
+            xf.multiply(xf1)
+            correspondences = {npv: nv1, nsv: nv2}
+            used = set([i1, i2])
+            xfnvs = [xf.apply(nv) for nv in geom.normVecs]
+            diffs = []
+            for i, xfnv in enumerate(xfnvs):
+                if i in used:
+                    continue
+                for lv in lvecs[2:]:
+                    diffs.append((angle(xfnv, lv), lv, i))
+            diffs.sort()
+            while len(used) < len(ligands_coords):
+                ang, lv, i = diffs.pop(0)
+                if i in used or lv in correspondences:
+                    continue
+                correspondences[lv] = geom.normVecs[i]
+                used.add(i)
+            # (3b3) get RMSD based on these pairings (incl. metal)
+            realPts = [mc] + lcoords
+            idealVecs = []
+            for lv, lc in zip(lvecs, lcoords):
+                nv = correspondences[lv]
+                idealVecs.append(xf.apply(nv) * (lc - mc).length)
+            idealPts = [origin] + [origin + iv for iv in idealVecs]
+            rmsdXf, rmsd = matchPositions(realPts, idealPts)
+            if bestCorrespondence == None or rmsd < bestRmsd:
+                bestCorrespondence = correspondences
+                bestRmsd = rmsd
+                # have to also supply vectors for the ideal
+                # geometry at unfilled positions...
+                avgLen = sum([(lc - mc).length for lc in lcoords]
+                             ) / len(lcoords)
+                unfilled = []
+                for i, nv in enumerate(geom.normVecs):
+                    if i in used:
+                        continue
+                    unfilled.append(rmsdXf.apply(xf.apply(nv) * avgLen))
+                # addWater() method depends on unfilled being last
+                bestResult = (bestRmsd, rmsdXf.apply(origin),
+                              [rmsdXf.apply(iv) for iv in idealVecs] + unfilled)
+    #(4) return lowest RMSD pairing
+    return bestResult[0]
