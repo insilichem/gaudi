@@ -16,9 +16,8 @@ This module contains the similarity functions that are used
 to discard individuals that are not different enough.
 
 """
-
+from __future__ import print_function, division
 import logging
-from math import sqrt
 
 logger = logging.getLogger(__name__)
 
@@ -53,9 +52,9 @@ def rmsd(ind1, ind2, subjects, threshold):
     coords2 = _molecules_xform_coords_by_name(ind2, subjects)
 
     sqdist = sum(a.sqdistance(b) for a, b in zip(coords1, coords2))
-    rmsd = sqrt(sqdist / ((len(coords1) + len(coords2)) / 2.0))
-    logger.debug("RMSD: %f", rmsd)
-    return rmsd < threshold
+    rmsd_squared = sqdist / ((len(coords1) + len(coords2)) / 2.0)
+    logger.debug("RMSD: %f", rmsd_squared)
+    return rmsd_squared < threshold*threshold
 
 
 def _molecules_xform_coords_by_name(individual, subjects):
