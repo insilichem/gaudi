@@ -11,9 +11,9 @@
 file: search.py
 module: gaudi.genes.search
 # args
-origin: 
+center: 
     - !!python/name:float
-    - List of x, y, z coordinates
+    - Center of search sphere. List of x, y, z coordinates
     - [0.0, 0.0, 0.0]
 radius: 
     - !!python/name:float
