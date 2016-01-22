@@ -47,10 +47,10 @@ class Contacts(ObjectiveProvider):
 
     Parameters
     ----------
-    probe : str
+    probes : str
         Name of molecule gene that is object of contacts analysis
     radius : float
-        Maximum distance from any point of probe that is searched
+        Maximum distance from any point of probes that is searched
         for possible interactions
     which : {'hydrophobic', 'clashes'}
         Type of interactions to measure
@@ -68,7 +68,7 @@ class Contacts(ObjectiveProvider):
         Useful to filter bad solutions.
     """
 
-    def __init__(self, probe=None, radius=5.0, which='hydrophobic',
+    def __init__(self, probes=None, radius=5.0, which='hydrophobic',
                  threshold=0.6, threshold_h=0.2, threshold_c=0.6, cutoff=100.0,
                  *args, **kwargs):
         ObjectiveProvider.__init__(self, **kwargs)
@@ -78,14 +78,14 @@ class Contacts(ObjectiveProvider):
         self.threshold_h = threshold_h
         self.threshold_c = threshold_c
         self.cutoff = cutoff
-        self._probe = probe
+        self._probes = probes
 
     def molecules(self, ind):
         return tuple(m.compound.mol for m in ind.genes.values()
                      if m.__class__.__name__ == "Molecule")
 
-    def probe(self, ind):
-        return [ind.genes[p].compound.mol for p in self._probe]
+    def probes(self, ind):
+        return [ind.genes[p].compound.mol for p in self._probes]
 
     def evaluate(self, ind):
         """
@@ -193,7 +193,7 @@ class Contacts(ObjectiveProvider):
         Get atoms in the search zone, based on the molecule and the radius
         """
         self.zone.clear()
-        self.zone.add([a for m in self.probe(ind) for a in m.atoms])
+        self.zone.add([a for m in self.probes(ind) for a in m.atoms])
         self.zone.merge(chimera.selection.REPLACE,
                         chimera.specifier.zone(self.zone, 'atom', None,
                                                self.radius, self.molecules(ind)))
