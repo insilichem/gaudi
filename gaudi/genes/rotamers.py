@@ -25,9 +25,11 @@ the same backbone, which may not be representative of the in-vivo behaviour. Use
 
 # Python
 import random
-from collections import OrderedDict
+from collections import OrderedDict, namedtuple
 import logging
 # Chimera
+import chimera
+from AddH import simpleAddHydrogens, IdatmTypeInfo
 from Rotamers import getRotamers, useRotamer, NoResidueRotamersError
 import SwapRes
 # External dependencies
@@ -68,19 +70,22 @@ class Rotamers(GeneProvider):
     mutations : list of str
         Aminoacids (in 3-letter codes) rotamers can mutate to.
 
-    ligation : bool
+    ligation : bool, optional
         If True, all residues will mutate to the same type of aminoacid.
 
+    hydrogens : bool, optional
+        If True, add hydrogens to rotamers
     """
 
     def __init__(self, residues=None, library='Dunbrack',
-                 mutations=[], ligation=False, **kwargs):
+                 mutations=[], ligation=False, hydrogens=False, **kwargs):
         GeneProvider.__init__(self, **kwargs)
         self._kwargs = kwargs
         self._residues = residues
         self.library = library
         self.mutations = mutations
         self.ligation = ligation
+        self.hydrogens = hydrogens
         self.allele = []
         # set caches
         if self.name + '_res' not in self._cache:
@@ -135,12 +140,11 @@ class Rotamers(GeneProvider):
                 SwapRes.swap(self.residues[(mol, pos)], restype)
             else:
                 useRotamer(self.residues[(mol, pos)], [rot[int(i * len(rot))]])
+
             finally:
-                self.residues[(mol, pos)] = res = \
+                self.residues[(mol, pos)] = \
                     next(r for r in self.parent.genes[mol].compound.mol.residues
                          if r.id.position == pos)
-                for a in res.atoms:
-                    a.display = 1
 
     def unexpress(self):
         for res in self.residues.values():
@@ -213,5 +217,29 @@ class Rotamers(GeneProvider):
             except KeyError:
                 raise
             else:
+                if self.hydrogens:
+                    self.add_hydrogens_to_isolated_rotamer(rotamers)
                 self.rotamers.put((mol, pos, restype), rotamers)
         return rotamers
+
+    @staticmethod
+    def add_hydrogens_to_isolated_rotamer(rotamers):
+        # Patch original definitions of atomtypes to account for existing bonds
+        # Force trigonal planar geometry so we get a good hydrogen
+        # Ideally, we'd use a tetrahedral geometry (4, 3), but with that one the
+        # hydrogen we get is sometimes in direct collision with next residues' N
+        patched_idatm = IdatmTypeInfo(3, 3)
+        unknown_types = {}
+        for rot in rotamers:
+            for a in rot.atoms:
+                if a.name == 'CA':
+                    unknown_types[a] = patched_idatm
+                    a.idatmType, a.idatmType_orig = "_CA", a.idatmType
+
+        # Add the hydrogens
+        simpleAddHydrogens(rotamers, unknownsInfo=unknown_types)
+        # Undo the monkey patch
+        for rot in rotamers:
+            for a in rot.atoms:
+                if a.name == 'CA':
+                    a.idatmType = a.idatmType_orig
