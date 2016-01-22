@@ -27,7 +27,7 @@ radius:
     - !!python/name:float 
     - Max distance from probe to look for coordinating atoms
     - 3.5
-atomtypes: 
+atom_types: 
     - !!python/name:str 
     - Atom types that can coordinate with probe
     - [ OE1, OE2, OD1, OD2, ND2 ]

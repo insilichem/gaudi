@@ -22,6 +22,7 @@ Good planarity is assured by a dihedral check.
 """
 
 # Python
+from __future__ import print_function, division
 import math
 import logging
 import numpy
@@ -50,7 +51,7 @@ class SimpleCoordination(ObjectiveProvider):
     Parameters
     ----------
     probe : str
-        The atom that acts as the metal center, expressed as 
+        The atom that acts as the metal center, expressed as
         <molecule_name>/<atom serial>. This will be parsed later on.
     radius : float
         Distance from `probe` where ligating atoms must be found
@@ -66,7 +67,7 @@ class SimpleCoordination(ObjectiveProvider):
     """
 
     def __init__(self, method='simple', probe=None, radius=None, atom_types=None, residues=None,
-                 distance=None, angle=None, dihedral=None, min_atoms=1, geometry='tetrahedral',
+                 distance=0, angle=None, dihedral=None, min_atoms=1, geometry='tetrahedral',
                  enforce_all_residues=False, only_one_ligand_per_residue=False, *args, **kwargs):
         ObjectiveProvider.__init__(self, **kwargs)
         self.method = method
@@ -112,7 +113,7 @@ class SimpleCoordination(ObjectiveProvider):
         3. As a result, lower scores are better.
         """
         try:
-            atoms_by_distance = self._get_nearest_atoms()
+            atoms_by_distance = self._get_nearest_atoms(ind)
         except (NotEnoughAtomsError, SomeResiduesMissingError):
             return -1000 * self.weight
         else:
@@ -150,21 +151,24 @@ class SimpleCoordination(ObjectiveProvider):
         3. If that's not possible of they are not enough, return penalty
         """
         try:
-            test_atoms = [a for d, a in self._get_nearest_atoms()]
+            test_atoms = [a for d, a in self._get_nearest_atoms(ind)]
         except (NotEnoughAtomsError, SomeResiduesMissingError):
+            logger.warning("Not enough atoms or some residues missing")
             return -1000 * self.weight
         else:
             try:
                 max_ligands = len(self.geometry.normVecs)
                 rmsd = geomDistEval_patched(
-                    self.geometry, self.probe.xformCoord(),
-                    [a.xformCoord() for a in test_atoms[:max_ligands]])
-            except:  #
+                    self.geometry, self.probe(ind).xformCoord(),
+                    [a.xformCoord() for a in test_atoms[:max_ligands]],
+                    min_ligands=self.min_atoms)
+            except Exception as e:
+                logger.exception(e)  #
                 logger.warning("Geometry not feasible in current conditions")
                 rmsd = -1000 * self.weight
             return rmsd
 
-    def _get_nearest_atoms(self):
+    def _get_nearest_atoms(self, ind):
         """
         1. Get atoms and residues found within `self.radius` angstroms from `self.probe`
         1.1. Found residues MUST include self.residues. Otherwise, apply penalty
@@ -172,12 +176,12 @@ class SimpleCoordination(ObjectiveProvider):
            That way, nearest atoms are computed first.
         2.1. If found atoms do not include some of the requested types, apply penalty.
         """
-        self._update_zone()
+        self._update_zone(ind)
         atoms = self.zone.atoms()
         # (distance, ligand) tuple, sorted by distances
         atoms_by_distance = \
-            [(abs(self.distance - self.probe.xformCoord().distance(a.xformCoord())),
-              a) for a in atoms if a.name in self.atom_types and a.residue in self.residues]
+            [(abs(self.distance - self.probe(ind).xformCoord().distance(a.xformCoord())),
+              a) for a in atoms if a.name in self.atom_types and a.residue in self.residues(ind)]
         if len(atoms_by_distance) < self.min_atoms:
             logger.warning("Could not find requested atoms from residues in probe environment")
             raise NotEnoughAtomsError
@@ -241,7 +245,7 @@ class SimpleCoordination(ObjectiveProvider):
         self.zone.add(self.probe(ind))
         self.zone.merge(chimera.selection.REPLACE,
                         chimera.specifier.zone(
-                            self.zone, 'atom', None, self.radius, self.molecules)
+                            self.zone, 'atom', None, self.radius, self.molecules(ind))
                         )
         return self.zone
 
@@ -261,7 +265,7 @@ class SomeResiduesMissingError(Exception):
     pass
 
 
-def geomDistEval_patched(geom, metal_coord, ligands_coords):
+def geomDistEval_patched(geom, metal_coord, ligands_coords, min_ligands=2):
     """
     Return RMSD of given geometry with best polyhedron built with metal_coord
     as center and ligands_coords as possible vertices.
@@ -274,7 +278,8 @@ def geomDistEval_patched(geom, metal_coord, ligands_coords):
         Coordinates of metal ion
     ligands_coords : list of chimera.Point
         Coordinates of each of the potential ligand atoms
-
+    min_ligands : int, optional
+        Number of ligands that must be coordinating
     Returns
     -------
     rmsd : float
@@ -294,7 +299,7 @@ def geomDistEval_patched(geom, metal_coord, ligands_coords):
     nsvpt = Point(*nsv.data())
     origin = Point()
     # (3) for each vector in the geometry
-    bestCorrespondence = None
+    best_rmsd = [1000]
     for i1, nv1 in enumerate(geom.normVecs):
         # (3a) orient towards primary
         rotAxis = cross(nv1, npv)
@@ -353,6 +358,8 @@ def geomDistEval_patched(geom, metal_coord, ligands_coords):
                     continue
                 correspondences[lv] = geom.normVecs[i]
                 used.add(i)
+            if len(used) < min_ligands:
+                continue
             # (3b3) get RMSD based on these pairings (incl. metal)
             realPts = [mc] + lcoords
             idealVecs = []
@@ -361,20 +368,5 @@ def geomDistEval_patched(geom, metal_coord, ligands_coords):
                 idealVecs.append(xf.apply(nv) * (lc - mc).length)
             idealPts = [origin] + [origin + iv for iv in idealVecs]
             rmsdXf, rmsd = matchPositions(realPts, idealPts)
-            if bestCorrespondence == None or rmsd < bestRmsd:
-                bestCorrespondence = correspondences
-                bestRmsd = rmsd
-                # have to also supply vectors for the ideal
-                # geometry at unfilled positions...
-                avgLen = sum([(lc - mc).length for lc in lcoords]
-                             ) / len(lcoords)
-                unfilled = []
-                for i, nv in enumerate(geom.normVecs):
-                    if i in used:
-                        continue
-                    unfilled.append(rmsdXf.apply(xf.apply(nv) * avgLen))
-                # addWater() method depends on unfilled being last
-                bestResult = (bestRmsd, rmsdXf.apply(origin),
-                              [rmsdXf.apply(iv) for iv in idealVecs] + unfilled)
-    #(4) return lowest RMSD pairing
-    return bestResult[0]
+            best_rmsd.append(rmsd)
+    return min(best_rmsd)
