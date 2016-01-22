@@ -40,6 +40,7 @@ If the previous does not work, try with the manual mode:
 """
 
 # Python
+from __future__ import print_function
 from time import strftime
 from importlib import import_module
 import logging
@@ -167,25 +168,46 @@ def prepare_input(filename):
     return cfg
 
 
-def enable_logging(path=None, name=None):
+def enable_logging(path=None, name=None, debug=False):
     """
     Register loggers and handlers for both stdout and file
     """
+
+    class CustomFormatter(logging.Formatter):
+
+        CUSTOM_FORMATS = {
+            logging.DEBUG: "DEBUG: %(module)s: %(lineno)d: %(message)s",
+            logging.INFO: "%(message)s",
+            logging.WARNING: "Warning: %(message)s",
+            logging.ERROR: "[!] %(message)s",
+            logging.CRITICAL: "CRITICAL: %(message)s",
+            100: "%(message)s"
+        }
+
+        def format(self, record):
+            format_orig = self._fmt
+            self._fmt = self.CUSTOM_FORMATS.get(record.levelno, format_orig)
+            result = logging.Formatter.format(self, record)
+            self._fmt = format_orig
+            return result
+
     logger = logging.getLogger('gaudi')
-    logger.setLevel(logging.ERROR)
+    logger.setLevel(logging.DEBUG)
 
     # create CONSOLE handler and set level to error
     handler = logging.StreamHandler()
     handler.setLevel(logging.ERROR)
-    formatter = logging.Formatter("%(levelname)s - %(message)s")
+    formatter = CustomFormatter()
     handler.setFormatter(formatter)
     logger.addHandler(handler)
 
     # create debug file handler and set level to debug
     if path and name:
-        handler = logging.FileHandler(
-            os.path.join(path, name + ".gaudi.log"), "w")
-        handler.setLevel(logging.DEBUG)
+        handler = logging.FileHandler(os.path.join(path, name + ".gaudi-log"), "w")
+        if debug:
+            handler.setLevel(logging.DEBUG)
+        else:
+            handler.setLevel(15)
         formatter = logging.Formatter(
             "%(asctime)s - %(name)s - %(levelname)s - %(message)s", "%Y.%m.%d %H:%M:%S")
         handler.setFormatter(formatter)
@@ -211,30 +233,37 @@ def unbuffer_stdout():
 
 
 #@gaudi.box.do_cprofile
-def main(filename):
+def main(filename, debug=False):
     # Parse input file
     cfg = prepare_input(filename)
 
     # Enable logging to stdout and file
-    logger = enable_logging(cfg.general.outputpath, cfg.general.name)
-    logger.info('GAUDIasm job started with input %s', sys.argv[1])
     unbuffer_stdout()
+    logger = enable_logging(cfg.general.outputpath, cfg.general.name, debug=debug)
+    logger.log(100, 'Loaded input %s', filename)
 
     # Disable auto ksdssp
     chimera.triggers.addHandler("Model", gaudi.box.suppress_ksdssp, None)
 
     # Run simulation
-    pop, log, best = launch(cfg)
+    try:
+        logger.log(100, 'Launching essay ...')
+        pop, log, best = launch(cfg)
+    except Exception as e:
+        log_path = os.path.join(cfg.general.outputpath, cfg.general.name + ".gaudi-log")
+        logger.error('An exception occurred: %s\n    '
+                     'Check traceback in logfile %s', e, log_path)
+        logger.log(15, "An exception occurred", exc_info=True)
+        sys.exit(1)
 
     # Write results
-    logger.info('Writing %s results to disk', len(pop))
+    logger.log(100, 'Writing %s results to disk', len(pop))
     results = {'GAUDI.objectives': [
         '{} ({})'.format(obj.name, obj.module) for obj in cfg.objectives]}
     results['GAUDI.results'] = {}
     for i, ind in enumerate(best):
         filename = ind.write(i)
-        results['GAUDI.results'][
-            os.path.basename(filename)] = [float(f) for f in ind.fitness.values]
+        results['GAUDI.results'][os.path.basename(filename)] = map(float, ind.fitness.values)
 
     outputpath = os.path.join(cfg.general.outputpath,
                               '{}.gaudi-output'.format(cfg.general.name))
