@@ -30,7 +30,8 @@ from datetime import timedelta
 from importlib import import_module
 # 3rd party
 import click
-# GAUDI
+# insilichem
+import pychimera
 import gaudi
 
 
@@ -66,6 +67,8 @@ def cli(prog_name='gaudi'):
     By Jaime Rodríguez-Guerra and Jean-Didier Maréchal.
     https://bitbucket.org/jrgp/gaudi
     """
+    pychimera.patch_environ()
+    pychimera.load_chimera()
     click.echo()
     click.echo('GAUDI: Genetic Algorithms for Universal Design Inference')
     click.echo('--------------------------------------------------------')

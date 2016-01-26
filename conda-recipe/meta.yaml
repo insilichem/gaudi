@@ -10,18 +10,13 @@ about:
 source:
   path: ../
 
-build:
-  entry_points:
-    - gaudi = gaudi.cli.enable_chimera:main_with_gaudi
-    - gaudipy = gaudi.cli.enable_chimera:main_ipython
-    - gaudiv = gaudi.cli.chimera_wrapper:chimera_verbose
-
 requirements:
   build:
     - python 2.7*
 
   run:
     - python 2.7*
+    - pychimera
     - deap
     - pyyaml
     - click

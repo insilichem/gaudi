@@ -29,8 +29,7 @@ setup(
     license='Free For Educational Use',
     author='Jaime Rodriguez-Guerra Pedregal',
     author_email='jaime.rogue@gmail.com',
-    description='GAUDIasm: Genetic Algorithms for Universal Design Inference '
-                'and Atomic Scale Modeling',
+    description='GAUDI: Genetic Algorithms for Universal Design Inference',
     long_description=long_description,
     packages=find_packages(),
     include_package_data=True,
@@ -45,17 +44,13 @@ setup(
         'Operating System :: OS Independent',
         'Topic :: Scientific/Engineering :: Chemistry',
     ],
-    # The section below is now managed by the conda recipe
     # install_requires=[
-    #     'PyYaml',
-    #     'deap',
-    #     'repoze.lru',
-    #     'click'
+    #     dependencies are handled with conda-recipe/meta.yaml
+    #     check that file if you used setup.py manually
     # ],
-    # entry_points='''
-    #     [console_scripts]
-    #     gaudi=gaudi.cli.enable_chimera:main_with_gaudi
-    #     gaudipy=gaudi.cli.enable_chimera:main_ipython
-    #     gaudiv=gaudi.cli.chimera_wrapper:chimera_verbose
-    # ''',
+    entry_points='''
+        [console_scripts]
+        gaudi=gaudi.cli.gaudi_cli:cli
+        '''
+    ,
 )
