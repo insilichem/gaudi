@@ -22,7 +22,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def rmsd(ind1, ind2, subjects, threshold):
+def rmsd(ind1, ind2, subjects, threshold, *args, **kwargs):
     """
     Returns the RMSD between two individuals
 
