@@ -87,16 +87,14 @@ def launch(cfg):
     toolbox = deap.base.Toolbox()
     toolbox.register("call", (lambda fn, *args, **kwargs: fn(*args, **kwargs)))
     toolbox.register("individual", toolbox.call, gaudi.base.Individual, cfg)
-    toolbox.register("population",
-                     deap.tools.initRepeat, list, toolbox.individual)
-    population = toolbox.population(n=cfg.ga.pop)
+    toolbox.register("population", deap.tools.initRepeat, list, toolbox.individual)
+    population = toolbox.population(n=cfg.ga.population)
 
     environment = gaudi.base.Environment(cfg)
 
     toolbox.register("evaluate", lambda ind: environment.evaluate(ind))
     toolbox.register("mate", (lambda ind1, ind2: ind1.mate(ind2)))
-    toolbox.register("mutate",
-                     (lambda ind, indpb: ind.mutate(indpb)), indpb=cfg.ga.mut_indpb)
+    toolbox.register("mutate", (lambda ind, indpb: ind.mutate(indpb)), indpb=cfg.ga.mut_indpb)
     toolbox.register("similarity", (lambda ind1, ind2: ind1.similar(ind2)))
     toolbox.register("select", deap.tools.selNSGA2)
 
@@ -110,22 +108,20 @@ def launch(cfg):
     if cfg.ga.pareto:
         best_individuals = deap.tools.ParetoFront(toolbox.similarity)
     else:
-        hof_size_percent = int(0.1 * cfg.ga.pop)
+        hof_size_percent = int(0.1 * cfg.ga.population)
         hof_size = hof_size_percent if hof_size_percent > 2 else 2
-        best_individuals = deap.tools.HallOfFame(hof_size,
-                                                 similar=toolbox.similarity)
+        best_individuals = deap.tools.HallOfFame(hof_size, similar=toolbox.similarity)
     stats = deap.tools.Statistics(lambda ind: ind.fitness.values)
-    numpy.set_printoptions(precision=cfg.general.precision)
+    numpy.set_printoptions(precision=cfg.output.precision)
     stats.register("avg", numpy.mean, axis=0)
     stats.register("min", numpy.min, axis=0)
     stats.register("max", numpy.max, axis=0)
 
     # Begin evolution
     population, log = deap.algorithms.eaMuPlusLambda(
-        population, toolbox,
-        mu=int(cfg.ga.mu * cfg.ga.pop), lambda_=int(cfg.ga.lambda_ * cfg.ga.pop),
-        cxpb=cfg.ga.cx_pb, mutpb=cfg.ga.mut_pb,
-        ngen=cfg.ga.gens, stats=stats, halloffame=best_individuals)
+        population, toolbox, mu=int(cfg.ga.mu * cfg.ga.population),
+        lambda_=int(cfg.ga.lambda_ * cfg.ga.population), cxpb=cfg.ga.cx_pb, mutpb=cfg.ga.mut_pb,
+        ngen=cfg.ga.generations, stats=stats, halloffame=best_individuals)
 
     return population, log, best_individuals
 
@@ -149,21 +145,19 @@ def prepare_input(filename):
     inputdir = os.path.dirname(path)
 
     # Tilde expansion in paths and abs/rel path support
-    cfg.general.outputpath = build_path(inputdir, cfg.general.outputpath)
+    cfg.output.path = build_path(inputdir, cfg.output.path)
     for g in cfg.genes:
         if g.module == 'gaudi.genes.molecule':
             g.path = build_path(inputdir, g.path)
             if not os.path.exists(g.path):
-                sys.exit(
-                    "ERROR: Path " + g.path + " is wrong. Check your input file.\n")
+                sys.exit("ERROR: Path " + g.path + " is wrong. Check your input file.\n")
 
     # Create dirs
     try:
-        os.makedirs(cfg.general.outputpath)
+        os.makedirs(cfg.output.path)
     except OSError:
-        if os.path.isfile(cfg.general.outputpath):
-            sys.exit(
-                "ERROR: Output path is already a file. Please change it.\n")
+        if os.path.isfile(cfg.output.path):
+            sys.exit("ERROR: Output path is already a file. Please change it.\n")
 
     return cfg
 
@@ -239,7 +233,7 @@ def main(filename, debug=False):
 
     # Enable logging to stdout and file
     unbuffer_stdout()
-    logger = enable_logging(cfg.general.outputpath, cfg.general.name, debug=debug)
+    logger = enable_logging(cfg.output.path, cfg.output.name, debug=debug)
     logger.log(100, 'Loaded input %s', filename)
 
     # Disable auto ksdssp
@@ -250,7 +244,7 @@ def main(filename, debug=False):
         logger.log(100, 'Launching essay ...')
         pop, log, best = launch(cfg)
     except Exception as e:
-        log_path = os.path.join(cfg.general.outputpath, cfg.general.name + ".gaudi-log")
+        log_path = os.path.join(cfg.output.path, cfg.output.name + ".gaudi-log")
         logger.error('An exception occurred: %s\n    '
                      'Check traceback in logfile %s', e, log_path)
         logger.log(15, "An exception occurred", exc_info=True)
@@ -265,12 +259,10 @@ def main(filename, debug=False):
         filename = ind.write(i)
         results['GAUDI.results'][os.path.basename(filename)] = map(float, ind.fitness.values)
 
-    outputpath = os.path.join(cfg.general.outputpath,
-                              '{}.gaudi-output'.format(cfg.general.name))
+    outputpath = os.path.join(cfg.output.path, '{}.gaudi-output'.format(cfg.output.name))
     with open(outputpath, 'w+') as out:
-        out.write('# Generated by GAUDI on {}\n\n'.format(
-            strftime("%Y-%m-%d %H:%M:%S")))
-        out.write(yaml.dump(results, default_flow_style=False))
+        out.write('# Generated by GAUDI on {}\n\n'.format(strftime("%Y-%m-%d %H:%M:%S")))
+        out.write(yaml.safe_dump(results, default_flow_style=False))
 
 if __name__ == "__main__":
     try:

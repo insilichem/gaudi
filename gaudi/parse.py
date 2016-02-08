@@ -16,7 +16,7 @@ This module parses YAML input files into convenient objects that allow
 per-attribute access to configuration parameters.
 
 .. todo ::
-    
+
     Use AttrDict or Bunch instead, and deprecate this shitty code :)
 
 """
@@ -25,62 +25,94 @@ per-attribute access to configuration parameters.
 import logging
 # External dependencies
 import yaml
+from munch import Munch
+from voluptuous import (Schema, Required, All, Length, Range, Coerce, Extra, REMOVE_EXTRA)
 
 logger = logging.getLogger(__name__)
 
 
-class Settings(object):
+class Settings(Munch):
 
-    """ 
-    Simple parser for YAML settings file.
-
-    It should be made of dictionaries and lists of dictionaries. The keys
-    will be added as attributes of the returned object.
+    """
+    Parses a YAML input file with PyYAML, validates it with voluptuous and builds a
+    attribute-accessible dict with Munch.
 
     Parameters
     ----------
     path : str
-        Path to the yaml file.
-
+        Path to YAML file
     """
 
-    def __init__(self, path, asDict=False):
-        self._path = path
-        self.data = {}
-        self._parse()
-        self.weights = self._weights()
-        self.objectivesnames = self._objectives()
+    validate = Schema({
+        Required('output'): {
+            'path': str,
+            'name': All(str, Length(min=1, max=255)),
+            'precision': All(int, Range(min=0, max=6)),
+            'compress': Coerce(bool),
+            'history': Coerce(bool),
+            'pareto': Coerce(bool),
+        },
+        'ga': {
+            'population': All(Coerce(int), Range(min=2)),
+            'generations': All(Coerce(int), Range(min=0)),
+            'mu': All(Coerce(float), Range(min=0, max=1)),
+            'lambda_': All(Coerce(float), Range(min=0, max=1)),
+            'mut_eta': All(Coerce(int), Range(min=0)),
+            'mut_pb': All(Coerce(float), Range(min=0, max=1)),
+            'mut_indpb': All(Coerce(float), Range(min=0, max=1)),
+            'cx_eta': All(Coerce(int), Range(min=0)),
+            'cx_pb': All(Coerce(float), Range(min=0, max=1)),
+        },
+        'similarity': {
+            'type': str,
+            'args': [],
+            'kwargs': {}
+        },
+        Required('genes'): All([{Extra: object}], Length(min=1)),
+        Required('objectives'): All([{Extra: object}], Length(min=1))
+    }, extra=REMOVE_EXTRA)
+
+    default_values = {
+        'output': {
+            'path': '.',
+            'name': '',
+            'precision': None,
+            'compress': True,
+            'history': False,
+            'pareto': True,
+        },
+        'ga': {
+            'population': 10,
+            'generations': 3,
+            'mu': 0.75,
+            'lambda_': 0.75,
+            'mut_eta': 5,
+            'mut_pb': 0.10,
+            'mut_indpb': 0.05,
+            'cx_eta': 5,
+            'cx_pb': 0.75,
+        },
+        'similarity': {
+            'type': 'gaudi.similarity.rmsd',
+            'args': [None, 2.5],
+            'kwargs': {}
+        }
+    }
+
+    def __init__(self, path=None):
+        self.update(self.default_values)
+        if path is not None:
+            self._path = path
+            with open(path) as f:
+                raw_dict = yaml.load(f)
+        validated = self.validate(raw_dict)
+        self.update(Munch(validated))
 
     def _weights(self):
         return [obj.weight for obj in self.objectives]
 
     def _objectives(self):
         return [obj.name for obj in self.objectives]
-
-    def _parse(self):
-        with open(self._path, 'r') as f:
-            self.data = yaml.load(f)
-        # make dict available as attrs
-        for k, v in self.data.items():
-            if isinstance(v, list):  # objectives is a list!
-                self.__dict__[k] = [Param(d) for d in v]
-            else:
-                self.__dict__[k] = Param(v)
-
-
-class Param(object):
-
-    """
-    Blank object for storing the attributes used through the parsing
-
-    .. todo::
-
-        Maybe a ``namedtuple`` is better suit for this task?
-    """
-
-    def __init__(self, *d):
-        for d_ in d:
-            self.__dict__.update(d_)
 
 
 def parse_rawstring(s):
@@ -96,24 +128,3 @@ def parse_rawstring(s):
     except ValueError:
         pass  # is str
     return molecule, res_or_atom
-
-
-#####
-
-
-def _test_rebuild(cfg):
-    for s, c in cfg.items():
-        if isinstance(c, dict):
-            print '\n[' + s + ']'
-            for k, v in c.items():
-                print k, "=", v
-        elif isinstance(c, list):
-            for i, l in enumerate(c):
-                print '\n[' + str(s) + ' ' + str(i) + ']'
-                for k, v in l.items():
-                    print k, "=", v
-
-if __name__ == '__main__':
-    import sys
-    cfg = Settings(sys.argv[1])
-    print[o.module for o in cfg.objective]
