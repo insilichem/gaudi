@@ -182,13 +182,10 @@ class Search(GeneProvider):
         """
         xf1 = M.chimera_xform(M.multiply_matrices(*self.allele))
         xf2 = M.chimera_xform(M.multiply_matrices(*mate.allele))
-        interp = M.xform_matrix(M.interpolate_xforms(xf1, ZERO,
-                                                     xf2, 0.5))
+        interp = M.xform_matrix(M.interpolate_xforms(xf1, ZERO, xf2, 0.5))
         interp_rot = [x[:3] + (0,) for x in interp]
-        interp_tl = [y[:3] + x[-1:]
-                     for x, y in zip(interp, M.identity_matrix())]
-        self.allele, mate.allele = (self.allele[0], interp_rot, self.allele[-1]), \
-            (interp_tl, mate.allele[1], mate.allele[-1])
+        interp_tl = [y[:3] + x[-1:] for x, y in zip(interp, M.identity_matrix())]
+        self.allele, mate.allele = (self.allele[0], interp_rot), (interp_tl, mate.allele[1])
 
     def mutate(self, indpb):
         if random.random() < self.indpb:
