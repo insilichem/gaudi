@@ -28,6 +28,7 @@ import logging
 import MeasureVolume
 import Surface
 # GAUDI
+from gaudi import parse
 from gaudi.objectives import ObjectiveProvider
 
 logger = logging.getLogger(__name__)
@@ -55,6 +56,11 @@ class Volume(ObjectiveProvider):
     volume: float
         Calculated volume in A³ (or nm³?)
     """
+
+    validate = parse.Schema({
+        'target': [parse.Molecule_name],
+        'threshold': [float, 'auto']
+        })
 
     def __init__(self, threshold=None, target=None,
                  *args, **kwargs):

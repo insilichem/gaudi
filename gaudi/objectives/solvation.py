@@ -35,6 +35,7 @@ import chimera
 import MoleculeSurface
 from MoleculeSurface import Surface_Calculation_Error
 # GAUDI
+from gaudi import parse
 from gaudi.objectives import ObjectiveProvider
 
 logger = logging.getLogger(__name__)
@@ -56,6 +57,11 @@ class Solvation(ObjectiveProvider):
     target : str
         Name of the molecule gene being analyzed
     """
+
+    validate = parse.Schema({
+        parse.Required('target'): parse.Molecule_name,
+        'which': ['ses', 'sas']
+        })
 
     def __init__(self, which='ses', target=None,
                  *args, **kwargs):

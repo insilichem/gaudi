@@ -31,6 +31,7 @@ import chimera
 import DetectClash
 import ChemGroup as cg
 # GAUDI
+from gaudi import parse
 from gaudi.objectives import ObjectiveProvider
 
 logger = logging.getLogger(__name__)
@@ -67,7 +68,15 @@ class Contacts(ObjectiveProvider):
         If the overlap volume is greater than this, a penalty is applied. 
         Useful to filter bad solutions.
     """
-
+    validate = parse.Schema({
+        parse.Required('probes'): [parse.Molecule_name],
+        'radius': parse.All(parse.Coerce(float), parse.Range(min=0)),
+        'which': ['hydrophobic', 'clashes'],
+        'threshold': parse.Coerce(float),
+        'threshold_h': parse.Coerce(float),
+        'threshold_c': parse.Coerce(float),
+        'cutoff': parse.Coerce(float)
+        })
     def __init__(self, probes=None, radius=5.0, which='hydrophobic',
                  threshold=0.6, threshold_h=0.2, threshold_c=0.6, cutoff=100.0,
                  *args, **kwargs):

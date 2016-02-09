@@ -22,6 +22,7 @@ try:
     from cStringIO import StringIO
 except ImportError:
     from StringIO import StringIO
+import os
 # 3rd party
 import chimera
 import simtk.openmm.app as openmm_app
@@ -29,8 +30,10 @@ from simtk import unit, openmm
 from openmoltools.amber import run_antechamber
 from openmoltools.utils import create_ffxml_file
 # GAUDI
+from gaudi import parse
 from gaudi.objectives import ObjectiveProvider
 
+_openmm_builtin_forcefields = os.listdir(os.path.join(openmm_app.__path__[0], 'data'))
 
 def enable(**kwargs):
     return Energy(**kwargs)
@@ -57,6 +60,12 @@ class Energy(ObjectiveProvider):
         The estimated potential energy, in kJ/mol
 
     """
+
+    validate = parse.Schema({
+        'forcefields': parse.Any(parse.IsFile, parse.In(_openmm_builtin_forcefields)),
+        'auto_parametrize': [parse.Molecule_name],
+        'pH': parse.All(parse.Coerce(float), parse.Range(min=0, max=14))
+        })
 
     def __init__(self, forcefields=('amber99sbildn.xml'),
                  pH=7.0, auto_parametrize=None, *args, **kwargs):

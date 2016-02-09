@@ -29,6 +29,7 @@ import logging
 import chimera
 import FindHBond
 # GAUDI
+from gaudi import parse
 from gaudi.objectives import ObjectiveProvider
 import gaudi.box
 
@@ -57,6 +58,13 @@ class Hbonds(ObjectiveProvider):
         Allowed deviation from ideal angle to consider a valid H bond.
 
     """
+
+    validate = parse.Schema({
+        parse.Required('probe'): parse.Molecule_name,
+        'radius': parse.All(parse.Coerce(float), parse.Range(min=0)),
+        'distance_tolerance': float,
+        'angle_tolerance': float
+        })
 
     def __init__(self, probe=None, radius=5.0, distance_tolerance=0.4, angle_tolerance=20.0,
                  *args, **kwargs):

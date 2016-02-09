@@ -35,7 +35,7 @@ import Matrix as M
 from FitMap.search import random_rotation
 # GAUDI
 from gaudi.genes import GeneProvider
-import gaudi.parse
+from gaudi import parse
 
 
 ZERO = chimera.Point(0.0, 0.0, 0.0)
@@ -114,6 +114,14 @@ class Search(GeneProvider):
     - ``translation``. Check docstring of ``random_translation()`` in this module.
 
     """
+
+    validate = parse.Schema({
+        parse.Required('target'): parse.Atom_spec,
+        'center': parse.Any(parse.Coordinates, parse.Atom_spec),
+        'radius': parse.Coerce(float),
+        'rotate': parse.Boolean,
+        'precision': parse.All(parse.Coerce(int), parse.Range(min=0, max=6))
+        })
 
     def __init__(self, target=None, center=None, radius=None, rotate=True,
                  precision=None, **kwargs):
@@ -306,7 +314,7 @@ def parse_origin(origin, genes=None):
         The x,y,z coordinates
     """
     if isinstance(origin, str) and genes:
-        mol, serial = gaudi.parse.parse_rawstring(origin)
+        mol, serial = parse.parse_rawstring(origin)
         try:
             if isinstance(serial, int):
                 atom = next(a for a in genes[mol].compound.mol.atoms

@@ -52,7 +52,7 @@ from repoze.lru import LRUCache
 from pdbfixer import PDBFixer
 from simtk.openmm.app import PDBFile
 # GAUDI
-from gaudi import box
+from gaudi import box, parse
 from gaudi.genes import GeneProvider
 from gaudi.genes import search
 
@@ -116,6 +116,13 @@ class Molecule(GeneProvider):
     a cached `Molecule` or, if not available, builds it and stores it in the cache.
 
     """
+    
+    validate = parse.Schema({
+        parse.Required('path'): parse.PathExists,
+        'symmetry': parse.Boolean,
+        'hydrogens': parse.Boolean,
+        'pdbfix': parse.Boolean
+        })
     _CATALOG = {}
     SUPPORTED_FILETYPES = ('mol2', 'pdb')
 

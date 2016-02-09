@@ -34,7 +34,7 @@ from chimera.match import matchPositions
 from MetalGeom.geomData import geometries as MG_geometries
 # GAUDI
 from gaudi.objectives import ObjectiveProvider
-import gaudi.parse
+from gaudi import parse
 
 logger = logging.getLogger(__name__)
 
@@ -65,7 +65,18 @@ class SimpleCoordination(ObjectiveProvider):
     angle : float
         Target angle `probe`, ligand and neighbor should form ideally
     """
-
+    validate = parse.Schema({
+        parse.Required('probe'): parse.Atom_spec,
+        'radius': parse.Coerce(float),
+        'atom_types': [str],
+        'residues': [parse.Atom_spec],
+        'distance': parse.All(parse.Coerce(float), parse.Range(min=0)),
+        'angle': parse.Coerce(float),
+        'min_atoms': parse.All(parse.Coerce(int), parse.Range(min=0)),
+        'geometry': parse.In(MG_geometries.keys()),
+        'enforce_all_residues': parse.Boolean,
+        'only_one_ligand_per_residue': parse.Boolean
+        })
     def __init__(self, method='simple', probe=None, radius=None, atom_types=None, residues=None,
                  distance=0, angle=None, dihedral=None, min_atoms=1, geometry='tetrahedral',
                  enforce_all_residues=False, only_one_ligand_per_residue=False, *args, **kwargs):
@@ -199,7 +210,7 @@ class SimpleCoordination(ObjectiveProvider):
         Parse `Molecule/serialNumber` string and return a chimera.Atom located at
         `Molecule` with serial number `serialNumber`
         """
-        mol, serial = gaudi.parse.parse_rawstring(probe)
+        mol, serial = parse.parse_rawstring(probe)
         try:
             if isinstance(serial, int):
                 atom = next(a for a in ind.genes[mol].compound.mol.atoms
@@ -222,7 +233,7 @@ class SimpleCoordination(ObjectiveProvider):
         `Molecule` with serial number `position`
         """
         for r in residues:
-            mol, pos = gaudi.parse.parse_rawstring(r)
+            mol, pos = parse.parse_rawstring(r)
             try:
                 res = next(r for r in ind.genes[mol].compound.mol.residues
                            if pos == r.id.position)

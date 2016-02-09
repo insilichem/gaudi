@@ -25,7 +25,7 @@ import logging
 import chimera
 # GAUDI
 from gaudi.objectives import ObjectiveProvider
-import gaudi.parse
+from gaudi import parse
 
 logger = logging.getLogger(__name__)
 
@@ -50,6 +50,12 @@ class Angle(ObjectiveProvider):
         <molecule_name>/<serial_number> strings
     """
 
+    validate = parse.Schema({
+        parse.Required('probes'): parse.AssertList(parse.Atom_spec()),
+        parse.Required('threshold'): parse.Coerce(float),
+        'tolerance': parse.Coerce(float)
+        })
+
     def __init__(self, threshold=None, tolerance=-0.1, probes=None,
                  *args, **kwargs):
         ObjectiveProvider.__init__(self, **kwargs)
@@ -59,7 +65,7 @@ class Angle(ObjectiveProvider):
 
     def probes(self, ind):
         for probe in self._probes:
-            mol, serial = gaudi.parse.parse_rawstring(probe)
+            mol, serial = parse.parse_rawstring(probe)
             try:
                 if isinstance(serial, int):
                     atom = next(a for a in ind.genes[mol].compound.mol.atoms

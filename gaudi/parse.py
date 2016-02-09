@@ -12,23 +12,86 @@
 ##############
 
 """
-This module parses YAML input files into convenient objects that allow
-per-attribute access to configuration parameters.
-
-.. todo ::
-
-    Use AttrDict or Bunch instead, and deprecate this shitty code :)
-
+This module parses and validatesYAML input files into convenient objects
+that allow per-attribute access to configuration parameters.
 """
 
 # Python
 import logging
+from importlib import import_module
 # External dependencies
 import yaml
 from munch import Munch
-from voluptuous import (Schema, Required, All, Length, Range, Coerce, Extra, REMOVE_EXTRA)
+from voluptuous import *
 
 logger = logging.getLogger(__name__)
+
+#####################################################################
+# Some useful validators for other schemas (genes, objectives, etc)
+#####################################################################
+
+def AssertList(*validators, **kwargs):
+    """
+    Make sure the value is contained in a list
+    """
+    def fn(values):
+        if not isinstance(values, list):
+            values = [values]
+        return [validator(v) for validator in validators for v in values]
+    return fn
+
+def Coordinates(v):
+    return All([float], Length(min=3, max=3))(v)
+
+
+def Importable(v):
+    try:
+        import_module(v)
+    except ImportError as err:
+        raise Invalid(err)
+    else:
+        return v
+
+
+def Molecule_name(v):
+    """
+    Ideal implementation:
+
+    def fn(v):
+        valid = [i['name'] for i in items if i['module'] == 'gaudi.genes.molecule']
+        if v not in valid:
+            raise Invalid("{} is not a valid Molecule name".format(v))
+        return v
+    return fn
+
+    However, I must figure a way to get the gene list beforehand
+    """
+    return str(v)
+
+
+def Atom_spec():
+    """
+    Assert that str is formatted like "Molecule/123", with Molecule being
+    a valid name of a Molecule gene and 123 a positive int
+    """
+    def fn(v):
+        try:
+            name, i = str(v).split('/')
+            name.strip()
+            i = int(i)
+            if Molecule_name(name) and i > 0:
+                return name, i
+            raise ValueError
+        except (ValueError, AttributeError):
+            raise Invalid("Expected <Molecule name>/<residue or atom number> but got {}".format(v))
+    return fn
+
+
+def Degrees(v):
+    return All(Any(float, int), Range(min=0, max=360))(v)
+
+def ResidueThreeLetterCode(v):
+    return All(str, Length(min=3, max=3))(v)
 
 
 class Settings(Munch):
@@ -68,8 +131,14 @@ class Settings(Munch):
             'args': [],
             'kwargs': {}
         },
-        Required('genes'): All([{Extra: object}], Length(min=1)),
-        Required('objectives'): All([{Extra: object}], Length(min=1))
+        Required('genes'): All(Length(min=1),
+                               [{'name': str,
+                                 'module': Importable,
+                                 Extra: object}]),
+        Required('objectives'): All(Length(min=1),
+                                    [{'name': str,
+                                      'module': Importable,
+                                      Extra: object}])
     }, extra=REMOVE_EXTRA)
 
     default_values = {
@@ -96,7 +165,9 @@ class Settings(Munch):
             'type': 'gaudi.similarity.rmsd',
             'args': [None, 2.5],
             'kwargs': {}
-        }
+        },
+        'genes': [{}],
+        'objectives': [{}]
     }
 
     def __init__(self, path=None):

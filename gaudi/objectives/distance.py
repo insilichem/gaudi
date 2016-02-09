@@ -25,7 +25,7 @@ import logging
 import chimera
 # GAUDI
 from gaudi.objectives import ObjectiveProvider
-import gaudi.parse
+from gaudi import parse
 
 logger = logging.getLogger(__name__)
 
@@ -53,14 +53,19 @@ class Distance(ObjectiveProvider):
         expressed as <molecule name>/<atom serial>. If more than one
         is provided, the average of all of them is returned
     """
-
+    validate = parse.Schema({
+        parse.Required('probes'): [parse.Atom_spec],
+        parse.Required('target'): parse.Atom_spec,
+        parse.Required('threshold'): parse.Coerce(float),
+        'tolerance': parse.Coerce(float)
+        })
     def __init__(self, threshold=None, tolerance=-0.1, target=None, probes=None,
                  *args, **kwargs):
         ObjectiveProvider.__init__(self, **kwargs)
         self.threshold = threshold
         self.tolerance = tolerance
         self._probes = probes
-        self._mol, self._serial = gaudi.parse.parse_rawstring(target)
+        self._mol, self._serial = parse.parse_rawstring(target)
 
     def target(self, ind):
         """
@@ -87,7 +92,7 @@ class Distance(ObjectiveProvider):
         Get the probe atoms
         """
         for probe in self._probes:
-            mol, serial = gaudi.parse.parse_rawstring(probe)
+            mol, serial = parse.parse_rawstring(probe)
             try:
                 if isinstance(serial, int):
                     atom = next(a for a in ind.genes[mol].compound.mol.atoms

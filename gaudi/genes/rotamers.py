@@ -36,6 +36,7 @@ import SwapRes
 from repoze.lru import LRUCache
 import deap.tools
 # GAUDI
+from gaudi import parse
 from gaudi.genes import GeneProvider
 from gaudi.parse import parse_rawstring
 
@@ -76,7 +77,13 @@ class Rotamers(GeneProvider):
     hydrogens : bool, optional
         If True, add hydrogens to rotamers
     """
-
+    validate = parse.Schema({
+        parse.Required('residues'): [parse.Atom_spec],
+        'library': ['Dunbrack', 'Dynameomics'],
+        'mutations': [parse.ResidueThreeLetterCode],
+        'ligation': parse.Boolean,
+        'hydrogens': parse.Boolean
+        })
     def __init__(self, residues=None, library='Dunbrack',
                  mutations=[], ligation=False, hydrogens=False, **kwargs):
         GeneProvider.__init__(self, **kwargs)

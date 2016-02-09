@@ -27,6 +27,7 @@ import tempfile
 import logging
 # GAUDI
 from gaudi.objectives import ObjectiveProvider
+from gaudi import parse
 
 logger = logging.getLogger(__name__)
 
@@ -65,7 +66,15 @@ class DSX(ObjectiveProvider):
     cofactor_handling : int
         Cofactor handling mode. An int between 0-7, read binary help for -I
     """
-
+    validate = parse.Schema({
+        parse.Required('binary'): parse.Path(isfile=True),
+        parse.Required('potentials'): parse.Path(isdir=True),
+        parse.Required('protein'): parse.Molecule_name,
+        parse.Required('ligand'): parse.Molecule_name,
+        parse.Required('terms'): parse.All([parse.Boolean], parse.Length(min=5, max=5)),
+        'sorting': parse.All(parse.Coerce(int), parse.Range(min=0, max=6)),
+        'cofactor_handling': parse.All(parse.Coerce(int), parse.Range(min=0, max=7))
+        })
     def __init__(self, binary=None, potentials=None, protein='Protein',
                  ligand='Ligand', terms=None, sorting=1, cofactor_handling=1,
                  *args, **kwargs):
