@@ -35,6 +35,7 @@ logger = logging.getLogger(__name__)
 
 
 def enable(**kwargs):
+    kwargs = Volume.validate(kwargs)
     return Volume(**kwargs)
 
 
@@ -59,8 +60,8 @@ class Volume(ObjectiveProvider):
 
     validate = parse.Schema({
         'target': [parse.Molecule_name],
-        'threshold': [float, 'auto']
-        })
+        'threshold': parse.Any(float, 'auto')
+        }, extra=parse.ALLOW_EXTRA)
 
     def __init__(self, threshold=None, target=None,
                  *args, **kwargs):

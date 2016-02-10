@@ -25,10 +25,9 @@ the same backbone, which may not be representative of the in-vivo behaviour. Use
 
 # Python
 import random
-from collections import OrderedDict, namedtuple
+from collections import OrderedDict
 import logging
 # Chimera
-import chimera
 from AddH import simpleAddHydrogens, IdatmTypeInfo
 from Rotamers import getRotamers, useRotamer, NoResidueRotamersError
 import SwapRes
@@ -38,12 +37,12 @@ import deap.tools
 # GAUDI
 from gaudi import parse
 from gaudi.genes import GeneProvider
-from gaudi.parse import parse_rawstring
 
 logger = logging.getLogger(__name__)
 
 
 def enable(**kwargs):
+    kwargs = Rotamers.validate(kwargs)
     return Rotamers(**kwargs)
 
 
@@ -78,12 +77,13 @@ class Rotamers(GeneProvider):
         If True, add hydrogens to rotamers
     """
     validate = parse.Schema({
-        parse.Required('residues'): [parse.Atom_spec],
-        'library': ['Dunbrack', 'Dynameomics'],
+        parse.Required('residues'): [parse.Named_spec("molecule", "residue")],
+        'library': parse.Any('Dunbrack', 'dunbrack,' 'Dynameomics', 'dynameomics'),
         'mutations': [parse.ResidueThreeLetterCode],
         'ligation': parse.Boolean,
-        'hydrogens': parse.Boolean
-        })
+        'hydrogens': parse.Boolean,
+        }, extra=parse.ALLOW_EXTRA)
+    
     def __init__(self, residues=None, library='Dunbrack',
                  mutations=[], ligation=False, hydrogens=False, **kwargs):
         GeneProvider.__init__(self, **kwargs)
@@ -125,9 +125,7 @@ class Rotamers(GeneProvider):
 
         It parses the requested residues strings to actual residues.
         """
-        self._residues_rawstring = tuple(
-            parse_rawstring(r) for r in self._residues)
-        for molecule, resid in self._residues_rawstring:
+        for molecule, resid in self._residues:
             try:
                 res = next(r for r in self.parent.genes[molecule].compound.mol.residues
                            if r.id.position == resid)

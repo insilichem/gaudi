@@ -36,6 +36,7 @@ from gaudi.objectives import ObjectiveProvider
 _openmm_builtin_forcefields = os.listdir(os.path.join(openmm_app.__path__[0], 'data'))
 
 def enable(**kwargs):
+    kwargs = Energy.validate(kwargs)
     return Energy(**kwargs)
 
 
@@ -62,10 +63,10 @@ class Energy(ObjectiveProvider):
     """
 
     validate = parse.Schema({
-        'forcefields': parse.Any(parse.IsFile, parse.In(_openmm_builtin_forcefields)),
+        'forcefields': parse.Any(parse.ExpandUserPathExists, parse.In(_openmm_builtin_forcefields)),
         'auto_parametrize': [parse.Molecule_name],
         'pH': parse.All(parse.Coerce(float), parse.Range(min=0, max=14))
-        })
+        }, extra=parse.ALLOW_EXTRA)
 
     def __init__(self, forcefields=('amber99sbildn.xml'),
                  pH=7.0, auto_parametrize=None, *args, **kwargs):

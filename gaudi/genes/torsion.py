@@ -35,6 +35,7 @@ logger = logging.getLogger(__name__)
 
 
 def enable(**kwargs):
+    kwargs = Torsion.validate(kwargs)
     return Torsion(**kwargs)
 
 
@@ -64,8 +65,8 @@ class Torsion(GeneProvider):
     validate = parse.Schema({
         parse.Required('target'): parse.Molecule_name,
         'flexibility': parse.Degrees,
-        'max_bonds': parse.All(parse.Coerce(int), parse.Range(min=0))
-        })
+        'max_bonds': parse.All(parse.Coerce(int), parse.Range(min=0)),
+        }, extra=parse.ALLOW_EXTRA)
 
     BONDS_ROTS = {}
 

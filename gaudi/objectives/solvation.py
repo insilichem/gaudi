@@ -42,6 +42,7 @@ logger = logging.getLogger(__name__)
 
 
 def enable(**kwargs):
+    kwargs = Solvation.validate(kwargs)
     return Solvation(**kwargs)
 
 
@@ -61,7 +62,7 @@ class Solvation(ObjectiveProvider):
     validate = parse.Schema({
         parse.Required('target'): parse.Molecule_name,
         'which': ['ses', 'sas']
-        })
+        }, extra=parse.ALLOW_EXTRA)
 
     def __init__(self, which='ses', target=None,
                  *args, **kwargs):

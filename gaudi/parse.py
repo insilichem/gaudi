@@ -17,11 +17,14 @@ that allow per-attribute access to configuration parameters.
 """
 
 # Python
+from __future__ import print_function
 import logging
 from importlib import import_module
+import os
+from collections import namedtuple
 # External dependencies
 import yaml
-from munch import Munch
+from munch import Munch, munchify
 from voluptuous import *
 
 logger = logging.getLogger(__name__)
@@ -29,6 +32,7 @@ logger = logging.getLogger(__name__)
 #####################################################################
 # Some useful validators for other schemas (genes, objectives, etc)
 #####################################################################
+
 
 def AssertList(*validators, **kwargs):
     """
@@ -39,6 +43,7 @@ def AssertList(*validators, **kwargs):
             values = [values]
         return [validator(v) for validator in validators for v in values]
     return fn
+
 
 def Coordinates(v):
     return All([float], Length(min=3, max=3))(v)
@@ -69,7 +74,7 @@ def Molecule_name(v):
     return str(v)
 
 
-def Atom_spec():
+def Named_spec(*names):
     """
     Assert that str is formatted like "Molecule/123", with Molecule being
     a valid name of a Molecule gene and 123 a positive int
@@ -80,7 +85,7 @@ def Atom_spec():
             name.strip()
             i = int(i)
             if Molecule_name(name) and i > 0:
-                return name, i
+                return namedtuple("NamedSpec", names)(name, i)
             raise ValueError
         except (ValueError, AttributeError):
             raise Invalid("Expected <Molecule name>/<residue or atom number> but got {}".format(v))
@@ -90,8 +95,35 @@ def Atom_spec():
 def Degrees(v):
     return All(Any(float, int), Range(min=0, max=360))(v)
 
+
 def ResidueThreeLetterCode(v):
     return All(str, Length(min=3, max=3))(v)
+
+
+def RelPathToInputFile(inputpath=None):
+    if inputpath is None:
+        inputpath = os.environ.get('GAUDI_INPUT_PATH', '')
+
+    @wraps(RelPathToInputFile)
+    def fn(v):
+        return os.path.normpath(os.path.join(inputpath, os.path.expanduser(v)))
+    return fn
+
+
+def ExpandUserPathExists(v):
+    return lambda v: PathExists(os.path.expanduser(v))
+
+
+def MakeDir(validator):
+    def fn(v):
+        v = os.path.expanduser(v)
+        try:
+            os.makedirs(v)
+        except OSError:
+            if os.path.isfile(v):
+                raise Invalid("Path is file")
+        return validator(v)
+    return fn
 
 
 class Settings(Munch):
@@ -106,42 +138,7 @@ class Settings(Munch):
         Path to YAML file
     """
 
-    validate = Schema({
-        Required('output'): {
-            'path': str,
-            'name': All(str, Length(min=1, max=255)),
-            'precision': All(int, Range(min=0, max=6)),
-            'compress': Coerce(bool),
-            'history': Coerce(bool),
-            'pareto': Coerce(bool),
-        },
-        'ga': {
-            'population': All(Coerce(int), Range(min=2)),
-            'generations': All(Coerce(int), Range(min=0)),
-            'mu': All(Coerce(float), Range(min=0, max=1)),
-            'lambda_': All(Coerce(float), Range(min=0, max=1)),
-            'mut_eta': All(Coerce(int), Range(min=0)),
-            'mut_pb': All(Coerce(float), Range(min=0, max=1)),
-            'mut_indpb': All(Coerce(float), Range(min=0, max=1)),
-            'cx_eta': All(Coerce(int), Range(min=0)),
-            'cx_pb': All(Coerce(float), Range(min=0, max=1)),
-        },
-        'similarity': {
-            'type': str,
-            'args': [],
-            'kwargs': {}
-        },
-        Required('genes'): All(Length(min=1),
-                               [{'name': str,
-                                 'module': Importable,
-                                 Extra: object}]),
-        Required('objectives'): All(Length(min=1),
-                                    [{'name': str,
-                                      'module': Importable,
-                                      Extra: object}])
-    }, extra=REMOVE_EXTRA)
-
-    default_values = {
+    default_values = Munch({
         'output': {
             'path': '.',
             'name': '',
@@ -168,22 +165,62 @@ class Settings(Munch):
         },
         'genes': [{}],
         'objectives': [{}]
-    }
+    })
 
     def __init__(self, path=None):
-        self.update(self.default_values)
+        self.update(munchify(self.default_values))
         if path is not None:
             self._path = path
+            os.environ['GAUDI_INPUT_PATH'] = os.path.dirname(path)
             with open(path) as f:
                 raw_dict = yaml.load(f)
         validated = self.validate(raw_dict)
-        self.update(Munch(validated))
+        self.update(munchify(validated))
 
-    def _weights(self):
+    @property
+    def weights(self):
         return [obj.weight for obj in self.objectives]
 
-    def _objectives(self):
+    @property
+    def name_objectives(self):
         return [obj.name for obj in self.objectives]
+
+    @property
+    def validate(self):
+        return Schema({
+            Required('output'): {
+                'path': MakeDir(RelPathToInputFile()),
+                'name': All(str, Length(min=1, max=255)),
+                'precision': All(int, Range(min=0, max=6)),
+                'compress': Coerce(bool),
+                'history': Coerce(bool),
+                'pareto': Coerce(bool),
+            },
+            'ga': {
+                'population': All(Coerce(int), Range(min=2)),
+                'generations': All(Coerce(int), Range(min=0)),
+                'mu': All(Coerce(float), Range(min=0, max=1)),
+                'lambda_': All(Coerce(float), Range(min=0, max=1)),
+                'mut_eta': All(Coerce(int), Range(min=0)),
+                'mut_pb': All(Coerce(float), Range(min=0, max=1)),
+                'mut_indpb': All(Coerce(float), Range(min=0, max=1)),
+                'cx_eta': All(Coerce(int), Range(min=0)),
+                'cx_pb': All(Coerce(float), Range(min=0, max=1)),
+            },
+            'similarity': {
+                'module': str,
+                'args': [],
+                'kwargs': {}
+            },
+            Required('genes'): All(Length(min=1),
+                                   [{'name': str,
+                                     'module': Importable,
+                                     Extra: object}]),
+            Required('objectives'): All(Length(min=1),
+                                        [{'name': str,
+                                          'module': Importable,
+                                          Extra: object}])
+        }, extra=REMOVE_EXTRA)
 
 
 def parse_rawstring(s):

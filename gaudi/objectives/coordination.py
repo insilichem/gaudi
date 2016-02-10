@@ -40,6 +40,7 @@ logger = logging.getLogger(__name__)
 
 
 def enable(**kwargs):
+    kwargs = SimpleCoordination.validate(kwargs)
     return SimpleCoordination(**kwargs)
 
 
@@ -50,7 +51,7 @@ class SimpleCoordination(ObjectiveProvider):
 
     Parameters
     ----------
-    probe : str
+    probe : tuple
         The atom that acts as the metal center, expressed as
         <molecule_name>/<atom serial>. This will be parsed later on.
     radius : float
@@ -66,17 +67,19 @@ class SimpleCoordination(ObjectiveProvider):
         Target angle `probe`, ligand and neighbor should form ideally
     """
     validate = parse.Schema({
-        parse.Required('probe'): parse.Atom_spec,
+        parse.Required('probe'): parse.Named_spec("molecule", "atom"),
         'radius': parse.Coerce(float),
         'atom_types': [str],
-        'residues': [parse.Atom_spec],
+        'residues': [parse.Named_spec("molecule", "residue")],
         'distance': parse.All(parse.Coerce(float), parse.Range(min=0)),
         'angle': parse.Coerce(float),
         'min_atoms': parse.All(parse.Coerce(int), parse.Range(min=0)),
         'geometry': parse.In(MG_geometries.keys()),
         'enforce_all_residues': parse.Boolean,
-        'only_one_ligand_per_residue': parse.Boolean
-        })
+        'only_one_ligand_per_residue': parse.Boolean,
+        'method': parse.In(['simple', 'metalgeom'])
+        }, extra=parse.ALLOW_EXTRA)
+    
     def __init__(self, method='simple', probe=None, radius=None, atom_types=None, residues=None,
                  distance=0, angle=None, dihedral=None, min_atoms=1, geometry='tetrahedral',
                  enforce_all_residues=False, only_one_ligand_per_residue=False, *args, **kwargs):
@@ -210,7 +213,7 @@ class SimpleCoordination(ObjectiveProvider):
         Parse `Molecule/serialNumber` string and return a chimera.Atom located at
         `Molecule` with serial number `serialNumber`
         """
-        mol, serial = parse.parse_rawstring(probe)
+        mol, serial = probe
         try:
             if isinstance(serial, int):
                 atom = next(a for a in ind.genes[mol].compound.mol.atoms
@@ -232,8 +235,7 @@ class SimpleCoordination(ObjectiveProvider):
         Parse `Molecule/position` string and return a chimera.Residue located at
         `Molecule` with serial number `position`
         """
-        for r in residues:
-            mol, pos = parse.parse_rawstring(r)
+        for mol, pos in residues:
             try:
                 res = next(r for r in ind.genes[mol].compound.mol.residues
                            if pos == r.id.position)

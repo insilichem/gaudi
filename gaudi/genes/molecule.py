@@ -61,6 +61,7 @@ logger = logging.getLogger(__name__)
 
 
 def enable(**kwargs):
+    kwargs = Molecule.validate(kwargs)
     return Molecule(**kwargs)
 
 
@@ -118,11 +119,12 @@ class Molecule(GeneProvider):
     """
     
     validate = parse.Schema({
-        parse.Required('path'): parse.PathExists,
-        'symmetry': parse.Boolean,
+        parse.Required('path'): parse.RelPathToInputFile(),
+        'symmetry': [str],
         'hydrogens': parse.Boolean,
-        'pdbfix': parse.Boolean
-        })
+        'pdbfix': parse.Boolean,
+        }, extra=parse.ALLOW_EXTRA)
+    
     _CATALOG = {}
     SUPPORTED_FILETYPES = ('mol2', 'pdb')
 
@@ -308,7 +310,7 @@ class Molecule(GeneProvider):
             else:
                 container.update((f,) for f in box.files_in(self.path,
                                                             ext=self.SUPPORTED_FILETYPES))
-        elif os.path.isfile(self.path) and (self.path.split('.')[-1] in self.SUPPORTED_FILETYPES):
+        elif (self.path.split('.')[-1] in self.SUPPORTED_FILETYPES):
             container.add((self.path,))
         return container
 

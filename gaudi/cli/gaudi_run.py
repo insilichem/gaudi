@@ -98,14 +98,14 @@ def launch(cfg):
     toolbox.register("similarity", (lambda ind1, ind2: ind1.similar(ind2)))
     toolbox.register("select", deap.tools.selNSGA2)
 
-    if cfg.ga.history:
+    if cfg.output.history:
         history = deap.tools.History()
         # Decorate the variation operators
         toolbox.decorate("mate", history.decorator)
         toolbox.decorate("mutate", history.decorator)
         history.update(population)
 
-    if cfg.ga.pareto:
+    if cfg.output.pareto:
         best_individuals = deap.tools.ParetoFront(toolbox.similarity)
     else:
         hof_size_percent = int(0.1 * cfg.ga.population)
@@ -125,41 +125,6 @@ def launch(cfg):
 
     return population, log, best_individuals
 
-
-def prepare_input(filename):
-    """
-    Parses input file and validate paths
-    """
-    def build_path(basedir, path):
-        """
-        Processes tildes and join paths to base directory of input file.
-        ``os.path.join`` is smart enough to not join two absolute paths, returning
-        the last one provided. ``os.path.normpath`` simplifies joined paths by
-        parsing residual dots or double dots.
-        """
-        return os.path.normpath(os.path.join(basedir, os.path.expanduser(path)))
-
-    # Parse input
-    path = os.path.abspath(os.path.expanduser(filename))
-    cfg = gaudi.parse.Settings(path)
-    inputdir = os.path.dirname(path)
-
-    # Tilde expansion in paths and abs/rel path support
-    cfg.output.path = build_path(inputdir, cfg.output.path)
-    for g in cfg.genes:
-        if g.module == 'gaudi.genes.molecule':
-            g.path = build_path(inputdir, g.path)
-            if not os.path.exists(g.path):
-                sys.exit("ERROR: Path " + g.path + " is wrong. Check your input file.\n")
-
-    # Create dirs
-    try:
-        os.makedirs(cfg.output.path)
-    except OSError:
-        if os.path.isfile(cfg.output.path):
-            sys.exit("ERROR: Output path is already a file. Please change it.\n")
-
-    return cfg
 
 
 def enable_logging(path=None, name=None, debug=False):
@@ -229,8 +194,7 @@ def unbuffer_stdout():
 #@gaudi.box.do_cprofile
 def main(filename, debug=False):
     # Parse input file
-    cfg = prepare_input(filename)
-
+    cfg = gaudi.parse.Settings(filename)
     # Enable logging to stdout and file
     unbuffer_stdout()
     logger = enable_logging(cfg.output.path, cfg.output.name, debug=debug)

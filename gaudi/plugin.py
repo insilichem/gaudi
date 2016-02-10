@@ -100,13 +100,12 @@ def load_plugins(plugins, container=None, **kwargs):
     if container is None:
         container = OrderedDict()
 
-    for plugin in plugins:
-        if plugin.name not in container:
-            module = plugin.module
-            kwargs.update(plugin.__dict__)
-            container[plugin.name] = sys.modules[module].enable(**kwargs)
-            logger.debug("Loaded plugin %s", module)
+    for p in plugins:
+        if p.name not in container:
+            plugin_kwargs = kwargs.copy()
+            plugin_kwargs.update(p)
+            container[p.name] = sys.modules[p.module].enable(**plugin_kwargs)
+            logger.debug("Loaded plugin %s", p.module)
         else:
-            logger.error("Already loaded a plugin with same name %s",
-                         plugin.name)
+            logger.error("Already loaded a plugin with same name %s", p.name)
     return container

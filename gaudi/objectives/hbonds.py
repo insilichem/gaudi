@@ -37,6 +37,7 @@ logger = logging.getLogger(__name__)
 
 
 def enable(**kwargs):
+    kwargs = Hbonds.validate(kwargs)
     return Hbonds(**kwargs)
 
 
@@ -64,7 +65,7 @@ class Hbonds(ObjectiveProvider):
         'radius': parse.All(parse.Coerce(float), parse.Range(min=0)),
         'distance_tolerance': float,
         'angle_tolerance': float
-        })
+        }, extra=parse.ALLOW_EXTRA)
 
     def __init__(self, probe=None, radius=5.0, distance_tolerance=0.4, angle_tolerance=20.0,
                  *args, **kwargs):
