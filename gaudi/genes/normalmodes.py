@@ -42,7 +42,7 @@ logger = logging.getLogger(__name__)
 
 
 def enable(**kwargs):
-    kwargs = NormalModes.validate(kwargs)
+    # kwargs = NormalModes.validate(kwargs)
     return NormalModes(**kwargs)
 
 
@@ -78,7 +78,7 @@ class NormalModes(GeneProvider):
         normal modes calculated for the molecle
         stored in a prody modes class (ANM or RTB)
 
-    NORMAL_MODES_SAMPLES : prody.ensemble
+    NORMAL_MODE_SAMPLES : prody.ensemble
         configurations applying modes to molecule
 
     Notes
@@ -86,9 +86,9 @@ class NormalModes(GeneProvider):
 
     """
 
-    validate = parse.Schema({
-        'target': parse.Molecule()
-    }, extra=parse.ALLOW_EXTRA)
+    # validate = parse.Schema({
+    #     'target': parse.Molecule()
+    # }, extra=parse.ALLOW_EXTRA)
 
     NORMAL_MODES = None
     NORMAL_MODE_SAMPLES = None
@@ -101,30 +101,36 @@ class NormalModes(GeneProvider):
         self.algorithm = algorithm
         self.samples = samples
         self.rmsd = rmsd
-        self.alg_options = alg_options
-        self.chiera_prody_dictionary = {}
+        if alg_options:
+            self._alg_options = alg_options
+        else:
+            self._alg_options = {}
+        self._chimera_prody_dictionary = {}
         GeneProvider.__init__(self, **kwargs)
 
     def __ready__(self):
         if not self.NORMAL_MODES:
             self.prody_normal_modes()
-        self.allele = self.mutate(1)
+        # self.allele = self.mutate(1.0)
+        self.allele = random.choice(self.NORMAL_MODE_SAMPLES)
 
     def express(self):
         """
         aplicar cambio de coord
         """
-        e = self.chimera_prody_dictionary
+        e = self._chimera_prody_dictionary
         for atom in self.molecule.atoms:
             new_coords = self.allele.getCoords()[e[atom.coordIndex]]
-            atom.setCoords(chimera.Point(new_coords))
+            atom.setCoord(chimera.Point(new_coords[0], new_coords[1], new_coords[2]))
 
     def unexpress(self):
         """
         revertir cambio coord
         """
-        for atom, i in enumerate(self.molecule.atoms):
-            atom.setCoords(chimera.Point(self.molecule.original_coords[i]))
+        for i, atom in enumerate(self.molecule.atoms):
+            original_coords = self.molecule.original_coords[i]
+            atom.setCoord(
+                chimera.Point(original_coords[0], original_coords[1], original_coords[2]))
 
     def mate(self, mate):
         """
@@ -142,9 +148,10 @@ class NormalModes(GeneProvider):
 
     #####
     def prody_normal_modes(self):
-        self.NORMAL_MODES, self.chiera_prody_dictionary = calc_normal_modes(
-            self.molecule, self.algorithm, **self.alg_options)
+        self.NORMAL_MODES, self._chimera_prody_dictionary, self._moldy = calc_normal_modes(
+            self.molecule, self.algorithm, **self._alg_options)
         self.NORMAL_MODE_SAMPLES = prody.sampleModes(modes=self.NORMAL_MODES,
+                                                     atoms=self._moldy,
                                                      n_confs=self.samples,
                                                      rmsd=self.rmsd)
 
@@ -184,7 +191,7 @@ def calc_normal_modes(mol, algorithm=None, **options):
         modes = prody.ANM('normal modes for {}'.format(moldy.getTitle()))
         modes.buildHessian(moldy)
         modes.calcModes()
-    return modes, e
+    return modes, e, moldy
 
 
 def chimera2prody(mol):
