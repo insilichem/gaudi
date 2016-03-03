@@ -81,6 +81,9 @@ class NormalModes(GeneProvider):
     NORMAL_MODE_SAMPLES : prody.ensemble
         configurations applying modes to molecule
 
+    _original_coords : numpy.array
+        Parent coordinates
+
     Notes
     -----
 
@@ -97,7 +100,7 @@ class NormalModes(GeneProvider):
                  samples=10000, rmsd=1.0,
                  **kwargs):
         self.molecule = molecule
-        self.molecule.original_coords = coords2numpy(molecule)
+        self._original_coords = coords2numpy(molecule)
         self.algorithm = algorithm
         self.samples = samples
         self.rmsd = rmsd
@@ -128,7 +131,7 @@ class NormalModes(GeneProvider):
         revertir cambio coord
         """
         for i, atom in enumerate(self.molecule.atoms):
-            original_coords = self.molecule.original_coords[i]
+            original_coords = self._original_coords[i]
             atom.setCoord(
                 chimera.Point(original_coords[0], original_coords[1], original_coords[2]))
 
@@ -172,8 +175,10 @@ def calc_normal_modes(mol, algorithm=None, **options):
     Returns
     -------
     modes : ProDy modes ANM or RTB
-    e: dict
+    e : dict
         dictionary: e[chimera_atom.coordIndex] = i-thm element prody getCoords() array
+    moldy : prody.AtomGroup()
+        ProDy molecule. Pass it to prody.sampleModes()
     """
     e = None
     if isinstance(mol, chimera.Molecule):
@@ -200,12 +205,12 @@ def chimera2prody(mol):
 
     Parameters
     ----------
-    mol: chimera.Molecule
+    mol : chimera.Molecule
 
     Returns
     -------
-    moldy: prody.AtomGroup()
-    e: dict
+    moldy : prody.AtomGroup()
+    e : dict
         dictionary: e[chimera_atom.coordIndex] = i-thm element prody getCoords() array
     """
     moldy = prody.AtomGroup()
@@ -256,7 +261,7 @@ def alg1(moldy, residues_number=7, **kwargs):
 
     Returns
     ------
-    moldy: prody.AtomGroup
+    moldy : prody.AtomGroup
         New betas added
     """
     n = residues_number
@@ -336,7 +341,7 @@ def coords2numpy(molecule):
     """
     Parameters
     ----------
-    molecule = chimera.molecule
+    molecule : chimera.molecule
 
     Returns
     -------
