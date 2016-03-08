@@ -194,7 +194,7 @@ def calc_normal_modes(mol, algorithm=None, **options):
         modes.calcModes()
     else:
         modes = prody.ANM('normal modes for {}'.format(moldy.getTitle()))
-        modes.buildHessian(moldy)
+        modes.buildHessian(moldy,sparse=True)
         modes.calcModes()
     return modes, e, moldy
 
@@ -318,6 +318,23 @@ def alg2(moldy, mass_division=100, **kwargs):
 
 
 def alg3(moldy, max_bonds=3, **kwargs):
+    """
+    Coarse Grain Algorithm 3: Graph algorithm.
+        New group when a vertice: have more than n,
+                                  have 0 edges
+                                  new chain
+
+    Parameters
+    ----------
+    moldy : prody.AtomGroup
+    n : int, optional, default=2
+        maximum bonds number
+
+    Returns
+    -------
+    moldy: prody.AtomGroup
+        New Betas added
+    """
     group = 1
 
     for chain in moldy.iterChains():
