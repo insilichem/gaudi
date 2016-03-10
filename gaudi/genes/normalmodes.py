@@ -194,7 +194,7 @@ def calc_normal_modes(mol, algorithm=None, **options):
         modes.calcModes()
     else:
         modes = prody.ANM('normal modes for {}'.format(moldy.getTitle()))
-        modes.buildHessian(moldy,sparse=True)
+        modes.buildHessian(moldy)
         modes.calcModes()
     return modes, e, moldy
 
