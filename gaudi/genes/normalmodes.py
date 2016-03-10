@@ -188,8 +188,9 @@ def calc_normal_modes(mol, algorithm=None, **options):
 
     modes = None
     if algorithm is not None:
+        title = 'normal modes for {} using algorithm {}'.format(moldy.getTitle(), algorithm.title)
         moldy = algorithm(moldy, **options)
-        modes = prody.RTB('normal modes for {} using algorithm {}'.format(moldy.getTitle(), 1))
+        modes = prody.RTB(title)
         modes.buildHessian(moldy.getCoords(), moldy.getBetas())
         modes.calcModes()
     else:
@@ -217,6 +218,7 @@ def chimera2prody(mol):
     try:
         coords, elements, names, resnums, chids, betas, masses = [], [], [], [], [], [], []
         d, e = {}, {}
+        offset_chimera_residue = min(r.id.position for r in mol.residues)
 
         for i, atm in enumerate(mol.atoms):
             d[i] = atm.coordIndex
@@ -225,7 +227,7 @@ def chimera2prody(mol):
             coords.append(tuple(atm.coord()))  # array documentation to improve
             elements.append(atm.element.name)
             names.append(atm.name)
-            resnums.append(atm.residue.id.position)
+            resnums.append(atm.residue.id.position - offset_chimera_residue)
             chids.append(atm.residue.id.chainId)
             masses.append(atm.element.mass)
             betas.append(atm.bfactor)
@@ -265,6 +267,7 @@ def alg1(moldy, residues_number=7, **kwargs):
         New betas added
     """
     n = residues_number
+    alg1.title = 'Residues'
     group = 1
     for chain in moldy.iterChains():
         num_residues = sorted(list(set(chain.getResnums())))
@@ -298,6 +301,7 @@ def alg2(moldy, mass_division=100, **kwargs):
         New Betas added
     """
     group = 1
+    alg2.title = 'Masses'
 
     M = sum(moldy.getMasses())
     m = M/mass_division
@@ -336,6 +340,7 @@ def alg3(moldy, max_bonds=3, **kwargs):
         New Betas added
     """
     group = 1
+    alg3.title = 'Graphs'
 
     for chain in moldy.iterChains():
         selection = moldy.select('chain {}'.format(chain.getChid()))
