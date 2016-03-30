@@ -1,6 +1,6 @@
 package:
   name: gaudi
-  version: "0.0.1"
+  version: "0.0.2"
 
 about:
   home: https://bitbucket.org/jrgp/gaudi
@@ -16,17 +16,11 @@ requirements:
 
   run:
     - python 2.7*
+    - pip
     - pychimera
-    - deap
-    - pyyaml
-    - click
-    - repoze.lru
     - openmm
     - openmoltools
     - pdbfixer
-    # - pip:
-    #   - munch
-    #   - voluptuous
 
 test:
   imports:

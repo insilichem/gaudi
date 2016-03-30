@@ -1,0 +1,19 @@
+name: gaudi
+channels:
+- insilichem
+- omnia
+dependencies:
+- python=2.7
+- pychimera
+- openmm
+- openmoltools
+- pdbfixer
+- pip:
+  - munch
+  - voluptuous
+  - click
+  - repoze.lru
+  - deap
+  - pyyaml
+  - git+https://bitbucket.org/insilichem/gaudi
+

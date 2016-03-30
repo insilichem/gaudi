@@ -1,6 +1,43 @@
 How to install
 ==============
 
+Quick steps:
+
+1 - Download the `latest stable copy of UCSF Chimera <http://www.cgl.ucsf.edu/chimera/download.html>`_ and install it with:
+
+::
+
+  chmod +x chimera-*.bin && sudo ./chimera-*.bin
+
+2 - Install `Miniconda Python 2.7 Distribution <http://conda.pydata.org/miniconda.html>`_ for your platform and install it with:
+
+::
+
+  bash Miniconda2*.sh
+
+3 - Grab the `environment.yml <https://bitbucket.org/insilichem/gaudi/raw/HEAD/environment.yml>`_ file and create the GAUDI environment with:
+
+::
+
+  conda env create -f /path/to/downloaded/environment.yml
+
+4 - Activate the new environment as proposed:
+
+::
+
+  source activate gaudi
+
+5 - Run it!
+
+::
+
+  gaudi
+
+
+
+OUTDATED GUIDE BELOW
+====================
+
 GAUDI is written in Python 2.7 and has a main dependency: `UCSF Chimera <https://www.cgl.ucsf.edu/chimera/>`_, *"a highly extensible program for interactive visualization and analysis of molecular structures and related data, including density maps, supramolecular assemblies, sequence alignments, docking results, trajectories, and conformational ensembles"*.
 
 UCSF Chimera has its own embedded Python interpreter, which is heavily modified to achieve some custom behaviour. Using Chimera without that custom Python is hard and troublesome, so we better stick to it. Unfortunately, Chimera does not use any standard environment isolation... which means we have to resort to either Bash aliases, or either dark path magic to make it work easily.

@@ -34,7 +34,6 @@ import click
 import pychimera
 import gaudi
 
-
 # Helpers
 def test_import(command, module):
     try:
