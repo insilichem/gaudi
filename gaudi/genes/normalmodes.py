@@ -124,7 +124,7 @@ class NormalModes(GeneProvider):
         e = self._chimera_prody_dictionary
         for atom in self.molecule.atoms:
             new_coords = self.allele.getCoords()[e[atom.coordIndex]]
-            atom.setCoord(chimera.Point(new_coords[0], new_coords[1], new_coords[2]))
+            atom.setCoord(chimera.Point(*new_coords))
 
     def unexpress(self):
         """
@@ -188,7 +188,7 @@ def calc_normal_modes(mol, algorithm=None, **options):
 
     modes = None
     if algorithm is not None:
-        title = 'normal modes for {} using algorithm {}'.format(moldy.getTitle(), algorithm.title)
+        title = 'normal modes for {}'.format(moldy.getTitle())
         moldy = algorithm(moldy, **options)
         modes = prody.RTB(title)
         modes.buildHessian(moldy.getCoords(), moldy.getBetas())
@@ -267,7 +267,6 @@ def alg1(moldy, residues_number=7, **kwargs):
         New betas added
     """
     n = residues_number
-    alg1.title = 'Residues'
     group = 1
     for chain in moldy.iterChains():
         num_residues = sorted(list(set(chain.getResnums())))
@@ -301,7 +300,6 @@ def alg2(moldy, mass_division=100, **kwargs):
         New Betas added
     """
     group = 1
-    alg2.title = 'Masses'
 
     M = sum(moldy.getMasses())
     m = M/mass_division
@@ -340,7 +338,6 @@ def alg3(moldy, max_bonds=3, **kwargs):
         New Betas added
     """
     group = 1
-    alg3.title = 'Graphs'
 
     for chain in moldy.iterChains():
         selection = moldy.select('chain {}'.format(chain.getChid()))
