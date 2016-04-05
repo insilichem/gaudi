@@ -146,6 +146,9 @@ class NormalModes(GeneProvider):
         pass
 
     def mutate(self, indpb):
+        """
+        (mutate to/get) another SAMPLE with probability = indpb
+        """
         if random.random() < self.indpb:
             return random.choice(self.NORMAL_MODE_SAMPLES)
 
