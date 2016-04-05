@@ -50,12 +50,15 @@ class NormalModes(GeneProvider):
     target : str
         Name of the Gene containing the actual molecule.
 
-    algorithm : callable, optional, default=None
-        coarseGrain(prm) wich make mol.select().setBetas(i) where i
-        is the index Coarse Grain group
-        Where prm is prody AtomGroup
+    group_by : string, optional, default=None
+        grup_by_* algorithm name
 
-    alg_options : dictionary, optional
+        group_by_* : callable, optional, default=None
+            coarseGrain(prm) wich make mol.select().setBetas(i) where i
+            is the index Coarse Grain group
+            Where prm is prody AtomGroup
+
+    group_lambda : dictionary, optional
         Expected
         residues_number : int, optional, default=7
             number of residues per group
@@ -116,7 +119,9 @@ class NormalModes(GeneProvider):
 
     def __ready__(self):
         """
-        Docs
+        Second stage of initialization
+
+        It saves the parent coordinates, calculates the normal modes and initializes the allele
         """
         self._original_coords = chimeracoords2numpy(self.molecule)
         if self.NORMAL_MODES is not None:
@@ -168,15 +173,15 @@ class NormalModes(GeneProvider):
         Docs docs docs
         """
         prody_molecule, chimera2prody = convert_chimera_molecule_to_prody(self.molecule)
-        normal_modes = calc_normal_modes(prody_molecule, self.group_by, **self.group_by_options)
-        samples = prody.sampleModes(modes=normal_modes, atoms=prody_molecule, n_confs=self.n_samples,
+        modes = normal_modes(prody_molecule, GROUPERS[self.group_by], **self.group_by_options)
+        samples = prody.sampleModes(modes=modes, atoms=prody_molecule, n_confs=self.n_samples,
                                     rmsd=self.rmsd)
         return normal_modes, samples, chimera2prody
 
 ####
 
 
-def calc_normal_modes(molecule, algorithm=None, **options):
+def normal_modes(molecule, algorithm=None, **options):
     """
     Parameters
     ----------
@@ -354,7 +359,7 @@ def alg3(moldy, max_bonds=3, **kwargs):
 
 def chunker(end, n):
     """
-
+    divide end integers in closed groups of n
     """
     for i in range(0, end-n+1, n):
         yield i+1, i+n
