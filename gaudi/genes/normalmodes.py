@@ -34,15 +34,11 @@ from gaudi.genes import GeneProvider
 from gaudi import parse
 
 
-ZERO = chimera.Point(0.0, 0.0, 0.0)
-IDENTITY = ((1.0, 0.0, 0.0, 0.0),
-            (0.0, 1.0, 0.0, 0.0),
-            (0.0, 0.0, 1.0, 0.0))
 logger = logging.getLogger(__name__)
 
 
 def enable(**kwargs):
-    # kwargs = NormalModes.validate(kwargs)
+    kwargs = NormalModes.validate(kwargs)
     return NormalModes(**kwargs)
 
 
@@ -51,7 +47,8 @@ class NormalModes(GeneProvider):
     """
     Parameters
     ----------
-    molecule : chimera.molecule
+    target : str
+        Name of the Gene containing the actual molecule.
 
     algorithm : callable, optional, default=None
         coarseGrain(prm) wich make mol.select().setBetas(i) where i
@@ -65,7 +62,7 @@ class NormalModes(GeneProvider):
         mass_division : int, optional, default=100
             number of groups
 
-    samples : int, optional, default=10000
+    n_samples : int, optional, default=10000
         number of conformations to generate
 
     rmsd : float, optional, default=1.0
@@ -84,56 +81,65 @@ class NormalModes(GeneProvider):
     _original_coords : numpy.array
         Parent coordinates
 
+    _chimera2prody : dict
+        You tell 
+
     Notes
     -----
 
     """
 
-    # validate = parse.Schema({
-    #     'target': parse.Molecule()
-    # }, extra=parse.ALLOW_EXTRA)
+    validate = parse.Schema({
+        'target': parse.Molecule_name,
+        'group_by': parse.In(GROUPERS),
+        'group_lambda': parse.All(parse.Coerce(int), parse.Range(min=1)),
+        'n_samples': parse.All(parse.Coerce(int), parse.Range(min=1)),
+        'rmsd': parse.All(parse.Coerce(float), parse.Range(min=0))
+    }, extra=parse.ALLOW_EXTRA)
 
     NORMAL_MODES = None
     NORMAL_MODE_SAMPLES = None
 
-    def __init__(self, molecule=None, algorithm=None, alg_options=None,
-                 samples=10000, rmsd=1.0,
+    def __init__(self, target=None, group_by=None, group_lambda=None, n_samples=10000, rmsd=1.0,
                  **kwargs):
-        self.molecule = molecule
-        self._original_coords = coords2numpy(molecule)
-        self.algorithm = algorithm
-        self.samples = samples
+        self.target = target
+        self.group_by = group_by
+        self.n_samples = n_samples
         self.rmsd = rmsd
-        if alg_options:
-            self._alg_options = alg_options
+        if group_lambda is None:
+            self.group_by_options = {}
         else:
-            self._alg_options = {}
-        self._chimera_prody_dictionary = {}
+            self.group_by_options = {'n': group_lambda}
+        self._chimera2prody = {}
+        # Fire up!
         GeneProvider.__init__(self, **kwargs)
 
     def __ready__(self):
-        if not self.NORMAL_MODES:
-            self.prody_normal_modes()
-        # self.allele = self.mutate(1.0)
-        self.allele = random.choice(self.NORMAL_MODE_SAMPLES)
+        """
+        Docs
+        """
+        self._original_coords = chimeracoords2numpy(self.molecule)
+        if self.NORMAL_MODES is not None:
+            self.NORMAL_MODES, self.NORMAL_MODES_SAMPLES, self._chimera2prody = self.calculate_normal_modes()
+        self.allele = self.mutate(1.0)
+        # self.allele = random.choice(self.NORMAL_MODE_SAMPLES)
 
     def express(self):
         """
-        aplicar cambio de coord
+        Apply new coords as provided by current normal mode
         """
-        e = self._chimera_prody_dictionary
+        c2p = self._chimera2prody
         for atom in self.molecule.atoms:
-            new_coords = self.allele.getCoords()[e[atom.coordIndex]]
+            index = c2p[atom.coordIndex]
+            new_coords = self.allele.getCoords()[index]
             atom.setCoord(chimera.Point(*new_coords))
 
     def unexpress(self):
         """
-        revertir cambio coord
+        Undo coordinates change
         """
         for i, atom in enumerate(self.molecule.atoms):
-            original_coords = self._original_coords[i]
-            atom.setCoord(
-                chimera.Point(original_coords[0], original_coords[1], original_coords[2]))
+            atom.setCoord(chimera.Point(*self._original_coords[i]))
 
     def mate(self, mate):
         """
@@ -141,32 +147,42 @@ class NormalModes(GeneProvider):
                             Or two samples between diferent NORMAL_MODES_SAMPLES?
         Or combine samples between two NORMAL_MODES_SAMPLES?
 
-        De moment : pass
+        For now : pass
         """
         pass
 
     def mutate(self, indpb):
+        """
+        !!! Docs please
+        """
         if random.random() < self.indpb:
             return random.choice(self.NORMAL_MODE_SAMPLES)
 
     #####
-    def prody_normal_modes(self):
-        self.NORMAL_MODES, self._chimera_prody_dictionary, self._moldy = calc_normal_modes(
-            self.molecule, self.algorithm, **self._alg_options)
-        self.NORMAL_MODE_SAMPLES = prody.sampleModes(modes=self.NORMAL_MODES,
-                                                     atoms=self._moldy,
-                                                     n_confs=self.samples,
-                                                     rmsd=self.rmsd)
+    @property
+    def molecule(self):
+        return self.parent.genes[self.target].compound.mol
 
+    def calculate_normal_modes(self):
+        """
+        Impure function! Side effects should be warned.
+        """
+        prody_molecule, chimera2prody = convert_chimera_molecule_to_prody(self.molecule)
+        normal_modes = calc_normal_modes(prody_molecule, self.group_by, **self.group_by_options)
+        samples = prody.sampleModes(modes=normal_modes, atoms=prody_molecule, n_confs=self.n_samples,
+                                    rmsd=self.rmsd)
+        return normal_modes, samples, chimera2prody
 
 ####
-def calc_normal_modes(mol, algorithm=None, **options):
+
+
+def calc_normal_modes(molecule, algorithm=None, **options):
     """
     Parameters
     ----------
-    mol : chimera.Molecule or prody.AtomGroup
+    molecule : prody.AtomGroup
     algorithm : callable, optional, default=None
-        coarseGrain(prm) wich make mol.select().setBetas(i) where i
+        coarseGrain(prm) wich make molecule.select().setBetas(i) where i
         is the index Coarse Grain group
         Where prm is prody AtomGroup
     options : dict, optional
@@ -175,55 +191,43 @@ def calc_normal_modes(mol, algorithm=None, **options):
     Returns
     -------
     modes : ProDy modes ANM or RTB
-    e : dict
-        dictionary: e[chimera_atom.coordIndex] = i-thm element prody getCoords() array
-    moldy : prody.AtomGroup()
-        ProDy molecule. Pass it to prody.sampleModes()
     """
-    e = None
-    if isinstance(mol, chimera.Molecule):
-        moldy, e = chimera2prody(mol)
-    elif isinstance(mol, prody.AtomGroup):
-        moldy = mol
-
     modes = None
     if algorithm is not None:
-        title = 'normal modes for {}'.format(moldy.getTitle())
-        moldy = algorithm(moldy, **options)
+        title = 'normal modes for {}'.format(molecule.getTitle())
+        molecule = algorithm(molecule, **options)
         modes = prody.RTB(title)
-        modes.buildHessian(moldy.getCoords(), moldy.getBetas())
+        modes.buildHessian(molecule.getCoords(), molecule.getBetas())
         modes.calcModes()
     else:
-        modes = prody.ANM('normal modes for {}'.format(moldy.getTitle()))
-        modes.buildHessian(moldy)
+        modes = prody.ANM('normal modes for {}'.format(molecule.getTitle()))
+        modes.buildHessian(molecule)
         modes.calcModes()
-    return modes, e, moldy
+    return modes
 
 
-def chimera2prody(mol):
+def convert_chimera_molecule_to_prody(molecule):
     """
     Function that transforms a chimera molecule into a prody atom group
 
     Parameters
     ----------
-    mol : chimera.Molecule
+    molecule : chimera.Molecule
 
     Returns
     -------
     moldy : prody.AtomGroup()
-    e : dict
-        dictionary: e[chimera_atom.coordIndex] = i-thm element prody getCoords() array
+    chimera2prody : dict
+        dictionary: chimera2prody[chimera_atom.coordIndex] = i-thm element prody getCoords() array
     """
-    moldy = prody.AtomGroup()
+    prody_molecule = prody.AtomGroup()
     try:
         coords, elements, names, resnums, chids, betas, masses = [], [], [], [], [], [], []
-        d, e = {}, {}
-        offset_chimera_residue = min(r.id.position for r in mol.residues)
+        chimera2prody = {}
+        offset_chimera_residue = min(r.id.position for r in molecule.residues)
 
-        for i, atm in enumerate(mol.atoms):
-            d[i] = atm.coordIndex
-            e[atm.coordIndex] = i
-
+        for i, atm in enumerate(molecule.atoms):
+            chimera2prody[atm.coordIndex] = i
             coords.append(tuple(atm.coord()))  # array documentation to improve
             elements.append(atm.element.name)
             names.append(atm.name)
@@ -232,95 +236,94 @@ def chimera2prody(mol):
             masses.append(atm.element.mass)
             betas.append(atm.bfactor)
 
-        moldy.setCoords(coords)
-        moldy.setElements(elements)
-        moldy.setNames(names)
-        moldy.setResnums(resnums)
-        moldy.setChids(chids)
-        moldy.setBetas(betas)
-        moldy.setMasses(masses)
-        moldy.setTitle(str(mol.name))
-
-        moldy.setBonds([[e[bond.atoms[0].coordIndex], e[bond.atoms[1].coordIndex]]
-                        for bond in mol.bonds])
-
-        moldy.setTitle(mol.name)
+        prody_molecule.setCoords(coords)
+        prody_molecule.setElements(elements)
+        prody_molecule.setNames(names)
+        prody_molecule.setResnums(resnums)
+        prody_molecule.setChids(chids)
+        prody_molecule.setBetas(betas)
+        prody_molecule.setMasses(masses)
+        prody_molecule.setTitle(str(molecule.name))
+        prody_molecule.setBonds([(chimera2prody[bond.atoms[0].coordIndex],
+                                  chimera2prody[bond.atoms[1].coordIndex]) for bond in molecule.bonds])
 
     except AttributeError:
-        raise AttributeError('mol must be a chimera.Molecule')
-    return moldy, e
+        raise TypeError('Attribute not found. Molecule must be a chimera.Molecule')
+
+    return prody_molecule, chimera2prody
 
 
-def alg1(moldy, residues_number=7, **kwargs):
+def group_by_residues(molecule, n=7):
     """
     Coarse Grain Algorithm 1: groups per residues
 
     Parameters
     ----------
-    moldy : prody.AtomGroup
-    residues_number : int, optional, default=7
+    molecule : prody.AtomGroup
+    n : int, optional, default=7
         number of residues per group
 
     Returns
     ------
-    moldy : prody.AtomGroup
+    molecule : prody.AtomGroup
         New betas added
     """
-    n = residues_number
     group = 1
-    for chain in moldy.iterChains():
-        num_residues = sorted(list(set(chain.getResnums())))
+    for chain in molecule.iterChains():
+        residues_indices = sorted(list(set(chain.getResnums())))
         chain_name = chain.getChid()
-        for a, b in chunker(len(num_residues), n):
+        for a, b in chunker(len(residues_indices), n):
             try:
-                start, end = num_residues[a-1], num_residues[b-1]
+                start, end = residues_indices[a-1], residues_indices[b-1]
                 selector = 'chain {} and resnum {} to {}'.format(chain_name, start, end)
-                selection = moldy.select(selector)
+                selection = molecule.select(selector)
                 selection.setBetas(group)
                 group += 1
             except AttributeError as e:
                 print('Warning: {}'.format(e))
-                pass
-    return moldy
+    return molecule
 
 
-def alg2(moldy, mass_division=100, **kwargs):
+def group_by_mass(molecule, n=100):
     """
     Coarse Grain Algorithm 2: groups per mass percentage
 
     Parameters
     ----------
-    moldy : prody.AtomGroup
-    mass_division : int, optional, default=100
-        number of groups
+    molecule : prody.AtomGroup
+    n: int, optional, default=100
+        Intended number of groups. The mass of the system will be divided by this number,
+        and each group will have the corresponding proportional mass. However, the final
+        number of groups can be slightly different.
 
     Returns
     -------
-    moldy: prody.AtomGroup
+    molecule: prody.AtomGroup
         New Betas added
     """
     group = 1
 
-    M = sum(moldy.getMasses())
-    m = M/mass_division
-    mass = None
+    total_mass = sum(molecule.getMasses())
+    chunk_mass = total_mass/n
 
-    for chain in moldy.iterChains():
-        selection = moldy.select('chain {}'.format(chain.getChid()))
-        mass = 0.
+    for chain in molecule.iterChains():
+        selection = molecule.select('chain {}'.format(chain.getChid()))
+        mass_accumulator = 0.
 
         for atom in iter(selection):
             atom.setBeta(group)
-            mass += atom.getMass()
-            if mass > m:
-                mass = 0.
+            mass_accumulator += atom.getMass()
+            if mass_accumulator > chunk_mass:
+                mass_accumulator = 0.
                 group += 1
         group += 1
-    return moldy
+    return molecule
 
 
 def alg3(moldy, max_bonds=3, **kwargs):
     """
+    TESTS PENDING!
+
     Coarse Grain Algorithm 3: Graph algorithm.
         New group when a vertice: have more than n,
                                   have 0 edges
@@ -350,13 +353,16 @@ def alg3(moldy, max_bonds=3, **kwargs):
 
 
 def chunker(end, n):
+    """
+
+    """
     for i in range(0, end-n+1, n):
         yield i+1, i+n
     if end % n:
         yield end-end % n+1, end
 
 
-def coords2numpy(molecule):
+def chimeracoords2numpy(molecule):
     """
     Parameters
     ----------
@@ -367,3 +373,9 @@ def coords2numpy(molecule):
     numpy.array with molecule.atoms coordinates
     """
     return numpy.array([tuple(atom.coord()) for atom in molecule.atoms], dtype=float)
+
+GROUPERS = {
+    'residues': group_by_residues,
+    'mass': group_by_mass,
+    '': None
+}
