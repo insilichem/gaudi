@@ -94,7 +94,7 @@ class NormalModes(GeneProvider):
 
     validate = parse.Schema({
         'target': parse.Molecule_name,
-        'group_by': parse.In(GROUPERS),
+        'group_by': parse.In(['residues', 'mass', '']),
         'group_lambda': parse.All(parse.Coerce(int), parse.Range(min=1)),
         'n_samples': parse.All(parse.Coerce(int), parse.Range(min=1)),
         'rmsd': parse.All(parse.Coerce(float), parse.Range(min=0))
@@ -178,9 +178,8 @@ class NormalModes(GeneProvider):
                                     rmsd=self.rmsd)
         return normal_modes, samples, chimera2prody
 
+
 ####
-
-
 def normal_modes(molecule, algorithm=None, **options):
     """
     Parameters
