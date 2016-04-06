@@ -12,75 +12,215 @@
 ##############
 
 """
-This module parses YAML input files into convenient objects that allow
-per-attribute access to configuration parameters.
-
-.. todo ::
-    
-    Use AttrDict or Bunch instead, and deprecate this shitty code :)
-
+This module parses and validatesYAML input files into convenient objects
+that allow per-attribute access to configuration parameters.
 """
 
 # Python
+from __future__ import print_function
 import logging
+from importlib import import_module
+import os
+from collections import namedtuple
 # External dependencies
 import yaml
+from munch import Munch, munchify
+from voluptuous import *
 
 logger = logging.getLogger(__name__)
 
+#####################################################################
+# Some useful validators for other schemas (genes, objectives, etc)
+#####################################################################
 
-class Settings(object):
 
-    """ 
-    Simple parser for YAML settings file.
+def AssertList(*validators, **kwargs):
+    """
+    Make sure the value is contained in a list
+    """
+    def fn(values):
+        if not isinstance(values, list):
+            values = [values]
+        return [validator(v) for validator in validators for v in values]
+    return fn
 
-    It should be made of dictionaries and lists of dictionaries. The keys
-    will be added as attributes of the returned object.
+
+def Coordinates(v):
+    return All([float], Length(min=3, max=3))(v)
+
+
+def Importable(v):
+    try:
+        import_module(v)
+    except ImportError as err:
+        raise Invalid(err)
+    else:
+        return v
+
+
+def Molecule_name(v):
+    """
+    Ideal implementation:
+
+    def fn(v):
+        valid = [i['name'] for i in items if i['module'] == 'gaudi.genes.molecule']
+        if v not in valid:
+            raise Invalid("{} is not a valid Molecule name".format(v))
+        return v
+    return fn
+
+    However, I must figure a way to get the gene list beforehand
+    """
+    return str(v)
+
+
+def Named_spec(*names):
+    """
+    Assert that str is formatted like "Molecule/123", with Molecule being
+    a valid name of a Molecule gene and 123 a positive int
+    """
+    def fn(v):
+        try:
+            name, i = str(v).split('/')
+            name.strip()
+            i = int(i)
+            if Molecule_name(name) and i > 0:
+                return namedtuple("NamedSpec", names)(name, i)
+            raise ValueError
+        except (ValueError, AttributeError):
+            raise Invalid("Expected <Molecule name>/<residue or atom number> but got {}".format(v))
+    return fn
+
+
+def Degrees(v):
+    return All(Any(float, int), Range(min=0, max=360))(v)
+
+
+def ResidueThreeLetterCode(v):
+    return All(str, Length(min=3, max=3))(v)
+
+
+def RelPathToInputFile(inputpath=None):
+    if inputpath is None:
+        inputpath = os.environ.get('GAUDI_INPUT_PATH', '')
+
+    @wraps(RelPathToInputFile)
+    def fn(v):
+        return os.path.normpath(os.path.join(inputpath, os.path.expanduser(v)))
+    return fn
+
+
+def ExpandUserPathExists(v):
+    return lambda v: PathExists(os.path.expanduser(v))
+
+
+def MakeDir(validator):
+    def fn(v):
+        v = os.path.expanduser(v)
+        try:
+            os.makedirs(v)
+        except OSError:
+            if os.path.isfile(v):
+                raise Invalid("Path is file")
+        return validator(v)
+    return fn
+
+
+class Settings(Munch):
+
+    """
+    Parses a YAML input file with PyYAML, validates it with voluptuous and builds a
+    attribute-accessible dict with Munch.
 
     Parameters
     ----------
     path : str
-        Path to the yaml file.
-
+        Path to YAML file
     """
 
-    def __init__(self, path, asDict=False):
-        self._path = path
-        self.data = {}
-        self._parse()
-        self.weights = self._weights()
-        self.objectivesnames = self._objectives()
+    default_values = Munch({
+        'output': {
+            'path': '.',
+            'name': '',
+            'precision': None,
+            'compress': True,
+            'history': False,
+            'pareto': True,
+        },
+        'ga': {
+            'population': 10,
+            'generations': 3,
+            'mu': 0.75,
+            'lambda_': 0.75,
+            'mut_eta': 5,
+            'mut_pb': 0.10,
+            'mut_indpb': 0.05,
+            'cx_eta': 5,
+            'cx_pb': 0.75,
+        },
+        'similarity': {
+            'type': 'gaudi.similarity.rmsd',
+            'args': [None, 2.5],
+            'kwargs': {}
+        },
+        'genes': [{}],
+        'objectives': [{}]
+    })
 
-    def _weights(self):
+    def __init__(self, path=None):
+        self.update(munchify(self.default_values))
+        if path is not None:
+            self._path = path
+            os.environ['GAUDI_INPUT_PATH'] = os.path.dirname(path)
+            with open(path) as f:
+                raw_dict = yaml.load(f)
+        validated = self.validate(raw_dict)
+        self.update(munchify(validated))
+
+    @property
+    def weights(self):
         return [obj.weight for obj in self.objectives]
 
-    def _objectives(self):
+    @property
+    def name_objectives(self):
         return [obj.name for obj in self.objectives]
 
-    def _parse(self):
-        with open(self._path, 'r') as f:
-            self.data = yaml.load(f)
-        # make dict available as attrs
-        for k, v in self.data.items():
-            if isinstance(v, list):  # objectives is a list!
-                self.__dict__[k] = [Param(d) for d in v]
-            else:
-                self.__dict__[k] = Param(v)
-
-
-class Param(object):
-
-    """
-    Blank object for storing the attributes used through the parsing
-
-    .. todo::
-
-        Maybe a ``namedtuple`` is better suit for this task?
-    """
-
-    def __init__(self, *d):
-        for d_ in d:
-            self.__dict__.update(d_)
+    @property
+    def validate(self):
+        return Schema({
+            Required('output'): {
+                'path': MakeDir(RelPathToInputFile()),
+                'name': All(str, Length(min=1, max=255)),
+                'precision': All(int, Range(min=0, max=6)),
+                'compress': Coerce(bool),
+                'history': Coerce(bool),
+                'pareto': Coerce(bool),
+            },
+            'ga': {
+                'population': All(Coerce(int), Range(min=2)),
+                'generations': All(Coerce(int), Range(min=0)),
+                'mu': All(Coerce(float), Range(min=0, max=1)),
+                'lambda_': All(Coerce(float), Range(min=0, max=1)),
+                'mut_eta': All(Coerce(int), Range(min=0)),
+                'mut_pb': All(Coerce(float), Range(min=0, max=1)),
+                'mut_indpb': All(Coerce(float), Range(min=0, max=1)),
+                'cx_eta': All(Coerce(int), Range(min=0)),
+                'cx_pb': All(Coerce(float), Range(min=0, max=1)),
+            },
+            'similarity': {
+                'module': str,
+                'args': [],
+                'kwargs': {}
+            },
+            Required('genes'): All(Length(min=1),
+                                   [{'name': str,
+                                     'module': Importable,
+                                     Extra: object}]),
+            Required('objectives'): All(Length(min=1),
+                                        [{'name': str,
+                                          'module': Importable,
+                                          Extra: object}])
+        }, extra=REMOVE_EXTRA)
 
 
 def parse_rawstring(s):
@@ -96,24 +236,3 @@ def parse_rawstring(s):
     except ValueError:
         pass  # is str
     return molecule, res_or_atom
-
-
-#####
-
-
-def _test_rebuild(cfg):
-    for s, c in cfg.items():
-        if isinstance(c, dict):
-            print '\n[' + s + ']'
-            for k, v in c.items():
-                print k, "=", v
-        elif isinstance(c, list):
-            for i, l in enumerate(c):
-                print '\n[' + str(s) + ' ' + str(i) + ']'
-                for k, v in l.items():
-                    print k, "=", v
-
-if __name__ == '__main__':
-    import sys
-    cfg = Settings(sys.argv[1])
-    print[o.module for o in cfg.objective]

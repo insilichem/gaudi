@@ -29,8 +29,7 @@ setup(
     license='Free For Educational Use',
     author='Jaime Rodriguez-Guerra Pedregal',
     author_email='jaime.rogue@gmail.com',
-    description='A full GUI for launching GAUDI jobs, '
-                'analyzing their progress, and examining their results.',
+    description='GAUDI: Genetic Algorithms for Universal Design Inference',
     long_description=long_description,
     packages=find_packages(),
     include_package_data=True,
@@ -45,16 +44,13 @@ setup(
         'Operating System :: OS Independent',
         'Topic :: Scientific/Engineering :: Chemistry',
     ],
-    install_requires=[
-        'PyYaml',
-        'deap',
-        'repoze.lru',
-        'click'
-    ],
+    # install_requires=[
+    #     dependencies are handled with conda-recipe/meta.yaml
+    #     check that file if you used setup.py manually
+    # ],
     entry_points='''
         [console_scripts]
-        gaudi=gaudi.cli.chimera_wrapper:chimera
-        gaudiv=gaudi.cli.chimera_wrapper:chimera_verbose
-    ''',
-    # gaudi=gaudi.cli.gaudi_cli:cli
+        gaudi=gaudi.cli.gaudi_cli:cli
+        '''
+    ,
 )

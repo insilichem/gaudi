@@ -27,11 +27,13 @@ import tempfile
 import logging
 # GAUDI
 from gaudi.objectives import ObjectiveProvider
+from gaudi import parse
 
 logger = logging.getLogger(__name__)
 
 
 def enable(**kwargs):
+    kwargs = DSX.validate(kwargs)
     return DSX(**kwargs)
 
 
@@ -65,36 +67,38 @@ class DSX(ObjectiveProvider):
     cofactor_handling : int
         Cofactor handling mode. An int between 0-7, read binary help for -I
     """
-
+    validate = parse.Schema({
+        parse.Required('binary'): parse.ExpandUserPathExists,
+        parse.Required('potentials'): parse.ExpandUserPathExists,
+        parse.Required('protein'): parse.Molecule_name,
+        parse.Required('ligand'): parse.Molecule_name,
+        parse.Required('terms'): parse.All([parse.Boolean], parse.Length(min=5, max=5)),
+        'sorting': parse.All(parse.Coerce(int), parse.Range(min=0, max=6)),
+        'cofactor_handling': parse.All(parse.Coerce(int), parse.Range(min=0, max=7))
+        }, extra=parse.ALLOW_EXTRA)
+    
     def __init__(self, binary=None, potentials=None, protein='Protein',
                  ligand='Ligand', terms=None, sorting=1, cofactor_handling=1,
                  *args, **kwargs):
         ObjectiveProvider.__init__(self, **kwargs)
         self.binary = binary
         self.potentials = potentials
-        self.protein_name = protein
-        self.ligand_name = ligand
+        self.protein_names = protein
+        self.ligand_names = ligand
         self.terms = terms
         self.sorting = sorting
         self.cofactor_handling = cofactor_handling
         self.oldworkingdir = os.getcwd()
         self.tempdir = tempfile._get_default_tempdir()
 
-    def protein(self, ind):
+    def get_molecule_by_name(self, ind, *names):
         """
-        Get the protein gene
+        Get a molecule gene instance of individual by its name
         """
-        for gene in ind.genes.values():
-            if gene.__class__.__name__ == 'Molecule' and gene.name == self.protein_name:
-                return gene
-
-    def ligand(self, ind):
-        """
-        Get the ligand gene
-        """
-        for gene in ind.genes.values():
-            if gene.__class__.__name__ == 'Molecule' and gene.name == self.ligand_name:
-                return gene
+        for name in names:
+            for gene in ind.genes.values():
+                if gene.__class__.__name__ == 'Molecule' and gene.name == name:
+                    yield gene
 
     def evaluate(self, ind):
         """
@@ -103,11 +107,17 @@ class DSX(ObjectiveProvider):
         """
         tmpfile = os.path.join(self.tempdir,
                                next(tempfile._get_candidate_names()))
-        proteinpath = '{}_protein.mol2'.format(tmpfile)
-        ligandpath = '{}_ligand.mol2'.format(tmpfile)
 
-        self.protein(ind).write(absolute=proteinpath)
-        self.ligand(ind).write(absolute=ligandpath)
+        # Retrieve proteins and write them to single mol2 file
+        proteinpath = '{}_protein.mol2'.format(tmpfile)
+        proteins = list(self.get_molecule_by_name(ind, *self.protein_names))
+        last_protein = proteins.pop()
+        last_protein.write(absolute=proteinpath, combined_with=proteins)
+        # Retrieve ligands and write them to single mol2 file
+        ligandpath = '{}_ligand.mol2'.format(tmpfile)
+        ligands = list(self.get_molecule_by_name(ind, *self.ligand_names))
+        last_ligand = ligands.pop()
+        last_ligand.write(absolute=ligandpath, combined_with=ligands)
 
         T0, T1, T2, T3, T4 = [1.0 * t for t in self.terms]
         command = map(str, (self.binary, '-P', proteinpath, '-L', ligandpath,

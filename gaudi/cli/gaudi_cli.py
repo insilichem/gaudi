@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# -*- coding: utf-8 -*-
 
 ##############
 # GAUDIasm: Genetic Algorithms for Universal
@@ -24,16 +23,16 @@ Available commands:
     - rmsd
 
 """
-
+# Python
 import sys
 import time
 from datetime import timedelta
 from importlib import import_module
-
+# 3rd party
 import click
-
+# insilichem
+import pychimera
 import gaudi
-
 
 # Helpers
 def test_import(command, module):
@@ -67,18 +66,25 @@ def cli(prog_name='gaudi'):
     By Jaime Rodríguez-Guerra and Jean-Didier Maréchal.
     https://bitbucket.org/jrgp/gaudi
     """
-    click.echo('\n')
+    pychimera.patch_environ()
+    pychimera.load_chimera()
+    click.echo()
+    click.echo('GAUDI: Genetic Algorithms for Universal Design Inference')
+    click.echo('--------------------------------------------------------')
+    click.echo()
 
 
 @cli.command()
+@click.option('--debug', help='Dump debug info to logfile',
+              is_flag=True)
 @click.argument('filename', required=True, type=click.Path(exists=True))
-def run(filename):
+def run(filename, debug):
     """
     Launch a GAUDI input file.
     """
     gaudi_run = test_import('run', 'gaudi_run')
     ts = time.time()
-    gaudi_run.main(filename)
+    gaudi_run.main(filename, debug)
     te = time.time()
     click.echo('Finished after {:0>8}'.format(timedelta(seconds=int(te-ts))))
 

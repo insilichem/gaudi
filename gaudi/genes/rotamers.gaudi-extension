@@ -27,3 +27,7 @@ ligation:
     - !!python/name:bool
     - True or False
     - False
+hydrogens: 
+    - !!python/name:bool
+    - True or False
+    - False

@@ -1,3 +1,0 @@
-deap==1.0.1
-PyYAML==3.11
-repoze.lru==0.6

@@ -29,12 +29,13 @@ import chimera
 from deap.tools import cxSimulatedBinaryBounded, mutPolynomialBounded
 # GAUDI
 from gaudi.genes import GeneProvider
-from gaudi import box
+from gaudi import box, parse
 
 logger = logging.getLogger(__name__)
 
 
 def enable(**kwargs):
+    kwargs = Torsion.validate(kwargs)
     return Torsion(**kwargs)
 
 
@@ -60,6 +61,13 @@ class Torsion(GeneProvider):
         expected composition (careful with block-built ligands...)
 
     """
+
+    validate = parse.Schema({
+        parse.Required('target'): parse.Molecule_name,
+        'flexibility': parse.Degrees,
+        'max_bonds': parse.All(parse.Coerce(int), parse.Range(min=0)),
+        }, extra=parse.ALLOW_EXTRA)
+
     BONDS_ROTS = {}
 
     def __init__(self, target=None, flexibility=None, max_bonds=30, **kwargs):

@@ -206,9 +206,9 @@ class Individual(object):
             >>>     cPickle.dump(self, f, 0)
             >>> return filename
         """
-        path = self.cfg.general.outputpath
-        name = self.cfg.general.name
-        COMPRESS = ZIP_DEFLATED if self.cfg.general.compress else ZIP_STORED
+        path = self.cfg.output.path
+        name = self.cfg.output.name
+        COMPRESS = ZIP_DEFLATED if self.cfg.output.compress else ZIP_STORED
         self.express()
         zipfilename = os.path.join(path, '{}_{:03d}.zip'.format(name, i))
         with ZipFile(zipfilename, 'w', COMPRESS) as z:
@@ -256,7 +256,7 @@ class Environment(object):
         self.objectives = OrderedDict()
         gaudi.plugin.load_plugins(self.cfg.objectives,
                                   container=self.objectives,
-                                  zone=self.zone)
+                                  zone=self.zone, environment=self)
 
     def evaluate(self, individual):
         """

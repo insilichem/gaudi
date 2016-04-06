@@ -40,6 +40,7 @@ If the previous does not work, try with the manual mode:
 """
 
 # Python
+from __future__ import print_function
 from time import strftime
 from importlib import import_module
 import logging
@@ -86,104 +87,86 @@ def launch(cfg):
     toolbox = deap.base.Toolbox()
     toolbox.register("call", (lambda fn, *args, **kwargs: fn(*args, **kwargs)))
     toolbox.register("individual", toolbox.call, gaudi.base.Individual, cfg)
-    toolbox.register("population",
-                     deap.tools.initRepeat, list, toolbox.individual)
-    population = toolbox.population(n=cfg.ga.pop)
+    toolbox.register("population", deap.tools.initRepeat, list, toolbox.individual)
+    population = toolbox.population(n=cfg.ga.population)
 
     environment = gaudi.base.Environment(cfg)
 
     toolbox.register("evaluate", lambda ind: environment.evaluate(ind))
     toolbox.register("mate", (lambda ind1, ind2: ind1.mate(ind2)))
-    toolbox.register("mutate",
-                     (lambda ind, indpb: ind.mutate(indpb)), indpb=cfg.ga.mut_indpb)
+    toolbox.register("mutate", (lambda ind, indpb: ind.mutate(indpb)), indpb=cfg.ga.mut_indpb)
     toolbox.register("similarity", (lambda ind1, ind2: ind1.similar(ind2)))
     toolbox.register("select", deap.tools.selNSGA2)
 
-    if cfg.ga.history:
+    if cfg.output.history:
         history = deap.tools.History()
         # Decorate the variation operators
         toolbox.decorate("mate", history.decorator)
         toolbox.decorate("mutate", history.decorator)
         history.update(population)
 
-    if cfg.ga.pareto:
+    if cfg.output.pareto:
         best_individuals = deap.tools.ParetoFront(toolbox.similarity)
     else:
-        best_individuals = deap.tools.HallOfFame(int(0.05 * cfg.ga.pop),
-                                                 similar=toolbox.similarity)
+        hof_size_percent = int(0.1 * cfg.ga.population)
+        hof_size = hof_size_percent if hof_size_percent > 2 else 2
+        best_individuals = deap.tools.HallOfFame(hof_size, similar=toolbox.similarity)
     stats = deap.tools.Statistics(lambda ind: ind.fitness.values)
-    numpy.set_printoptions(precision=cfg.general.precision)
+    numpy.set_printoptions(precision=cfg.output.precision)
     stats.register("avg", numpy.mean, axis=0)
     stats.register("min", numpy.min, axis=0)
     stats.register("max", numpy.max, axis=0)
 
     # Begin evolution
     population, log = deap.algorithms.eaMuPlusLambda(
-        population, toolbox,
-        mu=int(cfg.ga.mu * cfg.ga.pop), lambda_=int(cfg.ga.lambda_ * cfg.ga.pop),
-        cxpb=cfg.ga.cx_pb, mutpb=cfg.ga.mut_pb,
-        ngen=cfg.ga.gens, stats=stats, halloffame=best_individuals)
+        population, toolbox, mu=int(cfg.ga.mu * cfg.ga.population),
+        lambda_=int(cfg.ga.lambda_ * cfg.ga.population), cxpb=cfg.ga.cx_pb, mutpb=cfg.ga.mut_pb,
+        ngen=cfg.ga.generations, stats=stats, halloffame=best_individuals)
 
     return population, log, best_individuals
 
 
-def prepare_input(filename):
-    """
-    Parses input file and validate paths
-    """
-    def build_path(basedir, path):
-        """
-        Processes tildes and join paths to base directory of input file.
-        ``os.path.join`` is smart enough to not join two absolute paths, returning
-        the last one provided. ``os.path.normpath`` simplifies joined paths by
-        parsing residual dots or double dots.
-        """
-        return os.path.normpath(os.path.join(basedir, os.path.expanduser(path)))
 
-    # Parse input
-    path = os.path.abspath(os.path.expanduser(filename))
-    cfg = gaudi.parse.Settings(path)
-    inputdir = os.path.dirname(path)
-
-    # Tilde expansion in paths and abs/rel path support
-    cfg.general.outputpath = build_path(inputdir, cfg.general.outputpath)
-    for g in cfg.genes:
-        if g.module == 'gaudi.genes.molecule':
-            g.path = build_path(inputdir, g.path)
-            if not os.path.exists(g.path):
-                sys.exit(
-                    "ERROR: Path " + g.path + " is wrong. Check your input file.\n")
-
-    # Create dirs
-    try:
-        os.makedirs(cfg.general.outputpath)
-    except OSError:
-        if os.path.isfile(cfg.general.outputpath):
-            sys.exit(
-                "ERROR: Output path is already a file. Please change it.\n")
-
-    return cfg
-
-
-def enable_logging(path=None, name=None):
+def enable_logging(path=None, name=None, debug=False):
     """
     Register loggers and handlers for both stdout and file
     """
+
+    class CustomFormatter(logging.Formatter):
+
+        CUSTOM_FORMATS = {
+            logging.DEBUG: "DEBUG: %(module)s: %(lineno)d: %(message)s",
+            logging.INFO: "%(message)s",
+            logging.WARNING: "Warning: %(message)s",
+            logging.ERROR: "[!] %(message)s",
+            logging.CRITICAL: "CRITICAL: %(message)s",
+            100: "%(message)s"
+        }
+
+        def format(self, record):
+            format_orig = self._fmt
+            self._fmt = self.CUSTOM_FORMATS.get(record.levelno, format_orig)
+            result = logging.Formatter.format(self, record)
+            self._fmt = format_orig
+            return result
+
     logger = logging.getLogger('gaudi')
     logger.setLevel(logging.DEBUG)
 
     # create CONSOLE handler and set level to error
     handler = logging.StreamHandler()
     handler.setLevel(logging.ERROR)
-    formatter = logging.Formatter("%(levelname)s - %(message)s")
+    formatter = CustomFormatter()
     handler.setFormatter(formatter)
     logger.addHandler(handler)
 
     # create debug file handler and set level to debug
     if path and name:
-        handler = logging.FileHandler(
-            os.path.join(path, name + ".gaudi.log"), "w")
-        handler.setLevel(logging.DEBUG)
+        handler = logging.FileHandler(os.path.join(path, name + ".gaudi-log"), "w")
+        if debug:
+            handler.setLevel(logging.DEBUG)
+        else:
+            handler.setLevel(15)
         formatter = logging.Formatter(
             "%(asctime)s - %(name)s - %(levelname)s - %(message)s", "%Y.%m.%d %H:%M:%S")
         handler.setFormatter(formatter)
@@ -209,37 +192,41 @@ def unbuffer_stdout():
 
 
 #@gaudi.box.do_cprofile
-def main(filename):
+def main(filename, debug=False):
     # Parse input file
-    cfg = prepare_input(filename)
-
+    cfg = gaudi.parse.Settings(filename)
     # Enable logging to stdout and file
-    logger = enable_logging(cfg.general.outputpath, cfg.general.name)
-    logger.info('GAUDIasm job started with input %s', sys.argv[1])
     unbuffer_stdout()
+    logger = enable_logging(cfg.output.path, cfg.output.name, debug=debug)
+    logger.log(100, 'Loaded input %s', filename)
 
     # Disable auto ksdssp
     chimera.triggers.addHandler("Model", gaudi.box.suppress_ksdssp, None)
 
     # Run simulation
-    pop, log, best = launch(cfg)
+    try:
+        logger.log(100, 'Launching essay ...')
+        pop, log, best = launch(cfg)
+    except Exception as e:
+        log_path = os.path.join(cfg.output.path, cfg.output.name + ".gaudi-log")
+        logger.error('An exception occurred: %s\n    '
+                     'Check traceback in logfile %s', e, log_path)
+        logger.log(15, "An exception occurred", exc_info=True)
+        sys.exit(1)
 
     # Write results
-    logger.info('Writing %s results to disk', len(pop))
+    logger.log(100, 'Writing %s results to disk', len(pop))
     results = {'GAUDI.objectives': [
         '{} ({})'.format(obj.name, obj.module) for obj in cfg.objectives]}
     results['GAUDI.results'] = {}
     for i, ind in enumerate(best):
         filename = ind.write(i)
-        results['GAUDI.results'][
-            os.path.basename(filename)] = [float(f) for f in ind.fitness.values]
+        results['GAUDI.results'][os.path.basename(filename)] = map(float, ind.fitness.values)
 
-    outputpath = os.path.join(cfg.general.outputpath,
-                              '{}.gaudi-output'.format(cfg.general.name))
+    outputpath = os.path.join(cfg.output.path, '{}.gaudi-output'.format(cfg.output.name))
     with open(outputpath, 'w+') as out:
-        out.write('# Generated by GAUDI on {}\n\n'.format(
-            strftime("%Y-%m-%d %H:%M:%S")))
-        out.write(yaml.dump(results, default_flow_style=False))
+        out.write('# Generated by GAUDI on {}\n\n'.format(strftime("%Y-%m-%d %H:%M:%S")))
+        out.write(yaml.safe_dump(results, default_flow_style=False))
 
 if __name__ == "__main__":
     try:

@@ -25,12 +25,13 @@ import logging
 import chimera
 # GAUDI
 from gaudi.objectives import ObjectiveProvider
-import gaudi.parse
+from gaudi import parse
 
 logger = logging.getLogger(__name__)
 
 
 def enable(**kwargs):
+    kwargs = Distance.validate(kwargs)
     return Distance(**kwargs)
 
 
@@ -53,6 +54,12 @@ class Distance(ObjectiveProvider):
         expressed as <molecule name>/<atom serial>. If more than one
         is provided, the average of all of them is returned
     """
+    validate = parse.Schema({
+        parse.Required('probes'): [parse.Named_spec("molecule", "atom")],
+        parse.Required('target'): parse.Named_spec("molecule", "atom"),
+        parse.Required('threshold'): parse.Coerce(float),
+        'tolerance': parse.Coerce(float)
+    }, extra=parse.ALLOW_EXTRA)
 
     def __init__(self, threshold=None, tolerance=-0.1, target=None, probes=None,
                  *args, **kwargs):
@@ -60,19 +67,19 @@ class Distance(ObjectiveProvider):
         self.threshold = threshold
         self.tolerance = tolerance
         self._probes = probes
-        self._mol, self._serial = gaudi.parse.parse_rawstring(target)
+        self._target = target
 
     def target(self, ind):
         """
         Get the target atom
         """
         try:
-            if isinstance(self._serial, int):
-                atom = next(a for a in ind.genes[self._mol].compound.mol.atoms
-                            if self._serial == a.serialNumber)
+            if isinstance(self._target.atom, int):
+                atom = next(a for a in ind.genes[self._target.molecule].compound.mol.atoms
+                            if self._target.atom == a.serialNumber)
             else:
-                atom = next(a for a in ind.genes[self._mol].compound.mol.atoms
-                            if self._serial == a.name)
+                atom = next(a for a in ind.genes[self._target.molecule].compound.mol.atoms
+                            if self._target.atom == a.name)
         except KeyError:
             logger.exception("Molecule not found")
             raise
@@ -87,7 +94,7 @@ class Distance(ObjectiveProvider):
         Get the probe atoms
         """
         for probe in self._probes:
-            mol, serial = gaudi.parse.parse_rawstring(probe)
+            mol, serial = probe
             try:
                 if isinstance(serial, int):
                     atom = next(a for a in ind.genes[mol].compound.mol.atoms

@@ -35,7 +35,7 @@ import Matrix as M
 from FitMap.search import random_rotation
 # GAUDI
 from gaudi.genes import GeneProvider
-import gaudi.parse
+from gaudi import parse
 
 
 ZERO = chimera.Point(0.0, 0.0, 0.0)
@@ -46,6 +46,7 @@ logger = logging.getLogger(__name__)
 
 
 def enable(**kwargs):
+    kwargs = Search.validate(kwargs)
     return Search(**kwargs)
 
 
@@ -54,7 +55,7 @@ class Search(GeneProvider):
     """
     Parameters
     ----------
-    target : str
+    target : namedtuple
         The *anchor* atom of the molecule we want to move, with syntax
         ``<molecule_name>/<index>``. For example, if we want to move Ligand
         using atom with serial number = 1 as pivot, we would specify
@@ -115,6 +116,14 @@ class Search(GeneProvider):
 
     """
 
+    validate = parse.Schema({
+        parse.Required('target'): parse.Named_spec("molecule", "atom"),
+        'center': parse.Any(parse.Coordinates, parse.Named_spec("molecule", "atom")),
+        'radius': parse.Coerce(float),
+        'rotate': parse.Boolean,
+        'precision': parse.All(parse.Coerce(int), parse.Range(min=0, max=6)),
+        }, extra=parse.ALLOW_EXTRA)
+
     def __init__(self, target=None, center=None, radius=None, rotate=True,
                  precision=None, **kwargs):
         GeneProvider.__init__(self, **kwargs)
@@ -122,8 +131,7 @@ class Search(GeneProvider):
         self.rotate = rotate
         self.precision = precision
         self._center = center
-        self._target = target
-        self.target, self.anchor = target.split('/')
+        self.target = target
 
     def __ready__(self):
         self.allele = self.random_transform()
@@ -137,11 +145,11 @@ class Search(GeneProvider):
 
     @property
     def molecule(self):
-        return self.parent.genes[self.target].compound.mol
+        return self.parent.genes[self.target.molecule].compound.mol
 
     @property
     def origin(self):
-        return parse_origin(self._target, self.parent.genes)
+        return parse_origin(self.target, self.parent.genes)
 
     @property
     def to_zero(self):
@@ -182,13 +190,10 @@ class Search(GeneProvider):
         """
         xf1 = M.chimera_xform(M.multiply_matrices(*self.allele))
         xf2 = M.chimera_xform(M.multiply_matrices(*mate.allele))
-        interp = M.xform_matrix(M.interpolate_xforms(xf1, ZERO,
-                                                     xf2, 0.5))
+        interp = M.xform_matrix(M.interpolate_xforms(xf1, ZERO, xf2, 0.5))
         interp_rot = [x[:3] + (0,) for x in interp]
-        interp_tl = [y[:3] + x[-1:]
-                     for x, y in zip(interp, M.identity_matrix())]
-        self.allele, mate.allele = (self.allele[0], interp_rot, self.allele[-1]), \
-            (interp_tl, mate.allele[1], mate.allele[-1])
+        interp_tl = [y[:3] + x[-1:] for x, y in zip(interp, M.identity_matrix())]
+        self.allele, mate.allele = (self.allele[0], interp_rot), (interp_tl, mate.allele[1])
 
     def mutate(self, indpb):
         if random.random() < self.indpb:
@@ -308,8 +313,8 @@ def parse_origin(origin, genes=None):
     Tuple of float
         The x,y,z coordinates
     """
-    if isinstance(origin, str) and genes:
-        mol, serial = gaudi.parse.parse_rawstring(origin)
+    if isinstance(origin, tuple) and len(origin) == 2 and genes:
+        mol, serial = origin.molecule, origin.atom
         try:
             if isinstance(serial, int):
                 atom = next(a for a in genes[mol].compound.mol.atoms
@@ -321,5 +326,5 @@ def parse_origin(origin, genes=None):
             raise
         else:
             return atom.coord().data()
-    elif isinstance(origin, list):
+    elif isinstance(origin, list) and len(origin) == 3:
         return tuple(origin)
