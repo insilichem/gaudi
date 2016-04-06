@@ -8,22 +8,18 @@
 # Web: https://bitbucket.org/jrgp/gaudi
 ##############
 
-file: search.py
-module: gaudi.genes.search
-# args
-center: 
+file: energy.py
+module: gaudi.objectives.energy
+# args:
+weight: 
     - !!python/name:float
-    - Center of search sphere. List of x, y, z coordinates
-    - [0.0, 0.0, 0.0]
-radius: 
+    - Maximize (1.0) or minimize (-1.0)
+    - -1.0
+forcefields:
+    - !!python/name:list
+    - List of OpenMM forcefields to use
+    - ['amber99sbildn.xml', 'amber99_obc.xml']
+pH:
     - !!python/name:float
-    - Radius (in A) of movement sphere
-    - 5.0
-precision: 
-    - !!python/name:int
-    - Decimal numbers of 3D matrix elements
-    - 3
-rotate: 
-    - !!python/name:bool
-    - True or False
-    - False
+    - pH value to use when adding hydrogens to molecule
+    - 7.0

@@ -5,7 +5,7 @@
 			"file_regex": "^[ ]*File \"(...*?)\", line ([0-9]*)",
 			"name": "Anaconda Python Builder",
 			"selector": "source.python",
-			"shell_cmd": "python -u \"$file\""
+			"shell_cmd": "\"python\" -u \"$file\""
 		}
 	],
 	"folders":
@@ -15,7 +15,13 @@
 			[
 				".*",
 				"*.sublime*",
-				"*.pyc"
+				"*.pyc",
+				"*~"
+			],
+			"folder_exclude_patterns":
+			[
+				"*.egg-info",
+				"_*"
 			],
 			"name": "GAUDI project",
 			"path": "."

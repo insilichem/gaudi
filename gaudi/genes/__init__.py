@@ -22,7 +22,7 @@ import logging
 import os
 import pprint
 # GAUDI
-from gaudi import plugin
+from gaudi import plugin, parse
 
 logger = logging.getLogger(__name__)
 pp = pprint.PrettyPrinter(4)

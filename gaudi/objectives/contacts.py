@@ -31,12 +31,14 @@ import chimera
 import DetectClash
 import ChemGroup as cg
 # GAUDI
+from gaudi import parse
 from gaudi.objectives import ObjectiveProvider
 
 logger = logging.getLogger(__name__)
 
 
 def enable(**kwargs):
+    kwargs = Contacts.validate(kwargs)
     return Contacts(**kwargs)
 
 
@@ -47,10 +49,10 @@ class Contacts(ObjectiveProvider):
 
     Parameters
     ----------
-    probe : str
+    probes : str
         Name of molecule gene that is object of contacts analysis
     radius : float
-        Maximum distance from any point of probe that is searched
+        Maximum distance from any point of probes that is searched
         for possible interactions
     which : {'hydrophobic', 'clashes'}
         Type of interactions to measure
@@ -67,8 +69,17 @@ class Contacts(ObjectiveProvider):
         If the overlap volume is greater than this, a penalty is applied. 
         Useful to filter bad solutions.
     """
-
-    def __init__(self, probe=None, radius=5.0, which='hydrophobic',
+    validate = parse.Schema({
+        parse.Required('probes'): [parse.Molecule_name],
+        'radius': parse.All(parse.Coerce(float), parse.Range(min=0)),
+        'which': parse.In(['hydrophobic', 'clashes']),
+        'threshold': parse.Coerce(float),
+        'threshold_h': parse.Coerce(float),
+        'threshold_c': parse.Coerce(float),
+        'cutoff': parse.Coerce(float),
+        }, extra=parse.ALLOW_EXTRA)
+    
+    def __init__(self, probes=None, radius=5.0, which='hydrophobic',
                  threshold=0.6, threshold_h=0.2, threshold_c=0.6, cutoff=100.0,
                  *args, **kwargs):
         ObjectiveProvider.__init__(self, **kwargs)
@@ -78,14 +89,14 @@ class Contacts(ObjectiveProvider):
         self.threshold_h = threshold_h
         self.threshold_c = threshold_c
         self.cutoff = cutoff
-        self._probe = probe
+        self._probes = probes
 
     def molecules(self, ind):
         return tuple(m.compound.mol for m in ind.genes.values()
                      if m.__class__.__name__ == "Molecule")
 
-    def probe(self, ind):
-        return ind.genes[self._probe].compound.mol
+    def probes(self, ind):
+        return [ind.genes[p].compound.mol for p in self._probes]
 
     def evaluate(self, ind):
         """
@@ -172,8 +183,8 @@ class Contacts(ObjectiveProvider):
             the volumetric overlap of the involved atoms' Van der Waals spheres.
 
         """
-        vdwatoms = set(
-            a for m in self.molecules(ind) for a in m.atoms if a.element.name in ('C', 'S'))
+        vdwatoms = set(a for m in self.molecules(ind) for a in m.atoms
+                       if a.element.name in ('C', 'S'))
 
         positive, negative = [], []
         for a1, c in clashes.items():
@@ -193,13 +204,10 @@ class Contacts(ObjectiveProvider):
         Get atoms in the search zone, based on the molecule and the radius
         """
         self.zone.clear()
-        self.zone.add(self.probe(ind).atoms)
+        self.zone.add([a for m in self.probes(ind) for a in m.atoms])
         self.zone.merge(chimera.selection.REPLACE,
-                        chimera.specifier.zone(
-                            self.zone, 'atom', None, self.radius, self.molecules(
-                                ind)
-                        )
-                        )
+                        chimera.specifier.zone(self.zone, 'atom', None,
+                                               self.radius, self.molecules(ind)))
         return self.zone.atoms()
 
     @staticmethod

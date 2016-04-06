@@ -1,0 +1,27 @@
+package:
+  name: gaudi
+  version: "0.0.2"
+
+about:
+  home: https://bitbucket.org/jrgp/gaudi
+  license: Free For Educational Use
+  summary: "Genetic Algorithms for Universal Design Inference and Atomic Scale Modeling"
+
+source:
+  path: ../
+
+requirements:
+  build:
+    - python 2.7*
+
+  run:
+    - python 2.7*
+    - pip
+    - pychimera
+    - openmm
+    - openmoltools
+    - pdbfixer
+
+test:
+  imports:
+    - gaudi

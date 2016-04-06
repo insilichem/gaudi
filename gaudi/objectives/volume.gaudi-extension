@@ -8,22 +8,18 @@
 # Web: https://bitbucket.org/jrgp/gaudi
 ##############
 
-file: search.py
-module: gaudi.genes.search
-# args
-center: 
+file: volume.py
+module: gaudi.objectives.volume
+# args:
+weight: 
     - !!python/name:float
-    - Center of search sphere. List of x, y, z coordinates
-    - [0.0, 0.0, 0.0]
-radius: 
+    - Maximize (1.0) or minimize (-1.0)
+    - -1.0
+threshold:
     - !!python/name:float
-    - Radius (in A) of movement sphere
-    - 5.0
-precision: 
-    - !!python/name:int
-    - Decimal numbers of 3D matrix elements
-    - 3
-rotate: 
-    - !!python/name:bool
-    - True or False
-    - False
+    - Final volume to target
+    - -1.0
+target: 
+    - !!python/name:str
+    - Name of molecule to calculate volume
+    - Ligand
