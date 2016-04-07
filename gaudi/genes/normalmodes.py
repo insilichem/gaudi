@@ -22,6 +22,7 @@ It needs at least a :class:`gaudi.genes.rotamers.molecule.Molecule`.
 """
 
 # Python
+from __future__ import print_function, division
 import random
 import logging
 import numpy
@@ -74,6 +75,7 @@ class NormalModes(GeneProvider):
 
     Attributes
     ----------
+    !!! UPDATE
     NORMAL_MODES : prody.modes
         normal modes calculated for the molecle
         stored in a prody modes class (ANM or RTB)
@@ -100,8 +102,9 @@ class NormalModes(GeneProvider):
         'rmsd': parse.All(parse.Coerce(float), parse.Range(min=0))
     }, extra=parse.ALLOW_EXTRA)
 
-    NORMAL_MODES = None
-    NORMAL_MODE_SAMPLES = None
+    NORMAL_MODES_CACHE = {}
+    NORMAL_MODES_SAMPLES_CACHE = {}
+    CHIMERA2PRODY_CACHE = {}
 
     def __init__(self, target=None, group_by=None, group_lambda=None, n_samples=10000, rmsd=1.0,
                  **kwargs):
@@ -113,7 +116,6 @@ class NormalModes(GeneProvider):
             self.group_by_options = {}
         else:
             self.group_by_options = {'n': group_lambda}
-        self._chimera2prody = {}
         # Fire up!
         GeneProvider.__init__(self, **kwargs)
 
@@ -124,10 +126,13 @@ class NormalModes(GeneProvider):
         It saves the parent coordinates, calculates the normal modes and initializes the allele
         """
         self._original_coords = chimeracoords2numpy(self.molecule)
-        if self.NORMAL_MODES is not None:
-            self.NORMAL_MODES, self.NORMAL_MODES_SAMPLES, self._chimera2prody = self.calculate_normal_modes()
-        self.allele = self.mutate(1.0)
-        # self.allele = random.choice(self.NORMAL_MODE_SAMPLES)
+        if self.target not in self.NORMAL_MODES_CACHE:
+            normal_modes, normal_modes_samples, chimera2prody = self.calculate_normal_modes()
+            self.NORMAL_MODES_CACHE[self.target] = normal_modes
+            self.NORMAL_MODES_SAMPLES_CACHE[self.target] = normal_modes_samples
+            self.CHIMERA2PRODY_CACHE[self.target] = chimera2prody
+        # self.allele = self.mutate(1.0)
+        self.allele = random.choice(self.NORMAL_MODES_SAMPLES)
 
     def express(self):
         """
@@ -161,12 +166,24 @@ class NormalModes(GeneProvider):
         (mutate to/get) another SAMPLE with probability = indpb
         """
         if random.random() < self.indpb:
-            return random.choice(self.NORMAL_MODE_SAMPLES)
+            return random.choice(self.NORMAL_MODES_SAMPLES)
 
     #####
     @property
     def molecule(self):
         return self.parent.genes[self.target].compound.mol
+
+    @property
+    def NORMAL_MODES(self):
+        return self.NORMAL_MODES_CACHE[self.target]
+    
+    @property
+    def NORMAL_MODES_SAMPLES(self):
+        return self.NORMAL_MODES_SAMPLES_CACHE[self.target]
+   
+    @property
+    def _chimera2prody(self):
+        return self.CHIMERA2PRODY_CACHE[self.target]
 
     def calculate_normal_modes(self):
         """
@@ -176,7 +193,7 @@ class NormalModes(GeneProvider):
         modes = normal_modes(prody_molecule, GROUPERS[self.group_by], **self.group_by_options)
         samples = prody.sampleModes(modes=modes, atoms=prody_molecule, n_confs=self.n_samples,
                                     rmsd=self.rmsd)
-        return normal_modes, samples, chimera2prody
+        return modes, samples, chimera2prody
 
 
 ####
@@ -284,7 +301,7 @@ def group_by_residues(molecule, n=7):
                 selection.setBetas(group)
                 group += 1
             except AttributeError as e:
-                print('Warning: {}'.format(e))
+                logger.warning(str(e))
     return molecule
 
 
