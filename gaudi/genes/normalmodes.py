@@ -28,8 +28,9 @@ import logging
 import numpy
 # Chimera
 import chimera
-# Prody
+# 3rd party
 import prody
+from repoze.lru import LRUCache
 # GAUDI
 from gaudi.genes import GeneProvider
 from gaudi import parse
@@ -102,22 +103,18 @@ class NormalModes(GeneProvider):
         'rmsd': parse.All(parse.Coerce(float), parse.Range(min=0))
     }, extra=parse.ALLOW_EXTRA)
 
-    NORMAL_MODES_CACHE = {}
-    NORMAL_MODES_SAMPLES_CACHE = {}
-    CHIMERA2PRODY_CACHE = {}
-
     def __init__(self, target=None, group_by=None, group_lambda=None, n_samples=10000, rmsd=1.0,
                  **kwargs):
+        # Fire up!
+        GeneProvider.__init__(self, **kwargs)
         self.target = target
         self.group_by = group_by
         self.n_samples = n_samples
         self.rmsd = rmsd
-        if group_lambda is None:
-            self.group_by_options = {}
-        else:
-            self.group_by_options = {'n': group_lambda}
-        # Fire up!
-        GeneProvider.__init__(self, **kwargs)
+        self.group_by_options = {} if group_lambda is None else {'n': group_lambda}
+        if self.name not in self._cache:
+            self._cache[self.name] = LRUCache(300)
+        
 
     def __ready__(self):
         """
@@ -125,12 +122,13 @@ class NormalModes(GeneProvider):
 
         It saves the parent coordinates, calculates the normal modes and initializes the allele
         """
-        self._original_coords = chimeracoords2numpy(self.molecule)
-        if self.target not in self.NORMAL_MODES_CACHE:
+        cached = self._CACHE.get('normal_modes')
+        if not cached:
             normal_modes, normal_modes_samples, chimera2prody = self.calculate_normal_modes()
-            self.NORMAL_MODES_CACHE[self.target] = normal_modes
-            self.NORMAL_MODES_SAMPLES_CACHE[self.target] = normal_modes_samples
-            self.CHIMERA2PRODY_CACHE[self.target] = chimera2prody
+            self._CACHE.put('normal_modes', normal_modes)
+            self._CACHE.put('normal_modes_samples', normal_modes_samples)
+            self._CACHE.put('chimera2prody', chimera2prody)
+            self._CACHE.put('original_coords', chimeracoords2numpy(self.molecule))
         # self.allele = self.mutate(1.0)
         self.allele = random.choice(self.NORMAL_MODES_SAMPLES)
 
@@ -141,7 +139,7 @@ class NormalModes(GeneProvider):
         c2p = self._chimera2prody
         for atom in self.molecule.atoms:
             index = c2p[atom.coordIndex]
-            new_coords = self.allele.getCoords()[index]
+            new_coords = self.allele[index]
             atom.setCoord(chimera.Point(*new_coords))
 
     def unexpress(self):
@@ -174,16 +172,24 @@ class NormalModes(GeneProvider):
         return self.parent.genes[self.target].compound.mol
 
     @property
+    def _CACHE(self):
+        return self._cache.get(self.name)
+
+    @property
     def NORMAL_MODES(self):
-        return self.NORMAL_MODES_CACHE[self.target]
+        return self._CACHE.get('normal_modes')
     
     @property
     def NORMAL_MODES_SAMPLES(self):
-        return self.NORMAL_MODES_SAMPLES_CACHE[self.target]
+        return self._CACHE.get('normal_modes_samples')
    
     @property
     def _chimera2prody(self):
-        return self.CHIMERA2PRODY_CACHE[self.target]
+        return self._CACHE.get('chimera2prody')
+
+    @property
+    def _original_coords(self):
+        return self._CACHE.get('original_coords')
 
     def calculate_normal_modes(self):
         """
@@ -193,7 +199,8 @@ class NormalModes(GeneProvider):
         modes = normal_modes(prody_molecule, GROUPERS[self.group_by], **self.group_by_options)
         samples = prody.sampleModes(modes=modes, atoms=prody_molecule, n_confs=self.n_samples,
                                     rmsd=self.rmsd)
-        return modes, samples, chimera2prody
+        samples_coords = [sample.getCoords() for sample in samples]
+        return modes, samples_coords, chimera2prody
 
 
 ####
