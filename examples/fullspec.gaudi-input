@@ -7,15 +7,17 @@
 #            <jeandidier.marechal@uab.cat>
 # Web: https://bitbucket.org/jrgp/gaudi
 ##############
-general:
-    outputpath: /path/to/output/
-    name: anything
+output:
+    path: /path/to/output
+    name: name
     precision: 2
     compress: 1
+    history: 0
+    pareto: 0
 
 ga:
-    pop: 100
-    gens: 10
+    population: 200
+    generations: 20
     mu: 0.75
     lambda_: 0.75
     mut_eta: 5
@@ -23,14 +25,12 @@ ga:
     mut_indpb: 0.05
     cx_eta: 5
     cx_pb: 0.8
-    similarity_rmsd: 2.5
-    history: 0
-    pareto: False
+
 
 similarity:
     # type is the full Python path to similarity function
-    type: gaudi.similarity.rmsd
-    args: [Ligand, 2.5]
+    module: gaudi.similarity.rmsd
+    args: [[Ligand], 2.5]
     kwargs: {}
 
 ###
@@ -38,54 +38,59 @@ similarity:
 ###
 genes: 
     -   name: Protein
-        type: gaudi.genes.molecule
+        module: gaudi.genes.molecule
         path: /path/to/protein.mol2
 
     -   name: Ligand
-        type: gaudi.genes.molecule
+        module: gaudi.genes.molecule
         path: /path/to/ligand.mol2/or/block/containing/dir/
         symmetry: [[ dirA, dirB ]]
 
     -   name: Rotamers
-        type: gaudi.genes.rotamers
+        module: gaudi.genes.rotamers
         residues: [ Protein/233, Protein/109]
         library: { dynameomics | dunbrack }
         mutations: []
         ligation: False
 
-    # -   name: Normal Modes
-    #     type: gaudi.genes.normalmodes
-    #     target: protein
+    -   name: NormalModes
+        module: gaudi.genes.normalmodes
+        target: Protein
+        group_by: residues
+        group_lambda: 20
+        n_samples: 100
+        rmsd: 2.0
 
     -   name: Torsion
-        type: gaudi.genes.torsion
+        module: gaudi.genes.torsion
         target: Ligand
         flexibility: 360
 
     -   name: Search
-        type: gaudi.genes.search
-        origin: [1.0, 5.0, 0.0]
+        module: gaudi.genes.search
+        center: [41.1868, 7.2388, 21.4937]
         radius: 5.0
         precision: 3
         rotate: True
+        target: Ligand/43
 
 ###
 # OBJECTIVES
 ###
 objectives:
     -   name: Hbonds
-        type: gaudi.objectives.hbonds
+        module: gaudi.objectives.hbonds
         weight: 1.0
-        probe: Ligand
+        probes: [Ligand]
         radius: 5.0
         distance_tolerance: 0.4
         angle_tolerance: 20.0
 
     -   name: Clashes
-        type: gaudi.objectives.contacts
+        module: gaudi.objectives.contacts
         which: clashes #or hydrophobic
         weight: -1.0
-        probe: Ligand
+        probes: [Ligand]
         radius: 5.0
         threshold: 0.6
         threshold_h: 0.2
@@ -93,7 +98,7 @@ objectives:
         cutoff: 100.0
 
     -   name: DistanceAB
-        type: gaudi.objectives.distance
+        module: gaudi.objectives.distance
         weight: -1.0
         threshold: covalent #or <n>
         tolerance: -0.1
@@ -101,7 +106,7 @@ objectives:
         probes: [last] # or serialNumber
 
     -   name: AngleABC
-        type: gaudi.objectives.angle 
+        module: gaudi.objectives.angle 
         weight: -1.0
         threshold: 90.0 #degrees or 'planar'
         # serialnumbers, 3 for angle, 4 for dihedral
@@ -109,16 +114,16 @@ objectives:
         target: [ Protein/123, Protein/456, Ligand/10, Ligand/9]
 
     -   name: Solvation
-        type: gaudi.objectives.solvation
+        module: gaudi.objectives.solvation
         weight: -1.0
         which: ses #or 'sas'
         target: Ligand
 
     -   name: Coordination
-        type: gaudi.objectives.coordination
+        module: gaudi.objectives.coordination
         weight: -1.0
         method: simple # or metalgeom 
-        probe: Ligand/1
+        probes: Ligand/1
         radius: 3.5
         atomtypes: [ OE1, OE2, OD1, OD2, ND2 ]
         residues: [Protein/14, Protein/41, Protein/68, Protein/23, Protein/50, Protein/77]
@@ -133,12 +138,12 @@ objectives:
         threshold: 1.0 # max admitted RMSD
 
     -   name: DSX
-        type: gaudi.objectives.dsx
+        module: gaudi.objectives.dsx
         weight: -1.0
         binary: /path/to/dsx/binary
         potentials: /path/to/dir/containing/potentials/files
-        protein: Protein
-        ligand: Ligand
+        proteins: [Protein]
+        ligands: [Ligand]
         # enable or disable terms in the list, respecting ORDER
         # [distance-dependent pair potentials, torsion potentials,
         # intramolecular clashes, sas potentials, hbond potentials]

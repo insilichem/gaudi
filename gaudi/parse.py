@@ -109,9 +109,11 @@ def RelPathToInputFile(inputpath=None):
         return os.path.normpath(os.path.join(inputpath, os.path.expanduser(v)))
     return fn
 
-
 def ExpandUserPathExists(v):
-    return lambda v: PathExists(os.path.expanduser(v))
+    p = os.path.expanduser(v)
+    if os.path.exists(p):
+        return p
+    raise ValueError("Path {} does not exist".format(p))
 
 
 def MakeDir(validator):
@@ -160,7 +162,7 @@ class Settings(Munch):
         },
         'similarity': {
             'type': 'gaudi.similarity.rmsd',
-            'args': [None, 2.5],
+            'args': [[str], 2.5],
             'kwargs': {}
         },
         'genes': [{}],

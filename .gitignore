@@ -1,6 +1,8 @@
 #led / optimized / DLL files
 __pycache__/
 *.py[cod]
+*.ipynb
+.ipynb*
 
 # C extensions
 *.so
