@@ -70,21 +70,21 @@ class DSX(ObjectiveProvider):
     validate = parse.Schema({
         parse.Required('binary'): parse.ExpandUserPathExists,
         parse.Required('potentials'): parse.ExpandUserPathExists,
-        parse.Required('protein'): parse.Molecule_name,
-        parse.Required('ligand'): parse.Molecule_name,
-        parse.Required('terms'): parse.All([parse.Boolean], parse.Length(min=5, max=5)),
+        parse.Required('proteins'): [parse.Molecule_name],
+        parse.Required('ligands'): [parse.Molecule_name],
+        parse.Required('terms'): parse.All([parse.Boolean()], parse.Length(min=5, max=5)),
         'sorting': parse.All(parse.Coerce(int), parse.Range(min=0, max=6)),
         'cofactor_handling': parse.All(parse.Coerce(int), parse.Range(min=0, max=7))
         }, extra=parse.ALLOW_EXTRA)
     
-    def __init__(self, binary=None, potentials=None, protein='Protein',
-                 ligand='Ligand', terms=None, sorting=1, cofactor_handling=1,
+    def __init__(self, binary=None, potentials=None, proteins=('Protein',),
+                 ligands=('Ligand',), terms=None, sorting=1, cofactor_handling=1,
                  *args, **kwargs):
         ObjectiveProvider.__init__(self, **kwargs)
         self.binary = binary
         self.potentials = potentials
-        self.protein_names = protein
-        self.ligand_names = ligand
+        self.protein_names = proteins
+        self.ligand_names = ligands
         self.terms = terms
         self.sorting = sorting
         self.cofactor_handling = cofactor_handling
@@ -105,8 +105,7 @@ class DSX(ObjectiveProvider):
         Run a subprocess calling DSX binary with provided options,
         and parse the results. Clean tmp files at exit.
         """
-        tmpfile = os.path.join(self.tempdir,
-                               next(tempfile._get_candidate_names()))
+        tmpfile = os.path.join(self.tempdir, next(tempfile._get_candidate_names()))
 
         # Retrieve proteins and write them to single mol2 file
         proteinpath = '{}_protein.mol2'.format(tmpfile)
@@ -118,13 +117,13 @@ class DSX(ObjectiveProvider):
         ligands = list(self.get_molecule_by_name(ind, *self.ligand_names))
         last_ligand = ligands.pop()
         last_ligand.write(absolute=ligandpath, combined_with=ligands)
-
         T0, T1, T2, T3, T4 = [1.0 * t for t in self.terms]
         command = map(str, (self.binary, '-P', proteinpath, '-L', ligandpath,
                             '-I', self.cofactor_handling, '-S', self.sorting,
                             '-T0', T0, '-T1', T1, '-T2', T2, '-T3', T3, '-T4',
                             T4, '-D', self.potentials))
         os.chdir(tempfile._get_default_tempdir())
+        dsx_results = None
         try:
             stream = subprocess.check_output(command, universal_newlines=True)
         except subprocess.CalledProcessError:
@@ -134,15 +133,15 @@ class DSX(ObjectiveProvider):
             # 1. Get output filename from stdout (located at working directory)
             # 2. Find line '@RESULTS' and go to sixth line below
             # 3. The score is in the first row of the table, at the third field
-            dsx_results = os.path.join(os.getcwd(),
-                                       stream.splitlines()[-2].split()[-1])
+            dsx_results = os.path.join(os.getcwd(), stream.splitlines()[-2].split()[-1])
             with open(dsx_results) as f:
                 lines = f.read().splitlines()
                 i = lines.index('@RESULTS')
                 score = lines[i + 4].split('|')[3].strip()
                 return float(score)
         finally:
-            os.remove(dsx_results)
+            if dsx_results:
+                os.remove(dsx_results)
             os.remove(proteinpath)
             os.remove(ligandpath)
             os.chdir(self.oldworkingdir)
