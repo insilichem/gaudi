@@ -21,7 +21,39 @@ Features
 Documentation
 -------------
 
-Check the docs `here <docs/>`_.
+Quick installation:
+
+1 - Download the `latest stable copy of UCSF Chimera <http://www.cgl.ucsf.edu/chimera/download.html>`_ and install it with:
+
+::
+
+  chmod +x chimera-*.bin && sudo ./chimera-*.bin
+
+2 - Install `Miniconda Python 2.7 Distribution <http://conda.pydata.org/miniconda.html>`_ for your platform and install it with:
+
+::
+
+  bash Miniconda2*.sh
+
+3 - Grab the `environment.yml <https://bitbucket.org/insilichem/gaudi/raw/HEAD/environment.yml>`_ file and create the GAUDI environment with:
+
+::
+
+  conda env create -f /path/to/downloaded/environment.yml
+
+4 - Activate the new environment as proposed:
+
+::
+
+  source activate gaudi
+
+5 - Run it!
+
+::
+
+  gaudi
+
+You can also check the (outdated) docs `here <docs/>`_.
 
 Bug reports and contact
 -----------------------
