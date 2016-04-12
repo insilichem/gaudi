@@ -27,6 +27,7 @@ import logging
 # 3rd party
 import MeasureVolume
 import Surface
+import scipy.spatial
 # GAUDI
 from gaudi import parse
 from gaudi.objectives import ObjectiveProvider
@@ -51,6 +52,10 @@ class Volume(ObjectiveProvider):
         VdW volumes of all requested atoms in `probes`. (Unimplemented!)
     target : list of str
         Molecule gene name to calculate volume over
+    cavities : boolean, optional, default=False
+        if True, evaluate cavities volume creating a convex hull and
+        calculating the difference between convex hull volume and
+        molecule volume
 
     Returns
     -------
@@ -60,14 +65,16 @@ class Volume(ObjectiveProvider):
 
     validate = parse.Schema({
         'target': [parse.Molecule_name],
-        'threshold': parse.Any(float, 'auto')
+        'threshold': parse.Any(float, 'auto'),
+        'cavities': parse.All(bool)
         }, extra=parse.ALLOW_EXTRA)
 
-    def __init__(self, threshold=None, target=None,
+    def __init__(self, threshold=None, target=None, cavities=False,
                  *args, **kwargs):
         ObjectiveProvider.__init__(self, **kwargs)
         self.threshold = threshold
         self._target = target
+        self.cavities = cavities
 
     def target(self, ind):
         return ind.genes[self._target].compound.mol
@@ -76,4 +83,32 @@ class Volume(ObjectiveProvider):
         molecule = self.target(ind)
         surface = Surface.gridsurf.ses_surface(molecule.atoms)
         volume, area, holes = MeasureVolume.surface_volume_and_area(surface)
-        return abs(volume - self.threshold)
+        if self.cavities:
+            return convexhull_volume(surface) - volume
+        else:
+            return abs(volume - self.threshold)
+
+###
+def convexhull_volume(surface):
+    """
+    This function gets a surface, creates the convex hull and calculates
+    its volume
+
+    Parameters
+    ----------
+        surface : Surface.gridsurf.ses_surface(molecule.atoms)
+
+    Returns
+    -------
+        convexhull_volume : float
+            convex hull volume
+    """
+    convexhull_volume = 0
+    # points = surface.surfacePieces[0].geometry[0]
+    # convexhull = scipy.spatial.ConvexHull(points)
+    for sp in surface.surfacePieces:
+        points = sp.geometry[0]
+        convexhull = scipy.spatial.ConvexHull(points)
+        convexhull_volume += convexhull.volume
+        # sp.geometry = points, convexhull.simplices
+    return convexhull_volume
