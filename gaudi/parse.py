@@ -162,7 +162,7 @@ class Settings(Munch):
         },
         'similarity': {
             'type': 'gaudi.similarity.rmsd',
-            'args': [[str], 2.5],
+            'args': [['Ligand'], 2.5],
             'kwargs': {}
         },
         'genes': [{}],
