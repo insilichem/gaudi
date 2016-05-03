@@ -15,7 +15,7 @@
 This module allows to explore molecular folding through normal modes analysis.
 
 It works by calculating normal modes for the input molecule and moving along
-a comgination of normal modes.
+a combination of normal modes.
 
 It needs at least a :class:`gaudi.genes.rotamers.molecule.Molecule`.
 
@@ -88,7 +88,7 @@ class NormalModes(GeneProvider):
         Parent coordinates
 
     _chimera2prody : dict
-        You tell 
+        _chimera2prody[chimera_index] = prody_index
 
     Notes
     -----
@@ -193,7 +193,8 @@ class NormalModes(GeneProvider):
 
     def calculate_normal_modes(self):
         """
-        Docs docs docs
+        calculate normal modes, creates a diccionary between chimera and prody indices
+        and calculate n_confs number of configurations using this modes
         """
         prody_molecule, chimera2prody = convert_chimera_molecule_to_prody(self.molecule)
         modes = normal_modes(prody_molecule, GROUPERS[self.group_by], **self.group_by_options)
