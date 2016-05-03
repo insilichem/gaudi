@@ -53,20 +53,20 @@ class Volume(ObjectiveProvider):
     target : list of str
         Molecule gene name to calculate volume over
     cavities : boolean, optional, default=False
-        if True, evaluate cavities volume creating a convex hull and
+        If True, evaluate cavities volume creating a convex hull and
         calculating the difference between convex hull volume and
         molecule volume
 
     Returns
     -------
     volume: float
-        Calculated volume in A³ (or nm³?)
+        Calculated volume in A³
     """
 
     validate = parse.Schema({
         'target': [parse.Molecule_name],
         'threshold': parse.Any(float, 'auto'),
-        'cavities': parse.All(bool)
+        'cavities': bool
         }, extra=parse.ALLOW_EXTRA)
 
     def __init__(self, threshold=None, target=None, cavities=False,
@@ -75,18 +75,23 @@ class Volume(ObjectiveProvider):
         self.threshold = threshold
         self._target = target
         self.cavities = cavities
+        self.evaluate = self.evaluate_convexhull if self.cavities else self.evaluate_volume
 
     def target(self, ind):
         return ind.genes[self._target].compound.mol
 
-    def evaluate(self, ind):
+    def evaluate_volume(self, ind):
         molecule = self.target(ind)
         surface = Surface.gridsurf.ses_surface(molecule.atoms)
         volume, area, holes = MeasureVolume.surface_volume_and_area(surface)
-        if self.cavities:
-            return convexhull_volume(surface) - volume
-        else:
-            return abs(volume - self.threshold)
+        return abs(volume - self.threshold)
+
+    def evaluate_convexhull(self, ind):
+        molecule = self.target(ind)
+        surface = Surface.gridsurf.ses_surface(molecule.atoms)
+        volume, area, holes = MeasureVolume.surface_volume_and_area(surface)
+        return convexhull_volume(surface) - volume
+
 
 ###
 def convexhull_volume(surface):
@@ -100,15 +105,21 @@ def convexhull_volume(surface):
 
     Returns
     -------
-        convexhull_volume : float
-            convex hull volume
+        volume : float
+            Convex hull volume
+
+    Notes
+    -----
+        Some systems may produce small volume blobs, resulting in a number
+        of different surface pieces. This should be discussed in the future.
+        # points = surface.surfacePieces[0].geometry[0]
+        # convexhull = scipy.spatial.ConvexHull(points)
     """
-    convexhull_volume = 0
-    # points = surface.surfacePieces[0].geometry[0]
-    # convexhull = scipy.spatial.ConvexHull(points)
+    volume = 0
+    
     for sp in surface.surfacePieces:
         points = sp.geometry[0]
         convexhull = scipy.spatial.ConvexHull(points)
-        convexhull_volume += convexhull.volume
-        # sp.geometry = points, convexhull.simplices
-    return convexhull_volume
+        volume += convexhull.volume
+
+    return volume
