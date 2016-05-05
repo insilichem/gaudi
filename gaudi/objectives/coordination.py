@@ -29,7 +29,7 @@ import numpy
 from math import acos, degrees
 # Chimera
 import chimera
-from chimera import cross, Xform, Plane, angle, Point
+from chimera import cross, Xform, Plane, angle, Point, Vector
 from chimera.match import matchPositions
 from MetalGeom.geomData import geometries as MG_geometries
 # GAUDI
@@ -480,8 +480,8 @@ def bond_direction(ligand):
         if ligand.bidentate:
             p1 = ligand.bond_dir_origin
             p2 = ligand.bidentate_mate.coord()
-            vec1 = chimera.Vector(*(p0-p1).data())
-            vec2 = chimera.Vector(*(p2-p1).data())
+            vec1 = Vector(*(p0-p1).data())
+            vec2 = Vector(*(p2-p1).data())
             rot_axis = cross(vec1, vec2)
             ang = angle(vec1, vec2)/2
             rotation = Xform.rotation(rot_axis, ang)
@@ -492,15 +492,15 @@ def bond_direction(ligand):
     if len(ligand.neighbors) == 2:
         p1 = ligand.neighbors[0].coord()
         p2 = ligand.neighbors[1].coord()
-        vec1 = chimera.Vector(*(p1-p0).data())
-        vec2 = chimera.Vector(*(p2-p0).data())
+        vec1 = Vector(*(p1-p0).data())
+        vec2 = Vector(*(p2-p0).data())
         rot_axis = cross(vec1, vec2)
         ang = angle(vec1, vec2)/2 - 180
         rotation = Xform.rotation(rot_axis, ang)
         vec = rotation.apply(vec1)
         return vec
 
-    return chimera.Vector(0, 0, 0)
+    return Vector(0, 0, 0)
     # Add more cases...?
 
     # else:
