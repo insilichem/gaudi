@@ -130,7 +130,7 @@ class SimpleCoordination(ObjectiveProvider):
         3. As a result, lower scores are better.
         """
         try:
-            atoms_by_distance = self._get_nearest_atoms(ind)
+            atoms_by_distance = self._nearest_atoms(ind)
         except (NotEnoughAtomsError, SomeResiduesMissingError):
             return -1000 * self.weight
         else:
@@ -169,7 +169,7 @@ class SimpleCoordination(ObjectiveProvider):
         3. If that's not possible of they are not enough, return penalty
         """
         try:
-            test_atoms = [a for d, a in self._get_nearest_atoms(ind)]
+            test_atoms = [a for d, a in self._nearest_atoms(ind)]
         except (NotEnoughAtomsError, SomeResiduesMissingError):
             logger.warning("Not enough atoms or some residues missing")
             return -1000 * self.weight
@@ -230,17 +230,22 @@ class SimpleCoordination(ObjectiveProvider):
            That way, nearest atoms are computed first.
         2.1. If found atoms do not include some of the requested types, apply penalty.
         """
+
         self._update_zone(ind)
         atoms = self.zone.atoms()
+        metal = self.probe(ind)
+        residues = self.residues(ind)
+
         # (distance, ligand) tuple, sorted by distances
-        atoms_by_distance = \
-            [(abs(self.distance - self.probe(ind).xformCoord().distance(a.xformCoord())),
-              a) for a in atoms if a.name in self.atom_types and a.residue in self.residues(ind)]
+        def abs_distance(a): return abs(self.distance - metal.xformCoord().distance(a.xformCoord()))
+        atoms_by_distance = [(abs_distance(a), a) for a in atoms
+                             if a.name in self.atom_types and a.residue in residues]
         if len(atoms_by_distance) < self.min_atoms:
             logger.warning("Could not find requested atoms from residues in probe environment")
             raise NotEnoughAtomsError
+
         found_residues = set(a.residue for d, a in atoms_by_distance)
-        if self.enforce_all_residues and found_residues != self.residues:
+        if self.enforce_all_residues and found_residues != residues:
             logger.warning("Some atoms found, but some residues are missing")
             raise SomeResiduesMissingError
 
