@@ -122,10 +122,10 @@ objectives:
     -   name: Coordination
         module: gaudi.objectives.coordination
         weight: -1.0
-        method: simple # or metalgeom 
+        method: simple # or metalgeom, metalgeom_directional 
         probes: Ligand/1
         radius: 3.5
-        atomtypes: [ OE1, OE2, OD1, OD2, ND2 ]
+        atom_types: [ OE1, OE2, OD1, OD2, ND2 ]
         residues: [Protein/14, Protein/41, Protein/68, Protein/23, Protein/50, Protein/77]
         min_atoms: 1
         enforce_all_residues: True
