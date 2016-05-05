@@ -176,8 +176,9 @@ class Settings(Munch):
             os.environ['GAUDI_INPUT_PATH'] = os.path.dirname(path)
             with open(path) as f:
                 raw_dict = yaml.load(f)
-        validated = self.validate(raw_dict)
-        self.update(munchify(validated))
+            validated = self.validate(raw_dict)
+            self.update(munchify(validated))
+
 
     @property
     def weights(self):

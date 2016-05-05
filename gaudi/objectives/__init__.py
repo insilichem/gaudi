@@ -68,7 +68,7 @@ class ObjectiveProvider(object):
         pass
 
     @abc.abstractmethod
-    def evaluate(self):
+    def evaluate(self, individual):
         """
         Return the score of the individual under the current conditions.
         """
