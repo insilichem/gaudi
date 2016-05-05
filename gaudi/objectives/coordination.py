@@ -98,6 +98,9 @@ class SimpleCoordination(ObjectiveProvider):
         if self.method == 'metalgeom':
             self.evaluate = self.evaluate_MetalGeom
             self.geometry = MG_geometries[geometry]
+        elif self.method == 'metalgeom_directional':
+            self.evaluate = self.evaluate_MetalGeom_directional
+            self.geometry = MG_geometries[geometry]
         else:
             self.evaluate = self.evaluate_simple
 
@@ -157,6 +160,7 @@ class SimpleCoordination(ObjectiveProvider):
 
             return sum(numpy.average(x) for x in (distances, angles, dihedrals) if x)
 
+
     def evaluate_MetalGeom(self, ind):
         """
         1. Get requested atoms sorted by distance
@@ -182,7 +186,43 @@ class SimpleCoordination(ObjectiveProvider):
                 rmsd = -1000 * self.weight
             return rmsd
 
-    def _get_nearest_atoms(self, ind):
+    def evaluate_MetalGeom_directional(self, ind):
+        """
+        1. Get requested atoms sorted by distance
+        2. If they meet the minimum quantity, return the rmsd for
+           that geometry
+        3. If that's not possible of they are not enough, return penalty
+        """
+        try:
+            test_atoms = [a for d, a in self._nearest_atoms(ind)]
+        except (NotEnoughAtomsError, SomeResiduesMissingError):
+            logger.warning("Not enough atoms or some residues missing")
+            return -1000 * self.weight
+        
+        max_ligands = len(self.geometry.normVecs)
+        ligands = test_atoms[:max_ligands]
+        ligand_coords = [a.xformCoord() for a in ligands]
+        metal = self.probe(ind)
+        metal_coord = metal.xformCoord()
+
+        # rmsd
+        try:
+            rmsd = geomDistEval_patched(self.geometry, metal_coord, 
+                                        ligand_coords, min_ligands=self.min_atoms)
+        except Exception as e:
+            logger.exception(e)  #
+            logger.warning("Geometry not feasible in current conditions")
+            return -1000 * self.weight
+        
+        # directionality
+        ligand_objects = [LigandHelper(ligand, ligands, metal) for ligand in ligands]
+        directionality = directional_evaluation(ligand_objects)
+
+
+        return rmsd + directionality
+
+
+    def _nearest_atoms(self, ind):
         """
         1. Get atoms and residues found within `self.radius` angstroms from `self.probe`
         1.1. Found residues MUST include self.residues. Otherwise, apply penalty
@@ -258,8 +298,7 @@ class SimpleCoordination(ObjectiveProvider):
         self.zone.add(self.probe(ind))
         self.zone.merge(chimera.selection.REPLACE,
                         chimera.specifier.zone(
-                            self.zone, 'atom', None, self.radius, self.molecules(ind))
-                        )
+                            self.zone, 'atom', None, self.radius, self.molecules(ind)))
         return self.zone
 
     @staticmethod
@@ -383,3 +422,119 @@ def geomDistEval_patched(geom, metal_coord, ligands_coords, min_ligands=2):
             rmsdXf, rmsd = matchPositions(realPts, idealPts)
             best_rmsd.append(rmsd)
     return min(best_rmsd)
+
+def directional_evaluation(ligands_list):
+    """
+    Given a ligand get its bonding direction and compare it with the real one.
+
+    Parameters
+    ----------
+    ligands_list : list of Ligand objects
+        It contains the ligand candidates information.
+
+    Returns
+    -------
+    sin_sum/len(ligands_list): float
+        This value is taken as a scorer for the directional evaluation of the
+        metal coordination.
+    """
+    sin_sum = 0
+    for ligand in ligands_list:
+        direction = bond_direction(ligand)
+        if all(not v for v in direction):
+            continue
+        if ligand.bidentate:
+            metal_bond = ligand.bond_dir_origin - ligand.metal_center.coord()
+            linearity = abs(math.sin(math.radians(angle(direction, metal_bond))))
+        else:
+            linearity = abs(math.sin(math.radians(angle(direction, ligand.vector))))
+        sin_sum += linearity
+    return sin_sum/(len(ligands_list))
+
+
+def bond_direction(ligand):
+    """
+    Obtains a preferential bonding direction. The directional evaluation is
+    calculated according to this direction.
+
+    Parameters
+    ----------
+    ligand : Ligand object
+        It is the ligand candidate whose bonding direction, if any, will be
+        obtained.
+
+    Returns
+    -------
+    vec : chimera.Vector
+        It is the vector whose direction matches with the ligand's bonding
+        direction.
+    """
+    p0 = ligand.coord
+    if ligand.terminal:
+        # For aspartic & glutamic acids (bidentates)
+        if ligand.bidentate:
+            p1 = ligand.bond_dir_origin
+            p2 = ligand.bidentate_mate.coord()
+            vec1 = chimera.Vector(*(p0-p1).data())
+            vec2 = chimera.Vector(*(p2-p1).data())
+            rot_axis = cross(vec1, vec2)
+            ang = angle(vec1, vec2)/2
+            rotation = Xform.rotation(rot_axis, ang)
+            vec = rotation.apply(vec1)
+            return vec
+
+    # For histidine & tryptophan
+    if len(ligand.neighbors) == 2:
+        p1 = ligand.neighbors[0].coord()
+        p2 = ligand.neighbors[1].coord()
+        vec1 = chimera.Vector(*(p1-p0).data())
+        vec2 = chimera.Vector(*(p2-p0).data())
+        rot_axis = cross(vec1, vec2)
+        ang = angle(vec1, vec2)/2 - 180
+        rotation = Xform.rotation(rot_axis, ang)
+        vec = rotation.apply(vec1)
+        return vec
+
+    return chimera.Vector(0, 0, 0)
+    # Add more cases...?
+
+    # else:
+    #     # Returns this null Vector to ensure that the sinus perfomed below gets
+    #     # equal to 0.0. This means that there is no preferential bonding
+    #     # direction for this ligand
+    #     return None
+
+class LigandHelper(object):
+    """
+    Class that defines useful information about the metal's surrounding
+    ligands.
+
+    ligand : chimera.Atom
+        Ligand being analyzed
+    ligands : list of chimera.Atom
+        All ligands in the surroundings, including `ligand`, 
+        needed to test if `ligand` is bidentate or not.
+    metal_center : chimera.Atom
+        The metal ion subject to geometry analysis.
+    """
+    def __init__(self, ligand, ligands, metal_center):
+        self.ligand = ligand
+        self.metal_center = metal_center
+        self.coord = self.bond_dir_origin = ligand.xformCoord()
+        self.vector = self.coord - metal_center.xformCoord()
+        self.neighbors = ligand.neighbors
+        self.terminal = len(self.neighbors) == 1
+        self.bidentate = False
+        self.bidentate_mate = None
+
+        for potential_mate in ligands:
+            conditions = (potential_mate is not ligand, 
+                          len(ligand.neighbors) == 1,
+                          len(potential_mate.neighbors) == 1, 
+                          ligand.neighbors[0] is potential_mate.neighbors[0])
+
+            if all(conditions):
+                self.bidentate = True
+                self.bond_dir_origin = self.neighbors[0].xformCoord()
+                self.bidentate_mate = self.potential_mate
+                break
