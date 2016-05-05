@@ -75,9 +75,9 @@ class SimpleCoordination(ObjectiveProvider):
         'angle': parse.Coerce(float),
         'min_atoms': parse.All(parse.Coerce(int), parse.Range(min=0)),
         'geometry': parse.In(MG_geometries.keys()),
-        'enforce_all_residues': parse.Boolean,
-        'only_one_ligand_per_residue': parse.Boolean,
-        'method': parse.In(['simple', 'metalgeom'])
+        'enforce_all_residues': parse.Coerce(bool),
+        'only_one_ligand_per_residue': parse.Coerce(bool),
+        'method': parse.In(['simple', 'metalgeom', 'metalgeom_directional'])
         }, extra=parse.ALLOW_EXTRA)
     
     def __init__(self, method='simple', probe=None, radius=None, atom_types=None, residues=None,
