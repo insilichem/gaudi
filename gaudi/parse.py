@@ -39,7 +39,7 @@ def AssertList(*validators, **kwargs):
     Make sure the value is contained in a list
     """
     def fn(values):
-        if not isinstance(values, list):
+        if not isinstance(values, (list, tuple)):
             values = [values]
         return [validator(v) for validator in validators for v in values]
     return fn
