@@ -80,7 +80,7 @@ class SimpleCoordination(ObjectiveProvider):
         'method': parse.In(['simple', 'metalgeom', 'metalgeom_directional'])
         }, extra=parse.ALLOW_EXTRA)
     
-    def __init__(self, method='simple', probe=None, radius=None, atom_types=None, residues=None,
+    def __init__(self, method='simple', probe=None, radius=None, atom_types=(), residues=(),
                  distance=0, angle=None, dihedral=None, min_atoms=1, geometry='tetrahedral',
                  enforce_all_residues=False, only_one_ligand_per_residue=False, *args, **kwargs):
         ObjectiveProvider.__init__(self, **kwargs)
@@ -218,7 +218,6 @@ class SimpleCoordination(ObjectiveProvider):
         ligand_objects = [LigandHelper(ligand, ligands, metal) for ligand in ligands]
         directionality = directional_evaluation(ligand_objects)
 
-
         return rmsd + directionality
 
 
@@ -238,8 +237,13 @@ class SimpleCoordination(ObjectiveProvider):
 
         # (distance, ligand) tuple, sorted by distances
         def abs_distance(a): return abs(self.distance - metal.xformCoord().distance(a.xformCoord()))
-        atoms_by_distance = [(abs_distance(a), a) for a in atoms
-                             if a.name in self.atom_types and a.residue in residues]
+        if self.atom_types:
+            def atom_in_types(a): return a.name in self.atom_types 
+        else:
+            def atom_in_types(a): return True
+
+        atoms_by_distance = [(abs_distance(a), a) for a in atoms 
+                             if atom_in_types(a) and a.residue in residues]
         if len(atoms_by_distance) < self.min_atoms:
             logger.warning("Could not find requested atoms from residues in probe environment")
             raise NotEnoughAtomsError
@@ -282,17 +286,17 @@ class SimpleCoordination(ObjectiveProvider):
         """
         for mol, pos in residues:
             try:
-                res = next(r for r in ind.genes[mol].compound.mol.residues
-                           if pos == r.id.position)
-
+                if pos == '*':
+                    yield next(r for r in ind.genes[mol].compound.mol.residues)
+                else:
+                    yield next(r for r in ind.genes[mol].compound.mol.residues
+                               if pos == r.id.position)
             except KeyError:
                 logger.exception("Molecule %s not found", mol)
                 raise
             except StopIteration:
                 logger.exception("No residues matched for pos %s", pos)
                 raise
-            else:
-                yield res
 
     def _update_zone(self, ind):
         """
