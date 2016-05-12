@@ -77,14 +77,17 @@ def Molecule_name(v):
 def Named_spec(*names):
     """
     Assert that str is formatted like "Molecule/123", with Molecule being
-    a valid name of a Molecule gene and 123 a positive int
+    a valid name of a Molecule gene and 123 a positive int or *
     """
     def fn(v):
         try:
             name, i = str(v).split('/')
             name.strip()
-            i = int(i)
-            if Molecule_name(name) and i > 0:
+            if Molecule_name(name):
+                if i == '*':
+                    pass
+                elif int(i) > 0:
+                    i = int(i)
                 return namedtuple("NamedSpec", names)(name, i)
             raise ValueError
         except (ValueError, AttributeError):

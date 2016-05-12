@@ -245,7 +245,8 @@ class SimpleCoordination(ObjectiveProvider):
         atoms_by_distance = [(abs_distance(a), a) for a in atoms 
                              if atom_in_types(a) and a.residue in residues]
         if len(atoms_by_distance) < self.min_atoms:
-            logger.warning("Could not find requested atoms from residues in probe environment")
+            logger.warning("Could not find requested atoms from residues in probe environment. "
+                           "Got {} out of {}".format(len(atoms_by_distance), self.min_atoms))
             raise NotEnoughAtomsError
 
         found_residues = set(a.residue for d, a in atoms_by_distance)
@@ -287,7 +288,8 @@ class SimpleCoordination(ObjectiveProvider):
         for mol, pos in residues:
             try:
                 if pos == '*':
-                    yield next(r for r in ind.genes[mol].compound.mol.residues)
+                    for r in ind.genes[mol].compound.mol.residues:
+                        yield r
                 else:
                     yield next(r for r in ind.genes[mol].compound.mol.residues
                                if pos == r.id.position)
