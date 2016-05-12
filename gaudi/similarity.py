@@ -41,6 +41,11 @@ def rmsd(ind1, ind2, subjects, threshold, *args, **kwargs):
         True if rmsd is within threshold, False otherwise
 
     """
+    gene_names = [gene['name'] for gene in ind1.genes]
+    for s in subjects:
+        if s not in gene_names:
+            raise ValueError('Molecule {} not found in individual'.format(s))
+
     # If ligands are not the same molecule, of course they aren't similar
     molecules1 = [g.allele for g in ind1.genes if g.__class__.__name__ == "Molecule"]
     molecules2 = [g.allele for g in ind2.genes if g.__class__.__name__ == "Molecule"]
