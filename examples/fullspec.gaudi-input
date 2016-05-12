@@ -58,6 +58,7 @@ genes:
         target: Protein
         group_by: residues
         group_lambda: 20
+        n_modes: [0,1,2,3,4,5]
         n_samples: 100
         rmsd: 2.0
 

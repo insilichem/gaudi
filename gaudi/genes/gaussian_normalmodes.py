@@ -50,28 +50,56 @@ class GaussianNormalModes(GeneProvider):
     """
     Parameters
     ----------
+    target : str
+        Name of the Gene containing the actual molecule.
+
+    n_modes : int, optional, default=5
+        number of modes used to calculate conformations
+
+    n_samples : int, optional, default=10000
+        number of conformations to generate
+
+    rmsd : float, optional, default=1.0
+        average RMSD that the conformations will have with respect to the initial conformation
+
     
     Attributes
     ----------
+    NORMAL_MODES : prody.modes
+        normal modes calculated for the molecle
+        stored in a prody modes class (ANM or RTB)
+
+    NORMAL_MODE_SAMPLES : prody.ensemble
+        configurations applying modes to molecule
+
+    _original_coords : numpy.array
+        Parent coordinates
+
+    _chimera2prody : dict
+        _chimera2prody[chimera_index] = prody_index
     
     Notes
     -----
+    
 
     """
 
     validate = parse.Schema({
         'target': parse.Molecule_name,
         parse.Required('path'): parse.RelPathToInputFile(),
+        # 'n_modes': parse.All(parse.Coerce(int), parse.Range(min=1)),
+        'n_modes': [int],
         'n_samples': parse.All(parse.Coerce(int), parse.Range(min=1)),
         'rmsd': parse.All(parse.Coerce(float), parse.Range(min=0))
     }, extra=parse.ALLOW_EXTRA)
 
-    def __init__(self, target=None, path=None, n_samples=10000, rmsd=1.0,
+    def __init__(self, target=None, path=None, n_modes=range(6), n_samples=10000, rmsd=1.0,
                  **kwargs):
         # Fire up!
         GeneProvider.__init__(self, **kwargs)
         self.target = target
         self.path = path
+        self.n_modes = n_modes
         self.n_samples = n_samples
         self.rmsd = rmsd
         if self.name not in self._cache:
@@ -160,35 +188,35 @@ class GaussianNormalModes(GeneProvider):
         and calculate n_confs number of configurations using this modes
         """
         prody_molecule, chimera2prody = convert_chimera_molecule_to_prody(self.molecule)
-        modes = gaussian_modes(self.molecule, self.path)
-        samples = prody.sampleModes(modes=modes, atoms=prody_molecule, n_confs=self.n_samples,
-                                    rmsd=self.rmsd)
+        modes = gaussian_modes(self.path)
+        samples = prody.sampleModes(modes=modes[self.n_modes], atoms=prody_molecule,
+                                    n_confs=self.n_samples, rmsd=self.rmsd)
         samples_coords = [sample.getCoords() for sample in samples]
         return modes, samples_coords, chimera2prody
 
 
 ####
-def gaussian_modes(molecule, file):
+def gaussian_modes(path):
     """
     Read the modes and store as vectors
     Create a prody.modes instance with the vectors
     Check if the molecule in the modes is our molecule?
     """
-    # gaussian_molecule = read_molecule(file)
-    # check_molecule(gaussian_molecule, molecule)
-    vector_modes = read_vectors(file)
-    frequency_modes = read_frequencies(file)
+    vector_modes = read_vectors(path)
+    frequency_modes = read_frequencies(path)
+    for i, freq in enumerate(frequency_modes):
+        frequency_modes[i] = abs(freq)
     modes = create_prody_modes(frequency_modes, vector_modes)
     return modes
 
 
-def read_vectors(file):
+def read_vectors(path):
     """
     Read normal modes vectors from gaussian file
 
     Parameters
     ----------
-    file : str
+    path : str
 
     Return
     ------
@@ -196,10 +224,10 @@ def read_vectors(file):
 
     Dubte: com sabem que en una linia hi trobarem tres trios de vectors?
     """
-    num_atoms = None
-    input_file = open(file, "r")
+    input_file = open(path, "r")
 
     modes = []
+    num_atoms = None
     # vfreq1 = []
     # vfreq2 = []
     # vfreq3 = []
@@ -207,17 +235,16 @@ def read_vectors(file):
 
     for line in input_file:
 
-        if line.find('Input orientation') is not -1:
+        if line.find('Input orientation') != -1 or line.find('Standard orientation') != -1 and num_atoms == None:
             for i in xrange(4):
                 next(input_file)
             num_atoms = int(next(input_file).split()[0])
-            no_finalitzat = True
-            while no_finalitzat:
+            while True:
                 new_line = next(input_file)
                 if new_line.find('--') == -1:
                     num_atoms = int(new_line.split()[0])
                 else:
-                    no_finalitzat = False
+                    break
         elif (line.find("Atom  AN") > -1 or line.find("Atom AN") > -1) and num_atoms:
             vfreq1 = []
             vfreq2 = []
@@ -237,15 +264,15 @@ def read_vectors(file):
     return modes
 
 
-def read_frequencies(file):
+def read_frequencies(path):
     """
     Read normal modes
 
-    file: string
+    path: string
 
     frequencies: list
     """
-    input = open(file, "r")
+    input = open(path, "r")
     frequencies = []
     for line in input:
         if line.find(" Frequencies --") > -1:
@@ -261,7 +288,7 @@ def read_frequencies(file):
     return frequencies
 
 
-def read_molecule(file):
+def read_molecule(path):
     pass
 
 

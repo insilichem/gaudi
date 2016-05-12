@@ -76,7 +76,6 @@ class NormalModes(GeneProvider):
 
     Attributes
     ----------
-    !!! UPDATE
     NORMAL_MODES : prody.modes
         normal modes calculated for the molecle
         stored in a prody modes class (ANM or RTB)
@@ -99,21 +98,24 @@ class NormalModes(GeneProvider):
         'target': parse.Molecule_name,
         'group_by': parse.In(['residues', 'mass', '']),
         'group_lambda': parse.All(parse.Coerce(int), parse.Range(min=1)),
+        'n_modes': parse.All([parse.Coerce(int), parse.Range(min=1)], parse.Length(min=1)),
         'n_samples': parse.All(parse.Coerce(int), parse.Range(min=1)),
         'rmsd': parse.All(parse.Coerce(float), parse.Range(min=0))
     }, extra=parse.ALLOW_EXTRA)
 
-    def __init__(self, target=None, group_by=None, group_lambda=None, n_samples=10000, rmsd=1.0,
-                 **kwargs):
+    def __init__(self, target=None, group_by=None, group_lambda=None, n_modes=range(20),
+                 n_samples=10000, rmsd=1.0, **kwargs):
         # Fire up!
         GeneProvider.__init__(self, **kwargs)
         self.target = target
         self.group_by = group_by
+        self.n_modes = n_modes
         self.n_samples = n_samples
         self.rmsd = rmsd
         self.group_by_options = {} if group_lambda is None else {'n': group_lambda}
         if self.name not in self._cache:
             self._cache[self.name] = LRUCache(300)
+        self.max_n_modes = max(n_modes)
         
 
     def __ready__(self):
@@ -197,19 +199,22 @@ class NormalModes(GeneProvider):
         and calculate n_confs number of configurations using this modes
         """
         prody_molecule, chimera2prody = convert_chimera_molecule_to_prody(self.molecule)
-        modes = normal_modes(prody_molecule, GROUPERS[self.group_by], **self.group_by_options)
-        samples = prody.sampleModes(modes=modes, atoms=prody_molecule, n_confs=self.n_samples,
-                                    rmsd=self.rmsd)
+        modes = normal_modes(prody_molecule, self.max_n_modes, GROUPERS[self.group_by],
+                              **self.group_by_options)
+        samples = prody.sampleModes(modes=modes[self.n_modes], atoms=prody_molecule,
+                                    n_confs=self.n_samples, rmsd=self.rmsd)
         samples_coords = [sample.getCoords() for sample in samples]
         return modes, samples_coords, chimera2prody
 
 
 ####
-def normal_modes(molecule, algorithm=None, **options):
+def normal_modes(molecule, n_modes, algorithm=None, **options):
     """
     Parameters
     ----------
     molecule : prody.AtomGroup
+    n_modes : int
+        number of modes to calculate
     algorithm : callable, optional, default=None
         coarseGrain(prm) wich make molecule.select().setBetas(i) where i
         is the index Coarse Grain group
@@ -227,11 +232,11 @@ def normal_modes(molecule, algorithm=None, **options):
         molecule = algorithm(molecule, **options)
         modes = prody.RTB(title)
         modes.buildHessian(molecule.getCoords(), molecule.getBetas())
-        modes.calcModes()
+        modes.calcModes(n_modes=n_modes)
     else:
         modes = prody.ANM('normal modes for {}'.format(molecule.getTitle()))
         modes.buildHessian(molecule)
-        modes.calcModes()
+        modes.calcModes(n_modes=n_modes)
     return modes
 
 
