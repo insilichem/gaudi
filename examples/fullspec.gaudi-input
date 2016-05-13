@@ -53,14 +53,24 @@ genes:
         mutations: []
         ligation: False
 
-    -   name: NormalModes
+    -   name: NormalModes #with prody
         module: gaudi.genes.normalmodes
+        method: prody
         target: Protein
         group_by: residues
         group_lambda: 20
-        n_modes: [0,1,2,3,4,5]
+        n_modes: [0,1,2,3,4,5,6,7,8,9,10,11]
         n_samples: 100
         rmsd: 2.0
+
+    -   name: NormalModes #with gaussian
+        module: gaudi.genes.normalmodes
+        method: gaussian
+        target: Ligand
+        path: /path/to/gaussian.output
+        n_modes: [0,1,2,3,4,5]
+        n_samples: 100
+        rmsd: 0.7
 
     -   name: Torsion
         module: gaudi.genes.torsion

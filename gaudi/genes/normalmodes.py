@@ -120,16 +120,19 @@ class NormalModes(GeneProvider):
         'rmsd': parse.All(parse.Coerce(float), parse.Range(min=0))
     }, extra=parse.ALLOW_EXTRA)
 
-    def __init__(self, method='prody', target=None, n_modes=range(12), n_samples=10000, rmsd=1.0,
+    def __init__(self, method='prody', target=None, n_modes=None, n_samples=10000, rmsd=1.0,
                  group_by=None, group_lambda=None, path=None, **kwargs):
         # Fire up!
         GeneProvider.__init__(self, **kwargs)
+        self.method = method
         self.target = target
+        self.n_modes = n_modes if n_modes is not None else range(12)
+        self.max_n_modes = max(n_modes)+1
+        self.n_samples = n_samples
+        self.rmsd = rmsd
         self.group_by = None
         self.group_by_options = None
-        self.path = path
-        self.method = method
-        self.max_n_modes = max(n_modes)
+        self.path = None
         if method == 'prody':
             self.normal_modes_function = self.calculate_prody_normal_modes
             self.group_by = group_by
@@ -139,9 +142,7 @@ class NormalModes(GeneProvider):
             if path is None:
                 raise ValueError('Path is required if method == gaussian')
             self.path = path
-        self.n_modes = n_modes
-        self.n_samples = n_samples
-        self.rmsd = rmsd
+
         if self.name not in self._cache:
             self._cache[self.name] = LRUCache(300)
 
@@ -230,6 +231,7 @@ class NormalModes(GeneProvider):
                             **self.group_by_options)
         samples = prody.sampleModes(modes=modes[self.n_modes], atoms=prody_molecule,
                                     n_confs=self.n_samples, rmsd=self.rmsd)
+        samples.addCoordset(prody_molecule)
         samples_coords = [sample.getCoords() for sample in samples]
         return modes, samples_coords, chimera2prody
 
@@ -243,6 +245,7 @@ class NormalModes(GeneProvider):
 
         samples = prody.sampleModes(modes=modes[self.n_modes], atoms=prody_molecule,
                                     n_confs=self.n_samples, rmsd=self.rmsd)
+        samples.addCoordset(prody_molecule)
         samples_coords = [sample.getCoords() for sample in samples]
         return modes, samples_coords, chimera2prody
 
@@ -295,15 +298,11 @@ def gaussian_modes(path):
     modes : ProDy modes ANM or RTB
     """
     gaussian_parser = Gaussian(path).parse()
-    modes = []
-    for mode in gaussian_parser.vibdisps:
-        vect = []
-        for element in mode:
-            vect.extend(element)
-        modes.append(vect)
-    frequencies = [abs(freq) for freq in gaussian_parser.vibfreqs]
+    shape = gaussian_parser.vibdisps.shape
+    modes = gaussian_parser.reshape(shape[0],shape[1]*shape[2]).T
+    frequencies = numpy.abs(gaussian_parser.vibfreqs)
     prody_modes = prody.NMA()
-    prody_modes.setEigens(vectors=numpy.array(modes).T, values=frequencies)
+    prody_modes.setEigens(vectors=modes, values=frequencies)
     return prody_modes
 
 
