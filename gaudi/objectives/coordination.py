@@ -547,5 +547,5 @@ class LigandHelper(object):
             if all(conditions):
                 self.bidentate = True
                 self.bond_dir_origin = self.neighbors[0].xformCoord()
-                self.bidentate_mate = self.potential_mate
+                self.bidentate_mate = potential_mate
                 break
