@@ -105,7 +105,8 @@ def ResidueThreeLetterCode(v):
 
 def RelPathToInputFile(inputpath=None):
     if inputpath is None:
-        inputpath = os.environ.get('GAUDI_INPUT_PATH', '')
+        # inputpath = os.environ.get('GAUDI_INPUT_PATH', '')
+        inputpath = getattr(gaudi, '__input_path__', '')
 
     @wraps(RelPathToInputFile)
     def fn(v):
@@ -176,7 +177,7 @@ class Settings(Munch):
         self.update(munchify(self.default_values))
         if path is not None:
             self._path = path
-            os.environ['GAUDI_INPUT_PATH'] = os.path.dirname(path)
+            gaudi.__input_path__ = os.environ['GAUDI_INPUT_PATH'] = os.path.dirname(path)
             with open(path) as f:
                 raw_dict = yaml.load(f)
             validated = self.validate(raw_dict)
