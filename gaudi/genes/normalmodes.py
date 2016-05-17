@@ -54,39 +54,29 @@ class NormalModes(GeneProvider):
         Expected
             prody : calculate normal modes using prody algorithms
             gaussian : read normal modes from a gaussian output file
-
     target : str
         Name of the Gene containing the actual molecule
-
-    n_modes : list, optional, default=range(12)
-        Number of first modes used to move the molecule
-
+    modes : list, optional, default=range(12)
+        Modes to be used to move the molecule
     group_by : string, optional, default=None
-        grup_by_* algorithm name
-
+        group_by_* algorithm name
         group_by_* : callable, optional, default=None
             coarseGrain(prm) wich make mol.select().setBetas(i) where i
             is the index Coarse Grain group
             Where prm is prody AtomGroup
-
     group_lambda : dictionary, optional
         Expected
         residues_number : int, optional, default=7
             number of residues per group
         mass_division : int, optional, default=100
             number of groups
-
     path : str
         Gaussian frequencies output path
         Obligatory if method=gaussian 
-
-
     n_samples : int, optional, default=10000
         number of conformations to generate
-
     rmsd : float, optional, default=1.0
         average RMSD that the conformations will have with respect to the initial conformation
-
 
     Attributes
     ----------
@@ -94,19 +84,12 @@ class NormalModes(GeneProvider):
         normal modes calculated for the molecle or readed
         from the gaussian frequencies output file stored
         in a prody modes class (ANM or RTB)
-
     NORMAL_MODE_SAMPLES : prody.ensemble
         configurations applying modes to molecule
-
     _original_coords : numpy.array
         Parent coordinates
-
     _chimera2prody : dict
         _chimera2prody[chimera_index] = prody_index
-
-    Notes
-    -----
-
     """
 
     validate = parse.Schema({
@@ -115,27 +98,19 @@ class NormalModes(GeneProvider):
         'target': parse.Molecule_name,
         'group_by': parse.In(['residues', 'mass', '']),
         'group_lambda': parse.All(parse.Coerce(int), parse.Range(min=1)),
-        'n_modes': parse.Any(int,[int],str),
+        'modes': [parse.All(parse.Coerce(int), parse.Range(min=0))],
         'n_samples': parse.All(parse.Coerce(int), parse.Range(min=1)),
         'rmsd': parse.All(parse.Coerce(float), parse.Range(min=0))
     }, extra=parse.ALLOW_EXTRA)
 
-    def __init__(self, method='prody', target=None, n_modes=None, n_samples=10000, rmsd=1.0,
+    def __init__(self, method='prody', target=None, modes=None, n_samples=10000, rmsd=1.0,
                  group_by=None, group_lambda=None, path=None, **kwargs):
         # Fire up!
         GeneProvider.__init__(self, **kwargs)
         self.method = method
         self.target = target
-        if isinstance(n_modes, list):
-            self.n_modes = n_modes
-        elif isinstance(n_modes, str):
-            self.n_modes = list(hyphen_range(n_modes))
-        elif isinstance(n_modes, int):
-            self.n_modes = range(n_modes)
-        else:
-            self.n_modes = range(12)
-        # self.n_modes = n_modes if n_modes is not None else range(12)
-        self.max_n_modes = max(self.n_modes)+1
+        self.modes = modes if modes is not None else range(12)
+        self.max_modes = max(self.modes) + 1
         self.n_samples = n_samples
         self.rmsd = rmsd
         self.group_by = None
@@ -235,9 +210,9 @@ class NormalModes(GeneProvider):
         and calculate n_confs number of configurations using this modes
         """
         prody_molecule, chimera2prody = convert_chimera_molecule_to_prody(self.molecule)
-        modes = prody_modes(prody_molecule, self.max_n_modes, GROUPERS[self.group_by],
+        modes = prody_modes(prody_molecule, self.max_modes, GROUPERS[self.group_by],
                             **self.group_by_options)
-        samples = prody.sampleModes(modes=modes[self.n_modes], atoms=prody_molecule,
+        samples = prody.sampleModes(modes=modes[self.modes], atoms=prody_molecule,
                                     n_confs=self.n_samples, rmsd=self.rmsd)
         samples.addCoordset(prody_molecule)
         samples_coords = [sample.getCoords() for sample in samples]
@@ -251,7 +226,7 @@ class NormalModes(GeneProvider):
         prody_molecule, chimera2prody = convert_chimera_molecule_to_prody(self.molecule)
         modes = gaussian_modes(self.path)
 
-        samples = prody.sampleModes(modes=modes[self.n_modes], atoms=prody_molecule,
+        samples = prody.sampleModes(modes=modes[self.modes], atoms=prody_molecule,
                                     n_confs=self.n_samples, rmsd=self.rmsd)
         samples.addCoordset(prody_molecule)
         samples_coords = [sample.getCoords() for sample in samples]
@@ -259,13 +234,13 @@ class NormalModes(GeneProvider):
 
 
 ####
-def prody_modes(molecule, n_modes, algorithm=None, **options):
+def prody_modes(molecule, modes, algorithm=None, **options):
     """
     Parameters
     ----------
     molecule : prody.AtomGroup
-    n_modes : int
-        number of modes to calculate
+    modes : list of int
+        which modes to calculate
     algorithm : callable, optional, default=None
         coarseGrain(prm) wich make molecule.select().setBetas(i) where i
         is the index Coarse Grain group
@@ -283,11 +258,11 @@ def prody_modes(molecule, n_modes, algorithm=None, **options):
         molecule = algorithm(molecule, **options)
         modes = prody.RTB(title)
         modes.buildHessian(molecule.getCoords(), molecule.getBetas())
-        modes.calcModes(n_modes=n_modes)
+        modes.calcModes(n_modes=modes)
     else:
         modes = prody.ANM('normal modes for {}'.format(molecule.getTitle()))
         modes.buildHessian(molecule)
-        modes.calcModes(n_modes=n_modes)
+        modes.calcModes(n_modes=modes)
     return modes
 
 
@@ -307,7 +282,7 @@ def gaussian_modes(path):
     """
     gaussian_parser = Gaussian(path).parse()
     shape = gaussian_parser.vibdisps.shape
-    modes = gaussian_parser.vibdisps.reshape(shape[0],shape[1]*shape[2]).T
+    modes = gaussian_parser.vibdisps.reshape(shape[0], shape[1]*shape[2]).T
     frequencies = numpy.abs(gaussian_parser.vibfreqs)
     prody_modes = prody.NMA()
     prody_modes.setEigens(vectors=modes, values=frequencies)
@@ -470,23 +445,6 @@ def chunker(end, n):
         yield end-end % n+1, end
 
 
-def hyphen_range(s):
-    """ 
-    yield each integer from a printer like string: '1-9, 12, 22-23'
-    """
-    for x in s.split(','):
-        elem = x.split('-')
-        if len(elem) == 1: # a number
-            yield int(elem[0])
-        elif len(elem) == 2: # a range inclusive
-            start, end = map(int, elem)
-            for i in xrange(start, end+1):
-                yield i
-        else: # more than one hyphen
-            raise ValueError('format error in %s' % x)
-
-
-
 def chimeracoords2numpy(molecule):
     """
     Parameters
@@ -498,6 +456,7 @@ def chimeracoords2numpy(molecule):
     numpy.array with molecule.atoms coordinates
     """
     return numpy.array([tuple(atom.coord()) for atom in molecule.atoms], dtype=float)
+
 
 GROUPERS = {
     'residues': group_by_residues,
