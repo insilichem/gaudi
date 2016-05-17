@@ -26,6 +26,8 @@ from collections import namedtuple
 import yaml
 from munch import Munch, munchify
 from voluptuous import *
+# Own
+import gaudi
 
 logger = logging.getLogger(__name__)
 
