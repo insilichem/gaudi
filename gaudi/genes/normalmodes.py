@@ -115,7 +115,7 @@ class NormalModes(GeneProvider):
         'target': parse.Molecule_name,
         'group_by': parse.In(['residues', 'mass', '']),
         'group_lambda': parse.All(parse.Coerce(int), parse.Range(min=1)),
-        'n_modes': [int],
+        'n_modes': parse.Any(int,[int],str),
         'n_samples': parse.All(parse.Coerce(int), parse.Range(min=1)),
         'rmsd': parse.All(parse.Coerce(float), parse.Range(min=0))
     }, extra=parse.ALLOW_EXTRA)
@@ -126,8 +126,16 @@ class NormalModes(GeneProvider):
         GeneProvider.__init__(self, **kwargs)
         self.method = method
         self.target = target
-        self.n_modes = n_modes if n_modes is not None else range(12)
-        self.max_n_modes = max(n_modes)+1
+        if isinstance(n_modes, list):
+            self.n_modes = n_modes
+        elif isinstance(n_modes, str):
+            self.n_modes = list(hyphen_range(n_modes))
+        elif isinstance(n_modes, int):
+            self.n_modes = range(n_modes)
+        else:
+            self.n_modes = range(12)
+        # self.n_modes = n_modes if n_modes is not None else range(12)
+        self.max_n_modes = max(self.n_modes)+1
         self.n_samples = n_samples
         self.rmsd = rmsd
         self.group_by = None
@@ -299,7 +307,7 @@ def gaussian_modes(path):
     """
     gaussian_parser = Gaussian(path).parse()
     shape = gaussian_parser.vibdisps.shape
-    modes = gaussian_parser.reshape(shape[0],shape[1]*shape[2]).T
+    modes = gaussian_parser.vibdisps.reshape(shape[0],shape[1]*shape[2]).T
     frequencies = numpy.abs(gaussian_parser.vibfreqs)
     prody_modes = prody.NMA()
     prody_modes.setEigens(vectors=modes, values=frequencies)
@@ -460,6 +468,23 @@ def chunker(end, n):
         yield i+1, i+n
     if end % n:
         yield end-end % n+1, end
+
+
+def hyphen_range(s):
+    """ 
+    yield each integer from a printer like string: '1-9, 12, 22-23'
+    """
+    for x in s.split(','):
+        elem = x.split('-')
+        if len(elem) == 1: # a number
+            yield int(elem[0])
+        elif len(elem) == 2: # a range inclusive
+            start, end = map(int, elem)
+            for i in xrange(start, end+1):
+                yield i
+        else: # more than one hyphen
+            raise ValueError('format error in %s' % x)
+
 
 
 def chimeracoords2numpy(molecule):
