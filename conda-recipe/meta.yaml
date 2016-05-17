@@ -21,6 +21,8 @@ requirements:
     - openmm
     - openmoltools
     - pdbfixer
+    - cclib
+    - scipy
 
 test:
   imports:

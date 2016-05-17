@@ -8,6 +8,8 @@ dependencies:
 - openmm
 - openmoltools
 - pdbfixer
+- cclib
+- scipy
 - pip:
   - munch
   - voluptuous
@@ -15,5 +17,6 @@ dependencies:
   - repoze.lru
   - deap
   - pyyaml
+  - prody
   - git+https://bitbucket.org/insilichem/gaudi
 

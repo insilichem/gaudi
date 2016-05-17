@@ -15,7 +15,7 @@
 This module allows to explore molecular folding through normal modes analysis.
 
 It works by calculating normal modes for the input molecule and moving along
-a comgination of normal modes.
+a combination of normal modes.
 
 It needs at least a :class:`gaudi.genes.rotamers.molecule.Molecule`.
 
@@ -31,6 +31,7 @@ import chimera
 # 3rd party
 import prody
 from repoze.lru import LRUCache
+from cclib.parser import Gaussian
 # GAUDI
 from gaudi.genes import GeneProvider
 from gaudi import parse
@@ -49,72 +50,84 @@ class NormalModes(GeneProvider):
     """
     Parameters
     ----------
+    method : str
+        Expected
+            prody : calculate normal modes using prody algorithms
+            gaussian : read normal modes from a gaussian output file
     target : str
-        Name of the Gene containing the actual molecule.
-
+        Name of the Gene containing the actual molecule
+    modes : list, optional, default=range(12)
+        Modes to be used to move the molecule
     group_by : string, optional, default=None
-        grup_by_* algorithm name
-
+        group_by_* algorithm name
         group_by_* : callable, optional, default=None
             coarseGrain(prm) wich make mol.select().setBetas(i) where i
             is the index Coarse Grain group
             Where prm is prody AtomGroup
-
     group_lambda : dictionary, optional
         Expected
         residues_number : int, optional, default=7
             number of residues per group
         mass_division : int, optional, default=100
             number of groups
-
+    path : str
+        Gaussian frequencies output path
+        Obligatory if method=gaussian 
     n_samples : int, optional, default=10000
         number of conformations to generate
-
     rmsd : float, optional, default=1.0
         average RMSD that the conformations will have with respect to the initial conformation
 
-
     Attributes
     ----------
-    !!! UPDATE
     NORMAL_MODES : prody.modes
-        normal modes calculated for the molecle
-        stored in a prody modes class (ANM or RTB)
-
+        normal modes calculated for the molecle or readed
+        from the gaussian frequencies output file stored
+        in a prody modes class (ANM or RTB)
     NORMAL_MODE_SAMPLES : prody.ensemble
         configurations applying modes to molecule
-
     _original_coords : numpy.array
         Parent coordinates
-
     _chimera2prody : dict
-        You tell 
-
-    Notes
-    -----
-
+        _chimera2prody[chimera_index] = prody_index
     """
 
     validate = parse.Schema({
+        'method': parse.In(['prody', 'gaussian']),
+        'path': parse.RelPathToInputFile(),
         'target': parse.Molecule_name,
         'group_by': parse.In(['residues', 'mass', '']),
         'group_lambda': parse.All(parse.Coerce(int), parse.Range(min=1)),
+        'modes': [parse.All(parse.Coerce(int), parse.Range(min=0))],
         'n_samples': parse.All(parse.Coerce(int), parse.Range(min=1)),
         'rmsd': parse.All(parse.Coerce(float), parse.Range(min=0))
     }, extra=parse.ALLOW_EXTRA)
 
-    def __init__(self, target=None, group_by=None, group_lambda=None, n_samples=10000, rmsd=1.0,
-                 **kwargs):
+    def __init__(self, method='prody', target=None, modes=None, n_samples=10000, rmsd=1.0,
+                 group_by=None, group_lambda=None, path=None, **kwargs):
         # Fire up!
         GeneProvider.__init__(self, **kwargs)
+        self.method = method
         self.target = target
-        self.group_by = group_by
+        self.modes = modes if modes is not None else range(12)
+        self.max_modes = max(self.modes) + 1
         self.n_samples = n_samples
         self.rmsd = rmsd
-        self.group_by_options = {} if group_lambda is None else {'n': group_lambda}
+        self.group_by = None
+        self.group_by_options = None
+        self.path = None
+        if method == 'prody':
+            self.normal_modes_function = self.calculate_prody_normal_modes
+            self.group_by = group_by
+            self.group_by_options = {} if group_lambda is None else {'n': group_lambda}
+        else:  # gaussian
+            self.normal_modes_function = self.read_gaussian_normal_modes
+            if path is None:
+                raise ValueError('Path is required if method == gaussian')
+            self.path = path
+
         if self.name not in self._cache:
             self._cache[self.name] = LRUCache(300)
-        
 
     def __ready__(self):
         """
@@ -124,7 +137,7 @@ class NormalModes(GeneProvider):
         """
         cached = self._CACHE.get('normal_modes')
         if not cached:
-            normal_modes, normal_modes_samples, chimera2prody = self.calculate_normal_modes()
+            normal_modes, normal_modes_samples, chimera2prody = self.normal_modes_function()
             self._CACHE.put('normal_modes', normal_modes)
             self._CACHE.put('normal_modes_samples', normal_modes_samples)
             self._CACHE.put('chimera2prody', chimera2prody)
@@ -178,11 +191,11 @@ class NormalModes(GeneProvider):
     @property
     def NORMAL_MODES(self):
         return self._CACHE.get('normal_modes')
-    
+
     @property
     def NORMAL_MODES_SAMPLES(self):
         return self._CACHE.get('normal_modes_samples')
-   
+
     @property
     def _chimera2prody(self):
         return self._CACHE.get('chimera2prody')
@@ -191,24 +204,43 @@ class NormalModes(GeneProvider):
     def _original_coords(self):
         return self._CACHE.get('original_coords')
 
-    def calculate_normal_modes(self):
+    def calculate_prody_normal_modes(self):
         """
-        Docs docs docs
+        calculate normal modes, creates a diccionary between chimera and prody indices
+        and calculate n_confs number of configurations using this modes
         """
         prody_molecule, chimera2prody = convert_chimera_molecule_to_prody(self.molecule)
-        modes = normal_modes(prody_molecule, GROUPERS[self.group_by], **self.group_by_options)
-        samples = prody.sampleModes(modes=modes, atoms=prody_molecule, n_confs=self.n_samples,
-                                    rmsd=self.rmsd)
+        modes = prody_modes(prody_molecule, self.max_modes, GROUPERS[self.group_by],
+                            **self.group_by_options)
+        samples = prody.sampleModes(modes=modes[self.modes], atoms=prody_molecule,
+                                    n_confs=self.n_samples, rmsd=self.rmsd)
+        samples.addCoordset(prody_molecule)
+        samples_coords = [sample.getCoords() for sample in samples]
+        return modes, samples_coords, chimera2prody
+
+    def read_gaussian_normal_modes(self):
+        """
+        read normal modes, creates a diccionary between chimera and prody indices
+        and calculate n_confs number of configurations using this modes
+        """
+        prody_molecule, chimera2prody = convert_chimera_molecule_to_prody(self.molecule)
+        modes = gaussian_modes(self.path)
+
+        samples = prody.sampleModes(modes=modes[self.modes], atoms=prody_molecule,
+                                    n_confs=self.n_samples, rmsd=self.rmsd)
+        samples.addCoordset(prody_molecule)
         samples_coords = [sample.getCoords() for sample in samples]
         return modes, samples_coords, chimera2prody
 
 
 ####
-def normal_modes(molecule, algorithm=None, **options):
+def prody_modes(molecule, modes, algorithm=None, **options):
     """
     Parameters
     ----------
     molecule : prody.AtomGroup
+    modes : list of int
+        which modes to calculate
     algorithm : callable, optional, default=None
         coarseGrain(prm) wich make molecule.select().setBetas(i) where i
         is the index Coarse Grain group
@@ -226,12 +258,35 @@ def normal_modes(molecule, algorithm=None, **options):
         molecule = algorithm(molecule, **options)
         modes = prody.RTB(title)
         modes.buildHessian(molecule.getCoords(), molecule.getBetas())
-        modes.calcModes()
+        modes.calcModes(n_modes=modes)
     else:
         modes = prody.ANM('normal modes for {}'.format(molecule.getTitle()))
         modes.buildHessian(molecule)
-        modes.calcModes()
+        modes.calcModes(n_modes=modes)
     return modes
+
+
+def gaussian_modes(path):
+    """
+    Read the modes
+    Create a prody.modes instance
+
+    Parameters
+    ----------
+    path : str
+        gaussian frequencies output path
+
+    Returns
+    -------
+    modes : ProDy modes ANM or RTB
+    """
+    gaussian_parser = Gaussian(path).parse()
+    shape = gaussian_parser.vibdisps.shape
+    modes = gaussian_parser.vibdisps.reshape(shape[0], shape[1]*shape[2]).T
+    frequencies = numpy.abs(gaussian_parser.vibfreqs)
+    prody_modes = prody.NMA()
+    prody_modes.setEigens(vectors=modes, values=frequencies)
+    return prody_modes
 
 
 def convert_chimera_molecule_to_prody(molecule):
@@ -401,6 +456,7 @@ def chimeracoords2numpy(molecule):
     numpy.array with molecule.atoms coordinates
     """
     return numpy.array([tuple(atom.coord()) for atom in molecule.atoms], dtype=float)
+
 
 GROUPERS = {
     'residues': group_by_residues,
