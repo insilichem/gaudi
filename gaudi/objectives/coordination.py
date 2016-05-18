@@ -130,7 +130,7 @@ class SimpleCoordination(ObjectiveProvider):
         3. As a result, lower scores are better.
         """
         try:
-            atoms_by_distance = self._nearest_atoms(ind)
+            atoms_by_distance = self.coordination_sphere(ind)
         except (NotEnoughAtomsError, SomeResiduesMissingError):
             return -1000 * self.weight
         else:
@@ -169,7 +169,7 @@ class SimpleCoordination(ObjectiveProvider):
         3. If that's not possible of they are not enough, return penalty
         """
         try:
-            test_atoms = [a for d, a in self._nearest_atoms(ind)]
+            test_atoms = [a for d, a in self.coordination_sphere(ind)]
         except (NotEnoughAtomsError, SomeResiduesMissingError):
             logger.warning("Not enough atoms or some residues missing")
             return -1000 * self.weight
@@ -194,7 +194,7 @@ class SimpleCoordination(ObjectiveProvider):
         3. If that's not possible of they are not enough, return penalty
         """
         try:
-            test_atoms = [a for d, a in self._nearest_atoms(ind)]
+            test_atoms = [a for d, a in self.coordination_sphere(ind)]
         except (NotEnoughAtomsError, SomeResiduesMissingError):
             logger.warning("Not enough atoms or some residues missing")
             return -1000 * self.weight
@@ -221,7 +221,7 @@ class SimpleCoordination(ObjectiveProvider):
         return rmsd + directionality
 
 
-    def _nearest_atoms(self, ind):
+    def coordination_sphere(self, ind):
         """
         1. Get atoms and residues found within `self.radius` angstroms from `self.probe`
         1.1. Found residues MUST include self.residues. Otherwise, apply penalty
@@ -229,32 +229,39 @@ class SimpleCoordination(ObjectiveProvider):
            That way, nearest atoms are computed first.
         2.1. If found atoms do not include some of the requested types, apply penalty.
         """
-
-        self._update_zone(ind)
-        atoms = self.zone.atoms()
-        metal = self.probe(ind)
-        residues = self.residues(ind)
-
-        # (distance, ligand) tuple, sorted by distances
-        def abs_distance(a): return abs(self.distance - metal.xformCoord().distance(a.xformCoord()))
+        # Helpers
+        def abs_distance(a):
+            return abs(self.distance - metal.xformCoord().distance(a.xformCoord()))
         if self.atom_types:
             def atom_in_types(a): return a.name in self.atom_types 
         else:
             def atom_in_types(a): return True
 
-        atoms_by_distance = [(abs_distance(a), a) for a in atoms 
-                             if atom_in_types(a) and a.residue in residues]
+        self._update_zone(ind)
+        metal = self.probe(ind)
+        residues = self.residues(ind)
+        atoms = [a for a in self.zone.atoms() if a is not metal]
+        
+
+        atoms_by_distance = []
+        found_residues = set()
+        distance_and_atoms = sorted((abs_distance(a), a) for a in atoms)
+        for d, a in distance_and_atoms:
+            if atom_in_types(a) and a.residue in residues and d > 1.0:
+                atoms_by_distance.append((d, a))
+                found_residues.add(a.residue)
+            else:
+                break
+
         if len(atoms_by_distance) < self.min_atoms:
             logger.warning("Could not find requested atoms from residues in probe environment. "
                            "Got {} out of {}".format(len(atoms_by_distance), self.min_atoms))
             raise NotEnoughAtomsError
 
-        found_residues = set(a.residue for d, a in atoms_by_distance)
         if self.enforce_all_residues and found_residues != residues:
             logger.warning("Some atoms found, but some residues are missing")
             raise SomeResiduesMissingError
 
-        atoms_by_distance.sort()
         return atoms_by_distance
 
     # TODO: Probes get lost if rotamers are applied!
