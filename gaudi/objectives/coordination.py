@@ -579,13 +579,11 @@ def ideal_bond_deviation(metal, ligand, other_ligands=()):
     """
     ligand_idatm = chimera.idatm.typeInfo.get(ligand.idatmType)
     ligand_geometry = ligand_idatm.geometry if ligand_idatm else 3
-    ligand_coord = ligand.xformCoord()
-    metal_coord = metal.xformCoord()
-    neighbor = ligand.neighbors[0]
-    neighbor_coord = neighbor.xformCoord()
-    n_neighbor = next(a for a in neighbor.neighbors if a is not ligand)
-    n_neighbor_coord = n_neighbor.xformCoord()
-    
+    ideal_positions = ideal_bonded_positions(ligand, metal.element, geometry=ligand_geometry)
+    if not ideal_positions:
+        logger.warning("Ligand %s reports no available bonding positions. Check your atom_types!", ligand)
+        return 1.0
+    # else we can go on
     # Conditions and booleans
     rotates = ligand_geometry == 4 and len(ligand.neighbors) == 1
     bidentate = False
@@ -596,36 +594,49 @@ def ideal_bond_deviation(metal, ligand, other_ligands=()):
                 bidentate = True
                 break
 
-
-    ideal_positions = ideal_bonded_positions(ligand, metal.element, geometry=ligand_geometry)
-    if ideal_positions:
-        ideal_pos = ideal_positions[0]
-        actual_angle = chimera.angle(neighbor_coord, ligand_coord, metal_coord)
-        ideal_angles = [chimera.angle(neighbor_coord, ligand_coord, ideal_pos)]
-        ideal_dihedrals = []
-        if bidentate:
-            a = ligand_coord
-            b = bidentate_mate.xformCoord() 
-            c = shared_neighbors.pop().xformCoord()
-            bidentate_ideal_pos = c + 1.5 * ((a-c) + (b-c))
-            bidentate_ideal_angle = chimera.angle(neighbor_coord, ligand_coord, bidentate_ideal_pos)
-            bidentate_ideal_dihedral = chimera.dihedral(n_neighbor_coord, neighbor_coord, 
-                                                        ligand_coord, bidentate_ideal_pos)
-            ideal_angles.append(bidentate_ideal_angle)
-            ideal_dihedrals.append(bidentate_ideal_dihedral)
-            
-        angle_diff = min(delta - actual_angle for delta in ideal_angles)
-        abs_sin_angle = abs(math.sin(math.radians(angle_diff)))
+    # Coordinates and positions
+    ligand_coord = ligand.xformCoord()
+    metal_coord = metal.xformCoord()
+    if not ligand.neighbors:
+        # If ligand has no neighbors, it's an isolated atom. This means it will always 
+        # be well oriented towards the metal. Then we can just return 0.0
+        return 0.0
+    # else we can go on
+    neighbor = ligand.neighbors[0]
+    neighbor_coord = neighbor.xformCoord()
+    try:
+        n_neighbor = next(a for a in neighbor.neighbors if a is not ligand)
+        n_neighbor_coord = n_neighbor.xformCoord()
+    except StopIteration:
+        logger.warning('Ligand %s has no 2nd level neighbors. Dihedrals cannot be evaluated', ligand)
+        rotates = True # This will force to ignore dihedral calculation ;)
+    
+    ideal_pos = ideal_positions[0]
+    actual_angle = chimera.angle(neighbor_coord, ligand_coord, metal_coord)
+    ideal_angles = [chimera.angle(neighbor_coord, ligand_coord, ideal_pos)]
+    ideal_dihedrals = []
+    if bidentate and not rotates:
+        a = ligand_coord
+        b = bidentate_mate.xformCoord() 
+        c = shared_neighbors.pop().xformCoord()
+        bidentate_ideal_pos = c + 1.5 * ((a-c) + (b-c))
+        bidentate_ideal_angle = chimera.angle(neighbor_coord, ligand_coord, bidentate_ideal_pos)
+        bidentate_ideal_dihedral = chimera.dihedral(n_neighbor_coord, neighbor_coord, 
+                                                    ligand_coord, bidentate_ideal_pos)
+        ideal_angles.append(bidentate_ideal_angle)
+        ideal_dihedrals.append(bidentate_ideal_dihedral)
         
-        if rotates:  # we don't care about the dihedral in this case
-            return abs_sin_angle
-        # else:
-        actual_dihedral = chimera.dihedral(n_neighbor_coord, neighbor_coord, ligand_coord, metal_coord)
-        ideal_dihedral = chimera.dihedral(n_neighbor_coord, neighbor_coord, ligand_coord, ideal_pos)
-        ideal_dihedrals.append(ideal_dihedral)
-        dihedral_diff = min(delta - actual_dihedral for delta in ideal_dihedrals)
-        abs_sin_dihedral = abs(math.sin(math.radians(dihedral_diff)))
-        return abs_sin_angle + abs_sin_dihedral
+    angle_diff = min(delta - actual_angle for delta in ideal_angles)
+    abs_sin_angle = abs(math.sin(math.radians(angle_diff)))
+    if rotates:  # we don't care about the dihedral in this case
+        return abs_sin_angle
+    # else:
+    actual_dihedral = chimera.dihedral(n_neighbor_coord, neighbor_coord, ligand_coord, metal_coord)
+    ideal_dihedral = chimera.dihedral(n_neighbor_coord, neighbor_coord, ligand_coord, ideal_pos)
+    ideal_dihedrals.append(ideal_dihedral)
+    dihedral_diff = min(delta - actual_dihedral for delta in ideal_dihedrals)
+    abs_sin_dihedral = abs(math.sin(math.radians(dihedral_diff)))
+    return abs_sin_angle + abs_sin_dihedral
 
 
 def ideal_bonded_positions(atom, element, geometry=None):
