@@ -122,16 +122,18 @@ class Search(GeneProvider):
         'radius': parse.Coerce(float),
         'rotate': parse.Boolean,
         'precision': parse.All(parse.Coerce(int), parse.Range(min=0, max=6)),
+        'mut_eta': parse.All(parse.Coerce(float), parse.Range(min=0, max=1.0))
         }, extra=parse.ALLOW_EXTRA)
 
     def __init__(self, target=None, center=None, radius=None, rotate=True,
-                 precision=None, **kwargs):
+                 precision=None, mut_eta=0.5, **kwargs):
         GeneProvider.__init__(self, **kwargs)
         self.radius = radius
         self.rotate = rotate
         self.precision = precision
         self._center = center
         self.target = target
+        self.mut_eta = mut_eta
 
     def __ready__(self):
         self.allele = self.random_transform()
@@ -197,10 +199,12 @@ class Search(GeneProvider):
 
     def mutate(self, indpb):
         if random.random() < self.indpb:
-            # Careful! Mutation generates a whole NEW position (similar to eta ~= 0)
-            # TODO: We could use a eta param in mutation by interpolating original and
-            # a new random xform with a given `frac` parameter
-            self.allele = self.random_transform()
+            xf1 = M.chimera_xform(M.multiply_matrices(*self.allele))
+            xf2 = M.chimera_xform(M.multiply_matrices(*self.random_transform()))
+            interp = M.xform_matrix(M.interpolate_xforms(xf1, ZERO, xf2, self.mut_eta))
+            interp_rot = [x[:3] + (0,) for x in interp]
+            interp_tl = [y[:3] + x[-1:] for x, y in zip(interp, M.identity_matrix())]
+            self.allele = interp_tl, interp_rot
 
     #####
     def random_transform(self):
