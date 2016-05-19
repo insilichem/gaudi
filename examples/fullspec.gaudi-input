@@ -84,6 +84,7 @@ genes:
         precision: 3
         rotate: True
         target: Ligand/43
+        mut_eta: 0.5
 
 ###
 # OBJECTIVES
