@@ -209,7 +209,7 @@ class Settings(Munch):
                 'population': All(Coerce(int), Range(min=2)),
                 'generations': All(Coerce(int), Range(min=0)),
                 'mu': All(Coerce(float), Range(min=0, max=1)),
-                'lambda_': All(Coerce(float), Range(min=0, max=1)),
+                'lambda_': All(Coerce(float), Range(min=0)),
                 'mut_eta': All(Coerce(int), Range(min=0)),
                 'mut_pb': All(Coerce(float), Range(min=0, max=1)),
                 'mut_indpb': All(Coerce(float), Range(min=0, max=1)),
