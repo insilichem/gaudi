@@ -60,4 +60,4 @@ docs/_build/
 *.sublime-workspace
 
 # PyCharm
-.idea/worskpace.xml
+.idea/workspace.xml
