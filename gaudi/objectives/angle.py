@@ -54,7 +54,7 @@ class Angle(ObjectiveProvider):
 
     validate = parse.Schema({
         parse.Required('probes'): parse.AssertList(parse.Named_spec("molecule", "atom")),
-        parse.Required('threshold'): parse.Coerce(float),
+        parse.Required('threshold'): parse.Any(parse.Coerce(float), parse.In(['planar'])),
         'tolerance': parse.Coerce(float),
         }, extra=parse.ALLOW_EXTRA)
 
