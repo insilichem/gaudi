@@ -26,8 +26,9 @@ requested Molecule gene instance.
 import logging
 # 3rd party
 import MeasureVolume
-import Surface
+import Surface.gridsurf
 import scipy.spatial
+import chimera
 # GAUDI
 from gaudi import parse
 from gaudi.objectives import ObjectiveProvider
@@ -64,12 +65,12 @@ class Volume(ObjectiveProvider):
     """
 
     validate = parse.Schema({
-        'target': [parse.Molecule_name],
+        'target': parse.Molecule_name,
         'threshold': parse.Any(float, 'auto'),
         'cavities': bool
         }, extra=parse.ALLOW_EXTRA)
 
-    def __init__(self, threshold=None, target=None, cavities=False,
+    def __init__(self, threshold=0.0, target=None, cavities=False,
                  *args, **kwargs):
         ObjectiveProvider.__init__(self, **kwargs)
         self.threshold = threshold
@@ -84,13 +85,16 @@ class Volume(ObjectiveProvider):
         molecule = self.target(ind)
         surface = Surface.gridsurf.ses_surface(molecule.atoms)
         volume, area, holes = MeasureVolume.surface_volume_and_area(surface)
+        chimera.openModels.close([surface])
         return abs(volume - self.threshold)
 
     def evaluate_convexhull(self, ind):
         molecule = self.target(ind)
         surface = Surface.gridsurf.ses_surface(molecule.atoms)
         volume, area, holes = MeasureVolume.surface_volume_and_area(surface)
-        return convexhull_volume(surface) - volume
+        convex_volume = convexhull_volume(surface)
+        chimera.openModels.close([surface])
+        return convex_volume - abs(volume - self.threshold)
 
 
 ###
