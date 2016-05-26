@@ -234,13 +234,13 @@ class NormalModes(GeneProvider):
 
 
 ####
-def prody_modes(molecule, modes, algorithm=None, **options):
+def prody_modes(molecule, max_modes, algorithm=None, **options):
     """
     Parameters
     ----------
     molecule : prody.AtomGroup
-    modes : list of int
-        which modes to calculate
+    nax_modes : int
+        number of modes to calculate
     algorithm : callable, optional, default=None
         coarseGrain(prm) wich make molecule.select().setBetas(i) where i
         is the index Coarse Grain group
@@ -258,11 +258,11 @@ def prody_modes(molecule, modes, algorithm=None, **options):
         molecule = algorithm(molecule, **options)
         modes = prody.RTB(title)
         modes.buildHessian(molecule.getCoords(), molecule.getBetas())
-        modes.calcModes(n_modes=modes)
+        modes.calcModes(n_modes=max_modes)
     else:
         modes = prody.ANM('normal modes for {}'.format(molecule.getTitle()))
         modes.buildHessian(molecule)
-        modes.calcModes(n_modes=modes)
+        modes.calcModes(n_modes=max_modes)
     return modes
 
 
@@ -282,11 +282,11 @@ def gaussian_modes(path):
     """
     gaussian_parser = Gaussian(path).parse()
     shape = gaussian_parser.vibdisps.shape
-    modes = gaussian_parser.vibdisps.reshape(shape[0], shape[1]*shape[2]).T
-    frequencies = numpy.abs(gaussian_parser.vibfreqs)
-    prody_modes = prody.NMA()
-    prody_modes.setEigens(vectors=modes, values=frequencies)
-    return prody_modes
+    modes_vectors = gaussian_parser.vibdisps.reshape(shape[0], shape[1]*shape[2]).T
+    modes_frequencies = numpy.abs(gaussian_parser.vibfreqs)
+    modes = prody.NMA()
+    modes.setEigens(vectors=modes_vectors, values=modes_frequencies)
+    return modes
 
 
 def convert_chimera_molecule_to_prody(molecule):
