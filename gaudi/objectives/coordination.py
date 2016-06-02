@@ -29,13 +29,12 @@ import numpy
 from math import acos, degrees
 # Chimera
 import chimera
-from chimera import cross, Xform, Plane, angle, Point
+from chimera import cross, Xform, Plane, angle, Point, Vector
 from chimera.match import matchPositions
 from MetalGeom.geomData import geometries as MG_geometries
 # GAUDI
 from gaudi.objectives import ObjectiveProvider
 from gaudi import parse
-
 logger = logging.getLogger(__name__)
 
 
@@ -75,12 +74,12 @@ class SimpleCoordination(ObjectiveProvider):
         'angle': parse.Coerce(float),
         'min_atoms': parse.All(parse.Coerce(int), parse.Range(min=0)),
         'geometry': parse.In(MG_geometries.keys()),
-        'enforce_all_residues': parse.Boolean,
-        'only_one_ligand_per_residue': parse.Boolean,
-        'method': parse.In(['simple', 'metalgeom'])
+        'enforce_all_residues': parse.Coerce(bool),
+        'only_one_ligand_per_residue': parse.Coerce(bool),
+        'method': parse.In(['simple', 'metalgeom', 'metalgeom_directional'])
         }, extra=parse.ALLOW_EXTRA)
     
-    def __init__(self, method='simple', probe=None, radius=None, atom_types=None, residues=None,
+    def __init__(self, method='simple', probe=None, radius=None, atom_types=(), residues=(),
                  distance=0, angle=None, dihedral=None, min_atoms=1, geometry='tetrahedral',
                  enforce_all_residues=False, only_one_ligand_per_residue=False, *args, **kwargs):
         ObjectiveProvider.__init__(self, **kwargs)
@@ -97,6 +96,9 @@ class SimpleCoordination(ObjectiveProvider):
         self.enforce_all_residues = enforce_all_residues
         if self.method == 'metalgeom':
             self.evaluate = self.evaluate_MetalGeom
+            self.geometry = MG_geometries[geometry]
+        elif self.method == 'metalgeom_directional':
+            self.evaluate = self.evaluate_MetalGeom_directional
             self.geometry = MG_geometries[geometry]
         else:
             self.evaluate = self.evaluate_simple
@@ -127,7 +129,7 @@ class SimpleCoordination(ObjectiveProvider):
         3. As a result, lower scores are better.
         """
         try:
-            atoms_by_distance = self._get_nearest_atoms(ind)
+            atoms_by_distance = self.coordination_sphere(ind)
         except (NotEnoughAtomsError, SomeResiduesMissingError):
             return -1000 * self.weight
         else:
@@ -157,6 +159,7 @@ class SimpleCoordination(ObjectiveProvider):
 
             return sum(numpy.average(x) for x in (distances, angles, dihedrals) if x)
 
+
     def evaluate_MetalGeom(self, ind):
         """
         1. Get requested atoms sorted by distance
@@ -165,7 +168,7 @@ class SimpleCoordination(ObjectiveProvider):
         3. If that's not possible of they are not enough, return penalty
         """
         try:
-            test_atoms = [a for d, a in self._get_nearest_atoms(ind)]
+            test_atoms = [a for d, a in self.coordination_sphere(ind)]
         except (NotEnoughAtomsError, SomeResiduesMissingError):
             logger.warning("Not enough atoms or some residues missing")
             return -1000 * self.weight
@@ -182,7 +185,44 @@ class SimpleCoordination(ObjectiveProvider):
                 rmsd = -1000 * self.weight
             return rmsd
 
-    def _get_nearest_atoms(self, ind):
+    def evaluate_MetalGeom_directional(self, ind):
+        """
+        1. Get requested atoms sorted by distance
+        2. If they meet the minimum quantity, return the rmsd for
+           that geometry
+        3. If that's not possible of they are not enough, return penalty
+        """
+        try:
+            test_atoms = [a for d, a in self.coordination_sphere(ind)]
+        except (NotEnoughAtomsError, SomeResiduesMissingError):
+            logger.warning("Not enough atoms or some residues missing")
+            return -1000 * self.weight
+        
+        max_ligands = len(self.geometry.normVecs)
+        ligands = test_atoms[:max_ligands]
+        ligand_coords = [a.xformCoord() for a in ligands]
+        metal = self.probe(ind)
+        metal_coord = metal.xformCoord()
+
+        # rmsd
+        try:
+            rmsd = geomDistEval_patched(self.geometry, metal_coord, 
+                                        ligand_coords, min_ligands=self.min_atoms)
+        except Exception as e:
+            logger.exception(e)  #
+            logger.warning("Geometry not feasible in current conditions")
+            return -1000 * self.weight
+        
+        # directionality (Marti)
+        # ligand_objects = [LigandHelper(ligand, ligands, metal) for ligand in ligands]
+        # directionality = directional_evaluation(ligand_objects)
+        # directionality (Jaime)
+        directionality = sum(ideal_bond_deviation(metal, ligand, ligands) for ligand in ligands)
+
+        return rmsd + directionality
+
+
+    def coordination_sphere(self, ind):
         """
         1. Get atoms and residues found within `self.radius` angstroms from `self.probe`
         1.1. Found residues MUST include self.residues. Otherwise, apply penalty
@@ -190,21 +230,39 @@ class SimpleCoordination(ObjectiveProvider):
            That way, nearest atoms are computed first.
         2.1. If found atoms do not include some of the requested types, apply penalty.
         """
+        # Helpers
+        def abs_distance(a):
+            return abs(self.distance - metal.xformCoord().distance(a.xformCoord()))
+        if self.atom_types:
+            def atom_in_types(a): return a.name in self.atom_types 
+        else:
+            def atom_in_types(a): return True
+
         self._update_zone(ind)
-        atoms = self.zone.atoms()
-        # (distance, ligand) tuple, sorted by distances
-        atoms_by_distance = \
-            [(abs(self.distance - self.probe(ind).xformCoord().distance(a.xformCoord())),
-              a) for a in atoms if a.name in self.atom_types and a.residue in self.residues(ind)]
+        metal = self.probe(ind)
+        residues = self.residues(ind)
+        atoms = [a for a in self.zone.atoms() if a is not metal]
+        
+
+        atoms_by_distance = []
+        found_residues = set()
+        distance_and_atoms = sorted((abs_distance(a), a) for a in atoms)
+        for d, a in distance_and_atoms:
+            if atom_in_types(a) and a.residue in residues and d > 1.0:
+                atoms_by_distance.append((d, a))
+                found_residues.add(a.residue)
+            else:
+                break
+
         if len(atoms_by_distance) < self.min_atoms:
-            logger.warning("Could not find requested atoms from residues in probe environment")
+            logger.warning("Could not find requested atoms from residues in probe environment. "
+                           "Got {} out of {}".format(len(atoms_by_distance), self.min_atoms))
             raise NotEnoughAtomsError
-        found_residues = set(a.residue for d, a in atoms_by_distance)
-        if self.enforce_all_residues and found_residues != self.residues:
+
+        if self.enforce_all_residues and found_residues != residues:
             logger.warning("Some atoms found, but some residues are missing")
             raise SomeResiduesMissingError
 
-        atoms_by_distance.sort()
         return atoms_by_distance
 
     # TODO: Probes get lost if rotamers are applied!
@@ -237,17 +295,18 @@ class SimpleCoordination(ObjectiveProvider):
         """
         for mol, pos in residues:
             try:
-                res = next(r for r in ind.genes[mol].compound.mol.residues
-                           if pos == r.id.position)
-
+                if pos == '*':
+                    for r in ind.genes[mol].compound.mol.residues:
+                        yield r
+                else:
+                    yield next(r for r in ind.genes[mol].compound.mol.residues
+                               if pos == r.id.position)
             except KeyError:
                 logger.exception("Molecule %s not found", mol)
                 raise
             except StopIteration:
                 logger.exception("No residues matched for pos %s", pos)
                 raise
-            else:
-                yield res
 
     def _update_zone(self, ind):
         """
@@ -258,8 +317,7 @@ class SimpleCoordination(ObjectiveProvider):
         self.zone.add(self.probe(ind))
         self.zone.merge(chimera.selection.REPLACE,
                         chimera.specifier.zone(
-                            self.zone, 'atom', None, self.radius, self.molecules(ind))
-                        )
+                            self.zone, 'atom', None, self.radius, self.molecules(ind)))
         return self.zone
 
     @staticmethod
@@ -383,3 +441,211 @@ def geomDistEval_patched(geom, metal_coord, ligands_coords, min_ligands=2):
             rmsdXf, rmsd = matchPositions(realPts, idealPts)
             best_rmsd.append(rmsd)
     return min(best_rmsd)
+
+def directional_evaluation(ligands_list):
+    """
+    Given a ligand get its bonding direction and compare it with the real one.
+
+    Parameters
+    ----------
+    ligands_list : list of Ligand objects
+        It contains the ligand candidates information.
+
+    Returns
+    -------
+    sin_sum/len(ligands_list): float
+        This value is taken as a scorer for the directional evaluation of the
+        metal coordination.
+    """
+    sin_sum = 0
+    for ligand in ligands_list:
+        direction = bond_direction(ligand)
+        if all(not v for v in direction):
+            continue
+        if ligand.bidentate:
+            metal_bond = ligand.bond_dir_origin - ligand.metal_center.xformCoord()
+            linearity = abs(math.sin(math.radians(angle(direction, metal_bond))))
+        else:
+            linearity = abs(math.sin(math.radians(angle(direction, ligand.vector))))
+        sin_sum += linearity
+    return sin_sum/(len(ligands_list))
+
+
+def bond_direction(ligand):
+    """
+    Obtains a preferential bonding direction. The directional evaluation is
+    calculated according to this direction.
+
+    Parameters
+    ----------
+    ligand : Ligand object
+        It is the ligand candidate whose bonding direction, if any, will be
+        obtained.
+
+    Returns
+    -------
+    vec : chimera.Vector
+        It is the vector whose direction matches with the ligand's bonding
+        direction.
+    """
+    p0 = ligand.coord
+    if ligand.terminal:
+        # For aspartic & glutamic acids (bidentates)
+        if ligand.bidentate:
+            p1 = ligand.bond_dir_origin
+            p2 = ligand.bidentate_mate.coord()
+            vec1 = Vector(*(p0-p1).data())
+            vec2 = Vector(*(p2-p1).data())
+            rot_axis = cross(vec1, vec2)
+            ang = angle(vec1, vec2)/2
+            rotation = Xform.rotation(rot_axis, ang)
+            vec = rotation.apply(vec1)
+            return vec
+
+    # For histidine & tryptophan
+    if len(ligand.neighbors) == 2:
+        p1 = ligand.neighbors[0].coord()
+        p2 = ligand.neighbors[1].coord()
+        vec1 = Vector(*(p1-p0).data())
+        vec2 = Vector(*(p2-p0).data())
+        rot_axis = cross(vec1, vec2)
+        ang = angle(vec1, vec2)/2 - 180
+        rotation = Xform.rotation(rot_axis, ang)
+        vec = rotation.apply(vec1)
+        return vec
+
+    return Vector(0, 0, 0)
+    # Add more cases...?
+
+    # else:
+    #     # Returns this null Vector to ensure that the sinus perfomed below gets
+    #     # equal to 0.0. This means that there is no preferential bonding
+    #     # direction for this ligand
+    #     return None
+
+class LigandHelper(object):
+    """
+    Class that defines useful information about the metal's surrounding
+    ligands.
+
+    ligand : chimera.Atom
+        Ligand being analyzed
+    ligands : list of chimera.Atom
+        All ligands in the surroundings, including `ligand`, 
+        needed to test if `ligand` is bidentate or not.
+    metal_center : chimera.Atom
+        The metal ion subject to geometry analysis.
+    """
+    def __init__(self, ligand, ligands, metal_center):
+        self.ligand = ligand
+        self.metal_center = metal_center
+        self.coord = self.bond_dir_origin = ligand.xformCoord()
+        self.vector = self.coord - metal_center.xformCoord()
+        self.neighbors = ligand.neighbors
+        self.terminal = len(self.neighbors) == 1
+        self.bidentate = False
+        self.bidentate_mate = None
+
+        for potential_mate in ligands:
+            conditions = (potential_mate is not ligand, 
+                          len(ligand.neighbors) == 1,
+                          len(potential_mate.neighbors) == 1, 
+                          ligand.neighbors[0] is potential_mate.neighbors[0])
+
+            if all(conditions):
+                self.bidentate = True
+                self.bond_dir_origin = self.neighbors[0].xformCoord()
+                self.bidentate_mate = potential_mate
+                break
+
+def ideal_bond_deviation(metal, ligand, other_ligands=()):
+
+    """
+    Assess if the current bond vector is well oriented with
+    respect to the ideal bond vector.
+
+    Parameters
+    ----------
+    metal : chimera.Atom
+        The ion `ligands` are coordinating to
+    ligand : chimera.Atom
+        Potential ligand atoms to `metal`
+
+    Returns
+    -------
+    float
+        Absolute sine of the angle between the ideal vector and
+        the ligand-metal one.
+    """
+    ligand_idatm = chimera.idatm.typeInfo.get(ligand.idatmType)
+    ligand_geometry = ligand_idatm.geometry if ligand_idatm else 3
+    ideal_positions = ideal_bonded_positions(ligand, metal.element, geometry=ligand_geometry)
+    if not ideal_positions:
+        logger.warning("Ligand %s reports no available bonding positions. Check your atom_types!", ligand)
+        return 1.0
+    # else we can go on
+    # Conditions and booleans
+    rotates = ligand_geometry == 4 and len(ligand.neighbors) == 1
+    bidentate = False
+    for bidentate_mate in other_ligands:
+        if bidentate_mate is not ligand:
+            shared_neighbors = set(ligand.neighbors) & set(bidentate_mate.neighbors)
+            if shared_neighbors:
+                bidentate = True
+                break
+
+    # Coordinates and positions
+    ligand_coord = ligand.xformCoord()
+    metal_coord = metal.xformCoord()
+    if not ligand.neighbors:
+        # If ligand has no neighbors, it's an isolated atom. This means it will always 
+        # be well oriented towards the metal. Then we can just return 0.0
+        return 0.0
+    # else we can go on
+    neighbor = ligand.neighbors[0]
+    neighbor_coord = neighbor.xformCoord()
+    try:
+        n_neighbor = next(a for a in neighbor.neighbors if a is not ligand)
+        n_neighbor_coord = n_neighbor.xformCoord()
+    except StopIteration:
+        logger.warning('Ligand %s has no 2nd level neighbors. Dihedrals cannot be evaluated', ligand)
+        rotates = True # This will force to ignore dihedral calculation ;)
+    
+    ideal_pos = ideal_positions[0]
+    actual_angle = chimera.angle(neighbor_coord, ligand_coord, metal_coord)
+    ideal_angles = [chimera.angle(neighbor_coord, ligand_coord, ideal_pos)]
+    ideal_dihedrals = []
+    if bidentate and not rotates:
+        a = ligand_coord
+        b = bidentate_mate.xformCoord() 
+        c = shared_neighbors.pop().xformCoord()
+        bidentate_ideal_pos = c + 1.5 * ((a-c) + (b-c))
+        bidentate_ideal_angle = chimera.angle(neighbor_coord, ligand_coord, bidentate_ideal_pos)
+        bidentate_ideal_dihedral = chimera.dihedral(n_neighbor_coord, neighbor_coord, 
+                                                    ligand_coord, bidentate_ideal_pos)
+        ideal_angles.append(bidentate_ideal_angle)
+        ideal_dihedrals.append(bidentate_ideal_dihedral)
+        
+    angle_diff = min(delta - actual_angle for delta in ideal_angles)
+    abs_sin_angle = abs(math.sin(math.radians(angle_diff)))
+    if rotates:  # we don't care about the dihedral in this case
+        return abs_sin_angle
+    # else:
+    actual_dihedral = chimera.dihedral(n_neighbor_coord, neighbor_coord, ligand_coord, metal_coord)
+    ideal_dihedral = chimera.dihedral(n_neighbor_coord, neighbor_coord, ligand_coord, ideal_pos)
+    ideal_dihedrals.append(ideal_dihedral)
+    dihedral_diff = min(delta - actual_dihedral for delta in ideal_dihedrals)
+    abs_sin_dihedral = abs(math.sin(math.radians(dihedral_diff)))
+    return abs_sin_angle + abs_sin_dihedral
+
+
+def ideal_bonded_positions(atom, element, geometry=None):
+    if geometry is None:
+        try:
+            geometry = chimera.idatm.typeInfo[atom.idatmType].geometry
+        except KeyError:
+            geometry = 3
+
+    bond_length = chimera.Element.bondLength(atom.element, element)
+    neighbors_crd = [a.xformCoord() for a in atom.neighbors]
+    return chimera.bondGeom.bondPositions(atom.xformCoord(), geometry, bond_length, neighbors_crd)
