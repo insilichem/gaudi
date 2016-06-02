@@ -81,7 +81,7 @@ class NormalModes(GeneProvider):
     Attributes
     ----------
     NORMAL_MODES : prody.modes
-        normal modes calculated for the molecle or readed
+        normal modes calculated for the molecule or readed
         from the gaussian frequencies output file stored
         in a prody modes class (ANM or RTB)
     NORMAL_MODE_SAMPLES : prody.ensemble
@@ -96,7 +96,7 @@ class NormalModes(GeneProvider):
         'method': parse.In(['prody', 'gaussian']),
         'path': parse.RelPathToInputFile(),
         'target': parse.Molecule_name,
-        'group_by': parse.In(['residues', 'mass', '']),
+        'group_by': parse.In(['residues', 'mass', 'calpha', '']),
         'group_lambda': parse.All(parse.Coerce(int), parse.Range(min=1)),
         'modes': [parse.All(parse.Coerce(int), parse.Range(min=0))],
         'n_samples': parse.All(parse.Coerce(int), parse.Range(min=1)),
@@ -253,14 +253,20 @@ def prody_modes(molecule, max_modes, algorithm=None, **options):
     modes : ProDy modes ANM or RTB
     """
     modes = None
-    if algorithm is not None:
+    if algorithm in ['residues', 'mass']:
         title = 'normal modes for {}'.format(molecule.getTitle())
         molecule = algorithm(molecule, **options)
         modes = prody.RTB(title)
         modes.buildHessian(molecule.getCoords(), molecule.getBetas())
         modes.calcModes(n_modes=max_modes)
+    elif algorithm == 'calpha':
+        calphas_modes = prody.ANM('normal modes for {}'.format(molecule.getTitle()))
+        calphas = molecule = molecule.select(algorithm)
+        calphas_modes.buildHessian(calphas)
+        calphas_modes.calcModes(n_modes=max_modes)
+        modes = prody.extendModel(calphas_modes, calphas, molecule, norm=True)[0]
     else:
-        modes = prody.ANM('normal modes for {}'.format(molecule.getTitle()))
+        modes = prody.ANM('normal modes for {}'.format(molecule.getTitle()))            
         modes.buildHessian(molecule)
         modes.calcModes(n_modes=max_modes)
     return modes
@@ -305,7 +311,7 @@ def convert_chimera_molecule_to_prody(molecule):
     """
     prody_molecule = prody.AtomGroup()
     try:
-        coords, elements, names, resnums, chids, betas, masses = [], [], [], [], [], [], []
+        coords, elements, names, resnums, resnames, chids, betas, masses = [], [], [], [], [], [], [], []
         chimera2prody = {}
         offset_chimera_residue = min(r.id.position for r in molecule.residues)
 
@@ -315,6 +321,7 @@ def convert_chimera_molecule_to_prody(molecule):
             elements.append(atm.element.name)
             names.append(atm.name)
             resnums.append(atm.residue.id.position - offset_chimera_residue)
+            resnames.append(atm.residue.type)
             chids.append(atm.residue.id.chainId)
             masses.append(atm.element.mass)
             betas.append(atm.bfactor)
@@ -323,6 +330,7 @@ def convert_chimera_molecule_to_prody(molecule):
         prody_molecule.setElements(elements)
         prody_molecule.setNames(names)
         prody_molecule.setResnums(resnums)
+        prody_molecule.setResnames(resnames)
         prody_molecule.setChids(chids)
         prody_molecule.setBetas(betas)
         prody_molecule.setMasses(masses)
@@ -461,5 +469,6 @@ def chimeracoords2numpy(molecule):
 GROUPERS = {
     'residues': group_by_residues,
     'mass': group_by_mass,
+    'calpha': 'calpha',
     '': None
 }
