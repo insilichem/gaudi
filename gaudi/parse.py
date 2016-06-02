@@ -26,6 +26,8 @@ from collections import namedtuple
 import yaml
 from munch import Munch, munchify
 from voluptuous import *
+# Own
+import gaudi
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +41,7 @@ def AssertList(*validators, **kwargs):
     Make sure the value is contained in a list
     """
     def fn(values):
-        if not isinstance(values, list):
+        if not isinstance(values, (list, tuple)):
             values = [values]
         return [validator(v) for validator in validators for v in values]
     return fn
@@ -77,14 +79,17 @@ def Molecule_name(v):
 def Named_spec(*names):
     """
     Assert that str is formatted like "Molecule/123", with Molecule being
-    a valid name of a Molecule gene and 123 a positive int
+    a valid name of a Molecule gene and 123 a positive int or *
     """
     def fn(v):
         try:
             name, i = str(v).split('/')
             name.strip()
-            i = int(i)
-            if Molecule_name(name) and i > 0:
+            if Molecule_name(name):
+                if i == '*':
+                    pass
+                elif int(i) > 0:
+                    i = int(i)
                 return namedtuple("NamedSpec", names)(name, i)
             raise ValueError
         except (ValueError, AttributeError):
@@ -102,7 +107,8 @@ def ResidueThreeLetterCode(v):
 
 def RelPathToInputFile(inputpath=None):
     if inputpath is None:
-        inputpath = os.environ.get('GAUDI_INPUT_PATH', '')
+        # inputpath = os.environ.get('GAUDI_INPUT_PATH', '')
+        inputpath = getattr(gaudi, '__input_path__', '')
 
     @wraps(RelPathToInputFile)
     def fn(v):
@@ -162,7 +168,7 @@ class Settings(Munch):
         },
         'similarity': {
             'type': 'gaudi.similarity.rmsd',
-            'args': [[str], 2.5],
+            'args': [['Ligand'], 2.5],
             'kwargs': {}
         },
         'genes': [{}],
@@ -173,11 +179,12 @@ class Settings(Munch):
         self.update(munchify(self.default_values))
         if path is not None:
             self._path = path
-            os.environ['GAUDI_INPUT_PATH'] = os.path.dirname(path)
+            gaudi.__input_path__ = os.environ['GAUDI_INPUT_PATH'] = os.path.dirname(path)
             with open(path) as f:
                 raw_dict = yaml.load(f)
-        validated = self.validate(raw_dict)
-        self.update(munchify(validated))
+            validated = self.validate(raw_dict)
+            self.update(munchify(validated))
+
 
     @property
     def weights(self):
@@ -202,7 +209,7 @@ class Settings(Munch):
                 'population': All(Coerce(int), Range(min=2)),
                 'generations': All(Coerce(int), Range(min=0)),
                 'mu': All(Coerce(float), Range(min=0, max=1)),
-                'lambda_': All(Coerce(float), Range(min=0, max=1)),
+                'lambda_': All(Coerce(float), Range(min=0)),
                 'mut_eta': All(Coerce(int), Range(min=0)),
                 'mut_pb': All(Coerce(float), Range(min=0, max=1)),
                 'mut_indpb': All(Coerce(float), Range(min=0, max=1)),
