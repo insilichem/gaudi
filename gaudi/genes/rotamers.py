@@ -141,10 +141,15 @@ class Rotamers(GeneProvider):
         for (mol, pos), (restype, i) in zip(self.residues, self.allele):
             try:
                 rot = self.get_rotamers(mol, pos, restype)
+                residue = self.residues[(mol, pos)]
             except NoResidueRotamersError:  # ALA, GLY...
-                SwapRes.swap(self.residues[(mol, pos)], restype)
+                if residue.type != restype:
+                    SwapRes.swap(residue, restype)
             else:
-                useRotamer(self.residues[(mol, pos)], [rot[int(i * len(rot))]])
+                if residue.type != restype:
+                    useRotamer(residue, [rot[int(i * len(rot))]])
+                else:
+                    self.update_rotamer_coords(residue, [rot[int(i * len(rot))]])
 
             finally:
                 self.residues[(mol, pos)] = \
@@ -226,6 +231,13 @@ class Rotamers(GeneProvider):
                     self.add_hydrogens_to_isolated_rotamer(rotamers)
                 self.rotamers.put((mol, pos, restype), rotamers)
         return rotamers
+
+    @staticmethod
+    def update_rotamer_coords(residue, rotamer):
+        rotamer = rotamer.residues[0]
+        for name, rotamer_atoms in rotamer.atomsMap.items():
+            for rot_atom, res_atom in zip(rotamer_atoms, residue.atomsMap[name]):
+                res_atom.setCoord(rot_atom.coord())
 
     @staticmethod
     def add_hydrogens_to_isolated_rotamer(rotamers):
