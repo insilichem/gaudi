@@ -95,7 +95,7 @@ class Angle(ObjectiveProvider):
             if self.threshold == 'planar':
                 delta = abs(math.sin(math.radians(angle)))
         else:
-            delta = self.threshold - angle.real
+            delta = abs(self.threshold - angle.real)
 
         return delta
 
