@@ -163,7 +163,7 @@ def enable_logging(path=None, name=None, debug=False):
 
     # create debug file handler and set level to debug
     if path and name:
-        handler = logging.FileHandler(os.path.join(path, name + ".gaudi-log"), "w")
+        handler = logging.FileHandler(os.path.join(path, name + ".gaudi-log"), 'w')
         if debug:
             handler.setLevel(logging.DEBUG)
         else:
@@ -217,8 +217,7 @@ def main(filename, debug=False):
 
     # Write results
     logger.log(100, 'Writing %s results to disk', len(pop))
-    results = {'GAUDI.objectives': [
-        '{} ({})'.format(obj.name, obj.module) for obj in cfg.objectives]}
+    results = {'GAUDI.objectives': ['{} ({})'.format(obj.name, obj.module) for obj in cfg.objectives]}
     results['GAUDI.results'] = {}
     for i, ind in enumerate(best):
         filename = ind.write(i)

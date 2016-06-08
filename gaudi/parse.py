@@ -54,8 +54,8 @@ def Coordinates(v):
 def Importable(v):
     try:
         import_module(v)
-    except ImportError as err:
-        raise Invalid(err)
+    except ImportError as e:
+        raise Invalid("({}: {}) '{}'".format(e.__class__.__name__, e, v))
     else:
         return v
 
@@ -129,7 +129,9 @@ def MakeDir(validator):
             os.makedirs(v)
         except OSError:
             if os.path.isfile(v):
-                raise Invalid("Path is file")
+                raise Invalid("Could not create directory. '{}' is a file".format(v))
+            elif not os.path.isdir(v):
+                raise Invalid('Could not create directory' + v)
         return validator(v)
     return fn
 
