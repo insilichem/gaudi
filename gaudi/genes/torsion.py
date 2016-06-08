@@ -51,6 +51,8 @@ class Torsion(GeneProvider):
     max_bonds :
         Expected number of free rotations in molecule. Needed to store
         arbitrary rotations. 
+    anchor : str
+        Molecule/atom_serial_number of reference atom for torsions
 
     Notes
     -----
@@ -66,16 +68,18 @@ class Torsion(GeneProvider):
         parse.Required('target'): parse.Molecule_name,
         'flexibility': parse.Degrees,
         'max_bonds': parse.All(parse.Coerce(int), parse.Range(min=0)),
+        'anchor': parse.Named_spec("molecule", "atom"),
         }, extra=parse.ALLOW_EXTRA)
 
     BONDS_ROTS = {}
 
-    def __init__(self, target=None, flexibility=None, max_bonds=30, **kwargs):
+    def __init__(self, target=None, flexibility=None, max_bonds=30, anchor=None, **kwargs):
         GeneProvider.__init__(self, **kwargs)
         self._kwargs = kwargs
         self.target = target
         self.flexibility = 360.0 if flexibility > 360 else flexibility
         self.max_bonds = max_bonds
+        self._anchor = anchor
         self.nonrotatable = ()
         self.allele = [self.random_angle() for i in xrange(self.max_bonds)]
 
@@ -153,12 +157,12 @@ class Torsion(GeneProvider):
             except KeyError:
                 a1, a2 = b.atoms
                 if a1 not in self.nonrotatable and \
-                        a1.idatmType in ('C3', 'N3', 'C2', 'N2') and \
+                        a1.idatmType in ('C3', 'N3', 'C2', 'N2', 'P') and \
                         (a1.numBonds > 1 and a2.numBonds > 1) or \
                         a1.name == 'DUM' or a2.name == 'DUM':
                     try:
                         br = chimera.BondRot(b)
-                    except (chimera.error, ValueError), v:
+                    except (chimera.error, ValueError) as v:
                         if "cycle" in str(v):
                             continue  # discard bonds in cycles!
                         elif "already used" in str(v):
@@ -188,6 +192,16 @@ class Torsion(GeneProvider):
         Usually, this is the target atom in the Search gene, but if we can't find it,
         get the ``donor`` atom of the molecule.
         """
+        if self._anchor is not None:
+            mol, atom = self._anchor
+            try:
+                molecule = next(g for g in self.parent.genes.values()
+                                if g.__class__.__name__ == 'Molecule' and g.name == mol)
+                anchor = next(a for a in molecule.compound.mol.atoms if a.serialNumber == atom)
+            except StopIteration:
+                pass
+            else:
+                return anchor
         try:
             search = next(g for g in self.parent.genes.values()
                           if g.__class__.__name__ == 'Search'
