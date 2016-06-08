@@ -78,7 +78,7 @@ class Rotamers(GeneProvider):
     """
     validate = parse.Schema({
         parse.Required('residues'): [parse.Named_spec("molecule", "residue")],
-        'library': parse.Any('Dunbrack', 'dunbrack,' 'Dynameomics', 'dynameomics'),
+        'library': parse.Any('Dunbrack', 'dunbrack', 'Dynameomics', 'dynameomics'),
         'mutations': [parse.ResidueThreeLetterCode],
         'ligation': parse.Boolean,
         'hydrogens': parse.Boolean,

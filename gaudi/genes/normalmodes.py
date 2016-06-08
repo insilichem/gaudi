@@ -71,8 +71,10 @@ class NormalModes(GeneProvider):
         mass_division : int, optional, default=100
             number of groups
     path : str
-        Gaussian frequencies output path
-        Obligatory if method=gaussian 
+        Gaussian or prody modes output path
+        Obligatory if method=gaussian
+    write_modes: boolean, optional
+        write a molecule_modes.nmd file with the pordy modes
     n_samples : int, optional, default=10000
         number of conformations to generate
     rmsd : float, optional, default=1.0
@@ -81,7 +83,7 @@ class NormalModes(GeneProvider):
     Attributes
     ----------
     NORMAL_MODES : prody.modes
-        normal modes calculated for the molecle or readed
+        normal modes calculated for the molecule or readed
         from the gaussian frequencies output file stored
         in a prody modes class (ANM or RTB)
     NORMAL_MODE_SAMPLES : prody.ensemble
@@ -93,10 +95,11 @@ class NormalModes(GeneProvider):
     """
 
     validate = parse.Schema({
-        'method': parse.In(['prody', 'gaussian']),
+        parse.Required('method'): parse.In(['prody', 'gaussian']),
         'path': parse.RelPathToInputFile(),
-        'target': parse.Molecule_name,
-        'group_by': parse.In(['residues', 'mass', '']),
+        'write_modes': parse.Boolean,
+        parse.Required('target'): parse.Molecule_name,
+        'group_by': parse.In(['residues', 'mass', 'calpha', '']),
         'group_lambda': parse.All(parse.Coerce(int), parse.Range(min=1)),
         'modes': [parse.All(parse.Coerce(int), parse.Range(min=0))],
         'n_samples': parse.All(parse.Coerce(int), parse.Range(min=1)),
@@ -104,7 +107,8 @@ class NormalModes(GeneProvider):
     }, extra=parse.ALLOW_EXTRA)
 
     def __init__(self, method='prody', target=None, modes=None, n_samples=10000, rmsd=1.0,
-                 group_by=None, group_lambda=None, path=None, **kwargs):
+                 group_by=None, group_lambda=None,
+                 path=None, write_modes=False, **kwargs):
         # Fire up!
         GeneProvider.__init__(self, **kwargs)
         self.method = method
@@ -116,10 +120,15 @@ class NormalModes(GeneProvider):
         self.group_by = None
         self.group_by_options = None
         self.path = None
+        self.write_modes = write_modes
         if method == 'prody':
-            self.normal_modes_function = self.calculate_prody_normal_modes
-            self.group_by = group_by
-            self.group_by_options = {} if group_lambda is None else {'n': group_lambda}
+            if path is None:
+                self.normal_modes_function = self.calculate_prody_normal_modes
+                self.group_by = group_by
+                self.group_by_options = {} if group_lambda is None else {'n': group_lambda}
+            else:
+                self.path = path
+                self.normal_modes_function = self.read_prody_normal_modes
         else:  # gaussian
             self.normal_modes_function = self.read_gaussian_normal_modes
             if path is None:
@@ -137,12 +146,14 @@ class NormalModes(GeneProvider):
         """
         cached = self._CACHE.get('normal_modes')
         if not cached:
-            normal_modes, normal_modes_samples, chimera2prody = self.normal_modes_function()
+            normal_modes, normal_modes_samples, chimera2prody, prody_molecule = self.normal_modes_function()
             self._CACHE.put('normal_modes', normal_modes)
             self._CACHE.put('normal_modes_samples', normal_modes_samples)
             self._CACHE.put('chimera2prody', chimera2prody)
             self._CACHE.put('original_coords', chimeracoords2numpy(self.molecule))
-        # self.allele = self.mutate(1.0)
+            if self.write_modes:
+                title = self.parent.cfg.output.path + str(self.molecule.name) + '_modes.nmd'
+                prody.writeNMD(title, normal_modes, prody_molecule)
         self.allele = random.choice(self.NORMAL_MODES_SAMPLES)
 
     def express(self):
@@ -151,7 +162,7 @@ class NormalModes(GeneProvider):
         """
         c2p = self._chimera2prody
         for atom in self.molecule.atoms:
-            index = c2p[atom.coordIndex]
+            index = c2p[atom.serialNumber]
             new_coords = self.allele[index]
             atom.setCoord(chimera.Point(*new_coords))
 
@@ -216,7 +227,16 @@ class NormalModes(GeneProvider):
                                     n_confs=self.n_samples, rmsd=self.rmsd)
         samples.addCoordset(prody_molecule)
         samples_coords = [sample.getCoords() for sample in samples]
-        return modes, samples_coords, chimera2prody
+        return modes, samples_coords, chimera2prody, prody_molecule
+
+    def read_prody_normal_modes(self):
+        prody_molecule, chimera2prody = convert_chimera_molecule_to_prody(self.molecule)
+        modes = prody.parseNMD(self.path)[0]
+        samples = prody.sampleModes(modes=modes[self.modes], atoms=prody_molecule,
+                                    n_confs=self.n_samples, rmsd=self.rmsd)
+        samples.addCoordset(prody_molecule)
+        samples_coords = [sample.getCoords() for sample in samples]
+        return modes, samples_coords, chimera2prody, prody_molecule
 
     def read_gaussian_normal_modes(self):
         """
@@ -230,17 +250,17 @@ class NormalModes(GeneProvider):
                                     n_confs=self.n_samples, rmsd=self.rmsd)
         samples.addCoordset(prody_molecule)
         samples_coords = [sample.getCoords() for sample in samples]
-        return modes, samples_coords, chimera2prody
+        return modes, samples_coords, chimera2prody, prody_molecule
 
 
 ####
-def prody_modes(molecule, modes, algorithm=None, **options):
+def prody_modes(molecule, max_modes, algorithm=None, **options):
     """
     Parameters
     ----------
     molecule : prody.AtomGroup
-    modes : list of int
-        which modes to calculate
+    nax_modes : int
+        number of modes to calculate
     algorithm : callable, optional, default=None
         coarseGrain(prm) wich make molecule.select().setBetas(i) where i
         is the index Coarse Grain group
@@ -253,16 +273,22 @@ def prody_modes(molecule, modes, algorithm=None, **options):
     modes : ProDy modes ANM or RTB
     """
     modes = None
-    if algorithm is not None:
+    if algorithm in ['residues', 'mass']:
         title = 'normal modes for {}'.format(molecule.getTitle())
         molecule = algorithm(molecule, **options)
         modes = prody.RTB(title)
         modes.buildHessian(molecule.getCoords(), molecule.getBetas())
-        modes.calcModes(n_modes=modes)
+        modes.calcModes(n_modes=max_modes)
+    elif algorithm == 'calpha':
+        calphas_modes = prody.ANM('normal modes for {}'.format(molecule.getTitle()))
+        calphas = molecule = molecule.select(algorithm)
+        calphas_modes.buildHessian(calphas)
+        calphas_modes.calcModes(n_modes=max_modes)
+        modes = prody.extendModel(calphas_modes, calphas, molecule, norm=True)[0]
     else:
         modes = prody.ANM('normal modes for {}'.format(molecule.getTitle()))
         modes.buildHessian(molecule)
-        modes.calcModes(n_modes=modes)
+        modes.calcModes(n_modes=max_modes)
     return modes
 
 
@@ -282,11 +308,11 @@ def gaussian_modes(path):
     """
     gaussian_parser = Gaussian(path).parse()
     shape = gaussian_parser.vibdisps.shape
-    modes = gaussian_parser.vibdisps.reshape(shape[0], shape[1]*shape[2]).T
-    frequencies = numpy.abs(gaussian_parser.vibfreqs)
-    prody_modes = prody.NMA()
-    prody_modes.setEigens(vectors=modes, values=frequencies)
-    return prody_modes
+    modes_vectors = gaussian_parser.vibdisps.reshape(shape[0], shape[1]*shape[2]).T
+    modes_frequencies = numpy.abs(gaussian_parser.vibfreqs)
+    modes = prody.NMA()
+    modes.setEigens(vectors=modes_vectors, values=modes_frequencies)
+    return modes
 
 
 def convert_chimera_molecule_to_prody(molecule):
@@ -305,30 +331,35 @@ def convert_chimera_molecule_to_prody(molecule):
     """
     prody_molecule = prody.AtomGroup()
     try:
-        coords, elements, names, resnums, chids, betas, masses = [], [], [], [], [], [], []
+        coords, elements, serials, names, resnums, resnames, chids, betas, masses \
+            = [], [], [], [], [], [], [], [], []
         chimera2prody = {}
         offset_chimera_residue = min(r.id.position for r in molecule.residues)
 
         for i, atm in enumerate(molecule.atoms):
-            chimera2prody[atm.coordIndex] = i
+            chimera2prody[atm.serialNumber] = i
             coords.append(tuple(atm.coord()))  # array documentation to improve
             elements.append(atm.element.name)
+            serials.append(atm.serialNumber)
             names.append(atm.name)
             resnums.append(atm.residue.id.position - offset_chimera_residue)
+            resnames.append(atm.residue.type)
             chids.append(atm.residue.id.chainId)
             masses.append(atm.element.mass)
             betas.append(atm.bfactor)
 
         prody_molecule.setCoords(coords)
         prody_molecule.setElements(elements)
+        prody_molecule.setSerials(serials)
         prody_molecule.setNames(names)
         prody_molecule.setResnums(resnums)
+        prody_molecule.setResnames(resnames)
         prody_molecule.setChids(chids)
         prody_molecule.setBetas(betas)
         prody_molecule.setMasses(masses)
         prody_molecule.setTitle(str(molecule.name))
-        prody_molecule.setBonds([(chimera2prody[bond.atoms[0].coordIndex],
-                                  chimera2prody[bond.atoms[1].coordIndex]) for bond in molecule.bonds])
+        prody_molecule.setBonds([(chimera2prody[bond.atoms[0].serialNumber],
+                                  chimera2prody[bond.atoms[1].serialNumber]) for bond in molecule.bonds])
 
     except AttributeError:
         raise TypeError('Attribute not found. Molecule must be a chimera.Molecule')
@@ -461,5 +492,6 @@ def chimeracoords2numpy(molecule):
 GROUPERS = {
     'residues': group_by_residues,
     'mass': group_by_mass,
+    'calpha': 'calpha',
     '': None
 }
