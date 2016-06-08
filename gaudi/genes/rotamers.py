@@ -29,7 +29,7 @@ from collections import OrderedDict
 import logging
 # Chimera
 from AddH import simpleAddHydrogens, IdatmTypeInfo
-from Rotamers import getRotamers, useRotamer, NoResidueRotamersError
+from Rotamers import getRotamers, useRotamer as replaceRotamer, NoResidueRotamersError
 import SwapRes
 # External dependencies
 from repoze.lru import LRUCache
@@ -139,19 +139,22 @@ class Rotamers(GeneProvider):
 
     def express(self):
         for (mol, pos), (restype, i) in zip(self.residues, self.allele):
+            replaced = False
             try:
-                rot = self.get_rotamers(mol, pos, restype)
                 residue = self.residues[(mol, pos)]
+                rotamer = self.get_rotamers(mol, pos, restype)
             except NoResidueRotamersError:  # ALA, GLY...
                 if residue.type != restype:
                     SwapRes.swap(residue, restype)
+                    replaced = True
             else:
-                if residue.type != restype:
-                    useRotamer(residue, [rot[int(i * len(rot))]])
+                rotamer_index = int(i * len(rotamer))
+                if residue.type == restype:
+                    self.update_rotamer_coords(residue, rotamer[rotamer_index])
                 else:
-                    self.update_rotamer_coords(residue, [rot[int(i * len(rot))]])
-
-            finally:
+                    replaceRotamer(residue, [rotamer[rotamer_index]])
+                    replaced = True
+            if replaced:
                 self.residues[(mol, pos)] = \
                     next(r for r in self.parent.genes[mol].compound.mol.residues
                          if r.id.position == pos)
@@ -236,7 +239,7 @@ class Rotamers(GeneProvider):
     def update_rotamer_coords(residue, rotamer):
         rotamer = rotamer.residues[0]
         for name, rotamer_atoms in rotamer.atomsMap.items():
-            for rot_atom, res_atom in zip(rotamer_atoms, residue.atomsMap[name]):
+            for res_atom, rot_atom in zip(residue.atomsMap[name], rotamer_atoms):
                 res_atom.setCoord(rot_atom.coord())
 
     @staticmethod
