@@ -55,9 +55,9 @@ class Distance(ObjectiveProvider):
         is provided, the average of all of them is returned
     """
     validate = parse.Schema({
-        parse.Required('probes'): [parse.Named_spec("molecule", "atom")],
+        parse.Required('probes'): parse.AssertList(parse.Named_spec("molecule", "atom")),
         parse.Required('target'): parse.Named_spec("molecule", "atom"),
-        parse.Required('threshold'): parse.Coerce(float),
+        parse.Required('threshold'): parse.Any(parse.Coerce(float),parse.In(['covalent'])),
         'tolerance': parse.Coerce(float)
     }, extra=parse.ALLOW_EXTRA)
 

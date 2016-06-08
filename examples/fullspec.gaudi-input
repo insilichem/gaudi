@@ -59,7 +59,7 @@ genes:
         target: Protein
         group_by: residues
         group_lambda: 20
-        n_modes: 0-11
+        modes: [0,1,2,3,7,8,13]
         n_samples: 100
         rmsd: 2.0
 
@@ -68,7 +68,7 @@ genes:
         method: gaussian
         target: Ligand
         path: /path/to/gaussian.output
-        n_modes: [0,1,2,3,4,5]
+        modes: [0,1,2,3,4,5]
         n_samples: 100
         rmsd: 0.7
 
@@ -114,7 +114,7 @@ objectives:
         weight: -1.0
         threshold: covalent #or <n>
         tolerance: -0.1
-        target: 929
+        target: Protein/929
         probes: [last] # or serialNumber
 
     -   name: AngleABC
@@ -123,7 +123,7 @@ objectives:
         threshold: 90.0 #degrees or 'planar'
         # serialnumbers, 3 for angle, 4 for dihedral
         # Careful, input order DOES matter
-        target: [ Protein/123, Protein/456, Ligand/10, Ligand/9]
+        probes: [ Protein/123, Protein/456, Ligand/10, Ligand/9]
 
     -   name: Solvation
         module: gaudi.objectives.solvation
@@ -162,4 +162,12 @@ objectives:
         terms: [True, False, False, True, False]
         sorting: 1 # int between 0-6, read binary help for -S
         cofactor_handling: 1 # int between 0-7, read binary help for -I
+
+    -   name: ConvexHullVolume
+        module: gaudi.objectives.volume
+        weight: 1.0
+        threshold: 0.0
+        target: Protein
+        cavities: True
+
 
