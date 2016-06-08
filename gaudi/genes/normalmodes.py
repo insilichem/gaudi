@@ -154,7 +154,6 @@ class NormalModes(GeneProvider):
             if self.write_modes:
                 title = self.parent.cfg.output.path + str(self.molecule.name) + '_modes.nmd'
                 prody.writeNMD(title, normal_modes, prody_molecule)
-        # self.allele = self.mutate(1.0)
         self.allele = random.choice(self.NORMAL_MODES_SAMPLES)
 
     def express(self):
@@ -163,7 +162,6 @@ class NormalModes(GeneProvider):
         """
         c2p = self._chimera2prody
         for atom in self.molecule.atoms:
-            # index = c2p[atom.coordIndex]
             index = c2p[atom.serialNumber]
             new_coords = self.allele[index]
             atom.setCoord(chimera.Point(*new_coords))
@@ -292,33 +290,6 @@ def prody_modes(molecule, max_modes, algorithm=None, **options):
         modes.buildHessian(molecule)
         modes.calcModes(n_modes=max_modes)
     return modes
-
-# def prody_modes_full_atom(molecule, max_modes, algorithm=None, **options):
-#     modes = None
-#     title = 'normal modes for {}'.format(molecule.getTitle())
-#     molecule = algorithm(molecule, **options)
-#     modes = prody.RTB(title)
-#     modes.buildHessian(molecule.getCoords(), molecule.getBetas())
-#     modes.calcModes(n_modes=max_modes)
-#     return modes
-
-
-# def prody_modes_calpha(molecule, max_modes, algorithm=None, **options):
-#     modes = None
-#     calphas_modes = prody.ANM('normal modes for {}'.format(molecule.getTitle()))
-#     calphas = molecule = molecule.select(algorithm)
-#     calphas_modes.buildHessian(calphas)
-#     calphas_modes.calcModes(n_modes=max_modes)
-#     modes = prody.extendModel(calphas_modes, calphas, molecule, norm=True)[0]
-#     return modes
-
-
-# def prody_modes_rtb(molecule, max_modes, algorithm=None, **options):
-#     modes = None
-#     modes = prody.ANM('normal modes for {}'.format(molecule.getTitle()))
-#     modes.buildHessian(molecule)
-#     modes.calcModes(n_modes=max_modes)
-#     return modes
 
 
 def gaussian_modes(path):
