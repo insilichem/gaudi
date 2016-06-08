@@ -26,6 +26,7 @@ from __future__ import print_function, division
 import random
 import logging
 import numpy
+import os
 # Chimera
 import chimera
 # 3rd party
@@ -152,7 +153,8 @@ class NormalModes(GeneProvider):
             self._CACHE.put('chimera2prody', chimera2prody)
             self._CACHE.put('original_coords', chimeracoords2numpy(self.molecule))
             if self.write_modes:
-                title = self.parent.cfg.output.path + str(self.molecule.name) + '_modes.nmd'
+                title = os.path.join(self.parent.cfg.output.path,
+                                     '{}_modes.nmd'.format(self.molecule.name))
                 prody.writeNMD(title, normal_modes, prody_molecule)
         self.allele = random.choice(self.NORMAL_MODES_SAMPLES)
 
@@ -331,8 +333,9 @@ def convert_chimera_molecule_to_prody(molecule):
     """
     prody_molecule = prody.AtomGroup()
     try:
-        coords, elements, serials, names, resnums, resnames, chids, betas, masses \
-            = [], [], [], [], [], [], [], [], []
+        coords, elements, serials = [], [], []
+        names, resnums, resnames = [], [], []
+        chids, betas, masses = [], [], []
         chimera2prody = {}
         offset_chimera_residue = min(r.id.position for r in molecule.residues)
 
