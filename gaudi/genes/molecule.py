@@ -140,6 +140,10 @@ class Molecule(GeneProvider):
             self._CATALOG[self.name] = tuple(self._compile_catalog())
         self.allele = random.choice(self.catalog)
 
+        # An optimization for similarity methods: xform coords are
+        # cached here after all genes have expressed. See Individual.express.
+        self._expressed_xformcoords_cache = None
+
     @property
     def compound(self):
         """

@@ -46,19 +46,22 @@ def rmsd(ind1, ind2, subjects, threshold, *args, **kwargs):
             raise ValueError('Molecule {} not found in individual'.format(s))
 
     # If ligands are not the same molecule, of course they aren't similar
-    molecules1 = [g.allele for g in ind1.genes if g.__class__.__name__ == "Molecule"]
-    molecules2 = [g.allele for g in ind2.genes if g.__class__.__name__ == "Molecule"]
+    molecules1 = [g.allele for g in ind1._molecules]
+    molecules2 = [g.allele for g in ind2._molecules]
     if molecules1 != molecules2:
         return False
 
     logger.debug("Comparing RMSD between #%s and #%s", id(ind1), id(ind2))
-    coords1 = _molecules_xform_coords_by_name(ind1, subjects)
-    coords2 = _molecules_xform_coords_by_name(ind2, subjects)
-
-    sqdist = sum(a.sqdistance(b) for a, b in zip(coords1, coords2))
-    rmsd_squared = sqdist / ((len(coords1) + len(coords2)) / 2.0)
-    logger.debug("RMSD: %f", rmsd_squared)
-    return rmsd_squared < threshold*threshold
+    rmsds = []
+    for m1, m2 in zip(ind1._molecules, ind2._molecules):
+        coords1 = m1._expressed_xformcoords_cache
+        coords2 = m2._expressed_xformcoords_cache
+        if coords1.shape[0] != coords2.shape[0]:
+            return False
+        rmsd_squared = ((coords1-coords2)**2).sum() / coords1.shape[0]
+        rmsds.append(rmsd_squared)
+    logger.debug("RMSD: " + str(rmsds))
+    return all(rmsd < threshold*threshold for rmsd in rmsds)
 
 
 def _molecules_xform_coords_by_name(individual, subjects):

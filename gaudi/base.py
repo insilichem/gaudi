@@ -30,6 +30,7 @@ import chimera
 # External dependencies
 import deap.base
 import yaml
+import numpy as np
 # GAUDI
 import gaudi.plugin
 import gaudi.similarity
@@ -83,6 +84,7 @@ class Individual(object):
     def __init__(self, cfg=None, cache=None, dummy=False, **kwargs):
         logger.debug("Creating new individual with id %s", id(self))
         self.cfg = cfg
+        self._molecules = []
         if not dummy:
             self.__ready__()
 
@@ -100,6 +102,8 @@ class Individual(object):
                                   indpb=self.cfg.ga.mut_indpb)
         for g in self.genes.values():
             g.__ready__()
+            if g.__class__.__name__ == 'Molecule':
+                self._molecules.append(g)
 
         self.fitness = Fitness(self.cfg.weights)
         mod, fn = self.cfg.similarity.module.rsplit('.', 1)
@@ -139,6 +143,11 @@ class Individual(object):
             logger.debug("Expressing gene %s with allele\n%s",
                          name, pp.pformat(gene.allele))
             gene.express()
+
+        for molecule in self._molecules:
+            coords = np.array([a.xformCoord() for a in sorted(molecule.compound.mol.atoms,
+                                                             key=lambda a: a.serialNumber)])
+            molecule._expressed_xformcoords_cache = coords
 
     def unexpress(self):
         """
