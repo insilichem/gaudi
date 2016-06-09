@@ -82,9 +82,10 @@ class Rotamers(GeneProvider):
         'mutations': [parse.ResidueThreeLetterCode],
         'ligation': parse.Boolean,
         'hydrogens': parse.Boolean,
+        'avoid_replacement': parse.Boolean,
         }, extra=parse.ALLOW_EXTRA)
     
-    def __init__(self, residues=None, library='Dunbrack',
+    def __init__(self, residues=None, library='Dunbrack', avoid_replacement=False,
                  mutations=[], ligation=False, hydrogens=False, **kwargs):
         GeneProvider.__init__(self, **kwargs)
         self._kwargs = kwargs
@@ -93,6 +94,7 @@ class Rotamers(GeneProvider):
         self.mutations = mutations
         self.ligation = ligation
         self.hydrogens = hydrogens
+        self.avoid_replacement = avoid_replacement
         self.allele = []
         # set caches
         if self.name + '_res' not in self._cache:
@@ -105,6 +107,9 @@ class Rotamers(GeneProvider):
         else:
             self.random_number = None
 
+        # Avoid unnecesary calls to expensive get_rotamers if residue is known
+        # to not have any rotamers
+        self._residues_without_rotamers = ['ALA', 'GLY']
     @property
     def residues(self):
         """
@@ -149,7 +154,7 @@ class Rotamers(GeneProvider):
                     replaced = True
             else:
                 rotamer_index = int(i * len(rotamer))
-                if residue.type == restype:
+                if self.avoid_replacement and residue.type == restype:
                     self.update_rotamer_coords(residue, rotamer[rotamer_index])
                 else:
                     replaceRotamer(residue, [rotamer[rotamer_index]])
@@ -220,12 +225,15 @@ class Rotamers(GeneProvider):
         -------
             List of rotamers returned by ``Rotamers.getRotamers``.
         """
+        if restype in self._residues_without_rotamers:
+            raise NoResidueRotamersError
         rotamers = self.rotamers.get((mol, pos, restype))
         if rotamers is None:
             try:
                 rotamers = getRotamers(self.residues[(mol, pos)], resType=restype,
                                        lib=self.library.title())[1]
             except NoResidueRotamersError:  # ALA, GLY... has no rotamers
+                self._residues_without_rotamers.append(restype)
                 raise
             except KeyError:
                 raise
