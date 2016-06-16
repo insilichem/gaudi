@@ -177,28 +177,7 @@ class Settings(Munch):
         'objectives': [{}]
     })
 
-    def __init__(self, path=None):
-        self.update(munchify(self.default_values))
-        if path is not None:
-            self._path = path
-            gaudi.__input_path__ = os.environ['GAUDI_INPUT_PATH'] = os.path.dirname(path)
-            with open(path) as f:
-                raw_dict = yaml.load(f)
-            validated = self.validate(raw_dict)
-            self.update(munchify(validated))
-
-
-    @property
-    def weights(self):
-        return [obj.weight for obj in self.objectives]
-
-    @property
-    def name_objectives(self):
-        return [obj.name for obj in self.objectives]
-
-    @property
-    def validate(self):
-        return Schema({
+    _validator = Schema({
             Required('output'): {
                 'path': MakeDir(RelPathToInputFile()),
                 'name': All(str, Length(min=1, max=255)),
@@ -232,6 +211,32 @@ class Settings(Munch):
                                           'module': Importable,
                                           Extra: object}])
         }, extra=REMOVE_EXTRA)
+
+    def __init__(self, path=None, validation=True):
+        self.update(munchify(self.default_values))
+
+        if path is not None:
+            self._path = path
+            gaudi.__input_path__ = os.environ['GAUDI_INPUT_PATH'] = os.path.dirname(path)
+            with open(path) as f:
+                loaded = yaml.load(f)
+            if validation:
+                self.validate(loaded)
+            else:
+                self.update(munchify(loaded))
+
+
+    @property
+    def weights(self):
+        return [obj.weight for obj in self.objectives]
+
+    @property
+    def name_objectives(self):
+        return [obj.name for obj in self.objectives]
+
+    def validate(self, data):
+        validated = self._validator(data)
+        self.update(munchify(validated)) 
 
 
 def parse_rawstring(s):

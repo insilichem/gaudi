@@ -51,8 +51,8 @@ import sys
 try:
     import chimera
 except ImportError:
-    print("You must install UCSF Chimera and run GAUDI with its own Python interpreter.\n"
-          "Check the install guide for more details.")
+    print("Chimera not importable from this environment. Please, install "
+          "PyChimera and use it to run this file.")
 import deap.creator
 import deap.tools
 import deap.base
@@ -69,6 +69,8 @@ import gaudi.plugin
 import gaudi.similarity
 import gaudi.version
 
+if sys.version_info.major == 3:
+    basestring = str
 
 def launch(cfg):
     """
@@ -193,13 +195,26 @@ def unbuffer_stdout():
 
 
 #@gaudi.box.do_cprofile
-def main(filename, debug=False):
+def main(cfg, debug=False):
+    """
+    Starts a GAUDI job
+
+    Parameters
+    ----------
+    cfg : str or gaudi.parse.Settings
+        Path to YAML input file or an already parsed YAML file
+        via gaudi.parse.Settings class
+    debug : bool, optional, default=False
+        Whether to enable verbose logging or not.
+    """
     # Parse input file
-    cfg = gaudi.parse.Settings(filename)
+    if isinstance(cfg, basestring) and os.path.isfile(cfg):
+        cfg = gaudi.parse.Settings(cfg)
+    
     # Enable logging to stdout and file
     unbuffer_stdout()
     logger = enable_logging(cfg.output.path, cfg.output.name, debug=debug)
-    logger.log(100, 'Loaded input %s', filename)
+    logger.log(100, 'Loaded input %s', cfg._path)
 
     # Disable auto ksdssp
     chimera.triggers.addHandler("Model", gaudi.box.suppress_ksdssp, None)
@@ -216,7 +231,7 @@ def main(filename, debug=False):
         sys.exit(1)
 
     # Write results
-    logger.log(100, 'Writing %s results to disk', len(pop))
+    logger.log(100, 'Writing %s results to disk', len(best))
     results = {'GAUDI.objectives': ['{} ({})'.format(obj.name, obj.module) for obj in cfg.objectives]}
     results['GAUDI.results'] = {}
     for i, ind in enumerate(best):
