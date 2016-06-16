@@ -116,6 +116,8 @@ class Individual(object):
         new._similarity = self._similarity
         for g in new.genes.values():
             g.parent = new
+            if g.__class__.__name__ == 'Molecule':
+                new._molecules.append(g)
 
         return new
 

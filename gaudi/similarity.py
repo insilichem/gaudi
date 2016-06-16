@@ -45,15 +45,18 @@ def rmsd(ind1, ind2, subjects, threshold, *args, **kwargs):
         if s not in ind1.genes:
             raise ValueError('Molecule {} not found in individual'.format(s))
 
+    ind1_molecules = [g for g in ind1._molecules if g.name in subjects]
+    ind2_molecules = [g for g in ind2._molecules if g.name in subjects]
+
     # If ligands are not the same molecule, of course they aren't similar
-    molecules1 = [g.allele for g in ind1._molecules]
-    molecules2 = [g.allele for g in ind2._molecules]
+    molecules1 = [g.allele for g in ind1_molecules]
+    molecules2 = [g.allele for g in ind2_molecules]
     if molecules1 != molecules2:
         return False
 
     logger.debug("Comparing RMSD between #%s and #%s", id(ind1), id(ind2))
     rmsds = []
-    for m1, m2 in zip(ind1._molecules, ind2._molecules):
+    for m1, m2 in zip(ind1_molecules, ind2_molecules):
         coords1 = m1._expressed_xformcoords_cache
         coords2 = m2._expressed_xformcoords_cache
         if coords1.shape[0] != coords2.shape[0]:
