@@ -67,7 +67,7 @@ def cli(prog_name='gaudi'):
     https://bitbucket.org/jrgp/gaudi
     """
     pychimera.patch_environ()
-    pychimera.load_chimera()
+    pychimera.enable_chimera()
     click.echo()
     click.echo('GAUDI: Genetic Algorithms for Universal Design Inference')
     click.echo('--------------------------------------------------------')

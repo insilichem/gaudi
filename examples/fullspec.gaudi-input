@@ -14,6 +14,7 @@ output:
     compress: 1
     history: 0
     pareto: 0
+    verbose: True
 
 ga:
     population: 200

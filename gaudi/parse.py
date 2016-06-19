@@ -156,6 +156,7 @@ class Settings(Munch):
             'compress': True,
             'history': False,
             'pareto': True,
+            'verbose': True
         },
         'ga': {
             'population': 10,
@@ -185,6 +186,7 @@ class Settings(Munch):
                 'compress': Coerce(bool),
                 'history': Coerce(bool),
                 'pareto': Coerce(bool),
+                'verbose': Coerce(bool)
             },
             'ga': {
                 'population': All(Coerce(int), Range(min=2)),
