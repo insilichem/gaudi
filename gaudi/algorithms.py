@@ -147,7 +147,7 @@ def ea_mu_plus_lambda(population, toolbox, mu, lambda_, cxpb, mutpb, ngen,
                 try:
                     individual.unexpress() 
                 except:  # individual was already unexpressed
-                    continue
+                    pass
             break
         else:
             # Save a copy of an fully evaluated population, in case the 

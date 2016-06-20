@@ -198,7 +198,7 @@ class Molecule(GeneProvider):
         if random.random() < self.indpb:
             self.allele = random.choice(self.catalog)
 
-    def write(self, path=None, name=None, absolute=None, combined_with=None):
+    def write_mol2(self, path=None, name=None, absolute=None, combined_with=None):
         """
         Writes full mol2 to disk.
 
@@ -221,6 +221,25 @@ class Molecule(GeneProvider):
             molecules.extend(ind.compound.mol for ind in combined_with)
         writeMol2(molecules, fullname,
                   temporary=True, multimodelHandling='combined')
+        return fullname
+
+    write = write_mol2
+
+    def write_pdb(self, path=None, name=None, absolute=None, combined_with=None):
+        if path and name:
+            fullname = os.path.join(
+                path, '{}_{}.mol2'.format(name, self.name))
+        elif absolute:
+            fullname = absolute
+        else:
+            fileobject, fullname = tempfile.mkstemp(suffix='gaudi')
+            logger.warning(
+                "No output path provided. Using tempfile %s.", fullname)
+
+        molecules = [self.compound.mol]
+        if combined_with:
+            molecules.extend(ind.compound.mol for ind in combined_with)
+        chimera.pdbWrite(molecules, self.compound.mol.openState.xform, fullname)
         return fullname
 
     ############
