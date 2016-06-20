@@ -19,8 +19,6 @@ In its current state, it's just a copy of deap's ea_mu_plus_lambda.
 
 .. todo::
 
-    * Catch KeyboardInterrupt exceptions to handle Ctrl+C in CLI
-
     * Job progress
 
     * Custom debug info
@@ -29,12 +27,22 @@ In its current state, it's just a copy of deap's ea_mu_plus_lambda.
 
 """
 
+from __future__ import print_function, division
+import sys
+import logging
+from time import time
+from datetime import timedelta
 from deap import tools
 from deap.algorithms import varOr
 
+logger = logging.getLogger(__name__)
+
+if sys.version_info.major == 3:
+    xrange = range
+    raw_input = input
 
 def ea_mu_plus_lambda(population, toolbox, mu, lambda_, cxpb, mutpb, ngen,
-                      stats=None, halloffame=None, verbose=__debug__):
+                      stats=None, halloffame=None, verbose=True):
     """This is the :math:`(\mu + \lambda)` evolutionary algorithm.
 
     :param population: A list of individuals.
@@ -71,9 +79,10 @@ def ea_mu_plus_lambda(population, toolbox, mu, lambda_, cxpb, mutpb, ngen,
     registered in the toolbox. This algorithm uses the :func:`varOr`
     variation.
     """
-
+    t0 = time()
+    population_ = population[:]
     logbook = tools.Logbook()
-    logbook.header = ['gen', 'nevals'] + (stats.fields if stats else [])
+    logbook.header = ['gen', 'progress', 'nevals', 'speed', 'eta'] + (stats.fields if stats else [])
 
     # Evaluate the individuals with an invalid fitness
     invalid_ind = [ind for ind in population if not ind.fitness.valid]
@@ -83,33 +92,65 @@ def ea_mu_plus_lambda(population, toolbox, mu, lambda_, cxpb, mutpb, ngen,
 
     if halloffame is not None:
         halloffame.update(population)
-
     record = stats.compile(population) if stats is not None else {}
-    logbook.record(gen=0, nevals=len(invalid_ind), **record)
+    nevals = len(invalid_ind)
+    t1 = time()
+    speed = nevals / (t1-t0)
+    performed_evals = nevals
+    estimated_evals = (ngen + 1) * lambda_ * (cxpb + mutpb)
+    remaining_evals = estimated_evals - performed_evals
+    remaining = timedelta(seconds=int(remaining_evals / speed))
+    progress = '{:.2f}%'.format(100/(ngen+1))
+    logbook.record(gen=0, progress=progress, nevals=nevals, 
+                   speed='{:.2f} ev/s'.format(speed), eta=remaining, **record)
     if verbose:
-        print logbook.stream
+        print(logbook.stream)
 
     # Begin the generational process
-    for gen in range(1, ngen + 1):
-        # Vary the population
-        offspring = varOr(population, toolbox, lambda_, cxpb, mutpb)
+    for gen in xrange(1, ngen + 1):
+        try:
+            # Vary the population
+            t0 = time()
+            offspring = varOr(population, toolbox, lambda_, cxpb, mutpb)
 
-        # Evaluate the individuals with an invalid fitness
-        invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
-        fitnesses = toolbox.map(toolbox.evaluate, invalid_ind)
-        for ind, fit in zip(invalid_ind, fitnesses):
-            ind.fitness.values = fit
+            # Evaluate the individuals with an invalid fitness
+            invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
+            fitnesses = toolbox.map(toolbox.evaluate, invalid_ind)
+            for ind, fit in zip(invalid_ind, fitnesses):
+                ind.fitness.values = fit
 
-        # Update the hall of fame with the generated individuals
-        if halloffame is not None:
-            halloffame.update(offspring)
+            # Update the hall of fame with the generated individuals
+            if halloffame is not None:
+                halloffame.update(offspring)
 
-        # Select the next generation population
-        population[:] = toolbox.select(population + offspring, mu)
+            # Select the next generation population
+            population[:] = toolbox.select(population + offspring, mu)
 
-        # Update the statistics with the new population
-        record = stats.compile(population) if stats is not None else {}
-        logbook.record(gen=gen, nevals=len(invalid_ind), **record)
-        if verbose:
-            print logbook.stream
-    return population, logbook
+            # Update the statistics with the new population
+            nevals = len(invalid_ind)
+            t1 = time()
+            speed = nevals / (t1-t0)
+            performed_evals += nevals
+            remaining_evals = estimated_evals - performed_evals
+            remaining = timedelta(seconds=int(remaining_evals / speed))
+            record = stats.compile(population) if stats is not None else {}
+            progress = '{:.2f}%'.format(100*(gen+1)/(ngen+1))
+            logbook.record(gen=gen, progress=progress, nevals=nevals, 
+                           speed='{:.2f} ev/s'.format(speed), eta=remaining, **record)
+            if verbose:
+                print(logbook.stream)
+        except (Exception, KeyboardInterrupt):
+            answer = raw_input('\nInterruption detected. Write results so far? (y/N): ')
+            if answer.lower() not in ('y', 'yes'):
+                sys.exit('Ok, bye!')
+            for individual in population:
+                try:
+                    individual.unexpress() 
+                except:  # individual was already unexpressed
+                    continue
+            break
+        else:
+            # Save a copy of an fully evaluated population, in case the 
+            # simulation is stopped in next generation.
+            population_[:] = population
+    return population_, logbook

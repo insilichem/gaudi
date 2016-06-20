@@ -84,6 +84,7 @@ class Individual(object):
     def __init__(self, cfg=None, cache=None, dummy=False, **kwargs):
         logger.debug("Creating new individual with id %s", id(self))
         self.cfg = cfg
+        self.expressed = False
         self._molecules = []
         if not dummy:
             self.__ready__()
@@ -114,6 +115,7 @@ class Individual(object):
         new.genes = deepcopy(self.genes, memo)
         new.fitness = deepcopy(self.fitness, memo)
         new._similarity = self._similarity
+        new.expressed = self.expressed
         for g in new.genes.values():
             g.parent = new
             if g.__class__.__name__ == 'Molecule':
@@ -150,6 +152,7 @@ class Individual(object):
             coords = np.array([a.xformCoord() for a in sorted(molecule.compound.mol.atoms,
                                                              key=lambda a: a.serialNumber)])
             molecule._expressed_xformcoords_cache = coords
+        self.expressed = True
 
     def unexpress(self):
         """
@@ -158,6 +161,7 @@ class Individual(object):
         for gene in reversed(self.genes.values()):
             logger.debug("Reverting expression of gene %s", gene.name)
             gene.unexpress()
+        self.expressed = False
 
     def mate(self, other):
         """
