@@ -85,7 +85,7 @@ class Individual(object):
         logger.debug("Creating new individual with id %s", id(self))
         self.cfg = cfg
         self.expressed = False
-        self._molecules = []
+        self._molecules = OrderedDict()
         if not dummy:
             self.__ready__()
 
@@ -101,10 +101,10 @@ class Individual(object):
                                   cxeta=self.cfg.ga.cx_eta,
                                   mteta=self.cfg.ga.cx_eta,
                                   indpb=self.cfg.ga.mut_indpb)
-        for g in self.genes.values():
-            g.__ready__()
-            if g.__class__.__name__ == 'Molecule':
-                self._molecules.append(g)
+        for name, gene in self.genes.items():
+            gene.__ready__()
+            if gene.__class__.__name__ == 'Molecule':
+                self._molecules[name] = gene
 
         self.fitness = Fitness(self.cfg.weights)
         mod, fn = self.cfg.similarity.module.rsplit('.', 1)
@@ -116,10 +116,10 @@ class Individual(object):
         new.fitness = deepcopy(self.fitness, memo)
         new._similarity = self._similarity
         new.expressed = self.expressed
-        for g in new.genes.values():
-            g.parent = new
-            if g.__class__.__name__ == 'Molecule':
-                new._molecules.append(g)
+        for name, gene in new.genes.items():
+            gene.parent = new
+            if gene.__class__.__name__ == 'Molecule':
+                new._molecules[name] = gene
 
         return new
 
@@ -148,7 +148,7 @@ class Individual(object):
                          name, pp.pformat(gene.allele))
             gene.express()
 
-        for molecule in self._molecules:
+        for molecule in self._molecules.values():
             coords = np.array([a.xformCoord() for a in sorted(molecule.compound.mol.atoms,
                                                              key=lambda a: a.serialNumber)])
             molecule._expressed_xformcoords_cache = coords

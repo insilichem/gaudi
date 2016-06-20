@@ -45,18 +45,18 @@ def rmsd(ind1, ind2, subjects, threshold, *args, **kwargs):
         if s not in ind1.genes:
             raise ValueError('Molecule {} not found in individual'.format(s))
 
-    ind1_molecules = [g for g in ind1._molecules if g.name in subjects]
-    ind2_molecules = [g for g in ind2._molecules if g.name in subjects]
+    molecules1 = [ind1._molecules[s] for s in subjects]
+    molecules2 = [ind2._molecules[s] for s in subjects]
 
     # If ligands are not the same molecule, of course they aren't similar
-    molecules1 = [g.allele for g in ind1_molecules]
-    molecules2 = [g.allele for g in ind2_molecules]
-    if molecules1 != molecules2:
+    alleles1 = [g.allele for g in molecules1]
+    alleles2 = [g.allele for g in molecules2]
+    if alleles1 != alleles2:
         return False
 
     logger.debug("Comparing RMSD between #%s and #%s", id(ind1), id(ind2))
     rmsds = []
-    for m1, m2 in zip(ind1_molecules, ind2_molecules):
+    for m1, m2 in zip(molecules1, molecules2):
         coords1 = m1._expressed_xformcoords_cache
         coords2 = m2._expressed_xformcoords_cache
         if coords1.shape[0] != coords2.shape[0]:
@@ -65,17 +65,3 @@ def rmsd(ind1, ind2, subjects, threshold, *args, **kwargs):
         rmsds.append(rmsd_squared)
     logger.debug("RMSD: " + str(rmsds))
     return all(rmsd < threshold*threshold for rmsd in rmsds)
-
-
-def _molecules_xform_coords_by_name(individual, subjects):
-    individual.express()
-    compounds = []
-    for subject in subjects:
-        for gene in individual.genes.values():
-            if gene.__class__.__name__ == 'Molecule' and gene.name == subject:
-                compounds.append(gene.compound)
-    atoms = [a for compound in compounds
-             for a in sorted(compound.mol.atoms, key=lambda x: x.serialNumber)]
-    xform_coords = [a.xformCoord() for a in atoms]
-    individual.unexpress()
-    return xform_coords
