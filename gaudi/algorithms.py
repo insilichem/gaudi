@@ -30,7 +30,6 @@ In its current state, it's just a copy of deap's ea_mu_plus_lambda.
 from __future__ import print_function, division
 import sys
 import logging
-from copy import deepcopy
 from time import time
 from datetime import timedelta
 from deap import tools
@@ -83,7 +82,7 @@ def ea_mu_plus_lambda(population, toolbox, mu, lambda_, cxpb, mutpb, ngen,
     t0 = time()
     population_ = population[:]
     logbook = tools.Logbook()
-    logbook.header = ['gen', 'nevals', 'speed', 'eta'] + (stats.fields if stats else [])
+    logbook.header = ['gen', 'progress', 'nevals', 'speed', 'eta'] + (stats.fields if stats else [])
 
     # Evaluate the individuals with an invalid fitness
     invalid_ind = [ind for ind in population if not ind.fitness.valid]
@@ -101,7 +100,9 @@ def ea_mu_plus_lambda(population, toolbox, mu, lambda_, cxpb, mutpb, ngen,
     estimated_evals = (ngen + 1) * lambda_ * (cxpb + mutpb)
     remaining_evals = estimated_evals - performed_evals
     remaining = timedelta(seconds=int(remaining_evals / speed))
-    logbook.record(gen=0, nevals=nevals, speed='{:.2f} ev/s'.format(speed), eta=remaining, **record)
+    progress = '{:.2f}%'.format(100/(ngen+1))
+    logbook.record(gen=0, progress=progress, nevals=nevals, 
+                   speed='{:.2f} ev/s'.format(speed), eta=remaining, **record)
     if verbose:
         print(logbook.stream)
 
@@ -133,7 +134,9 @@ def ea_mu_plus_lambda(population, toolbox, mu, lambda_, cxpb, mutpb, ngen,
             remaining_evals = estimated_evals - performed_evals
             remaining = timedelta(seconds=int(remaining_evals / speed))
             record = stats.compile(population) if stats is not None else {}
-            logbook.record(gen=gen, nevals=nevals, speed='{:.2f} ev/s'.format(speed), eta=remaining, **record)
+            progress = '{:.2f}%'.format(100*(gen+1)/(ngen+1))
+            logbook.record(gen=gen, progress=progress, nevals=nevals, 
+                           speed='{:.2f} ev/s'.format(speed), eta=remaining, **record)
             if verbose:
                 print(logbook.stream)
         except (Exception, KeyboardInterrupt):
