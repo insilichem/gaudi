@@ -126,7 +126,7 @@ class Search(GeneProvider):
         }, extra=parse.ALLOW_EXTRA)
 
     def __init__(self, target=None, center=None, radius=None, rotate=True,
-                 precision=None, mut_eta=0.5, **kwargs):
+                 precision=0, mut_eta=0.5, **kwargs):
         GeneProvider.__init__(self, **kwargs)
         self.radius = radius
         self.rotate = rotate
@@ -172,7 +172,7 @@ class Search(GeneProvider):
         set that as the xform for the target molecule. If precision is set, round them.
         """
         matrices = self.allele + (self.to_zero,)
-        if self.precision is not None:
+        if self.precision > 0:
             self.molecule.openState.xform = M.chimera_xform(
                 M.multiply_matrices(*numpy_around(matrices, self.precision).tolist()))
         else:
