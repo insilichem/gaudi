@@ -218,7 +218,6 @@ class Settings(Munch):
 
     def __init__(self, path=None, validation=True):
         data = self.default_values.copy()
-        print(data)
         if path is not None:
             gaudi.__input_path__ = os.environ['GAUDI_INPUT_PATH'] = os.path.dirname(path)
             with open(path) as f:
