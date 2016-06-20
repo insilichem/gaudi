@@ -78,6 +78,10 @@ def Molecule_name(v):
     return str(v)
 
 
+MoleculeAtom = namedtuple("MoleculeAtom", ["molecule", "atom"])
+MoleculeResidue = namedtuple("MoleculeResidue", ["molecule", "residue"])
+namedtuples = {("molecule", "atom"): MoleculeAtom,
+               ("molecule", "residue"): MoleculeResidue}
 def Named_spec(*names):
     """
     Assert that str is formatted like "Molecule/123", with Molecule being
@@ -92,7 +96,7 @@ def Named_spec(*names):
                     pass
                 elif int(i) > 0:
                     i = int(i)
-                return namedtuple("NamedSpec", names)(name, i)
+                return namedtuples[(names)](name, i)
             raise ValueError
         except (ValueError, AttributeError):
             raise Invalid("Expected <Molecule name>/<residue or atom number> but got {}".format(v))

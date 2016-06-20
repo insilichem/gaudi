@@ -58,6 +58,7 @@ import deap.tools
 import deap.base
 import deap.algorithms
 import yaml
+# from multiprocess import Pool
 # GAUDI
 import gaudi.algorithms
 import gaudi.base
@@ -71,6 +72,7 @@ import gaudi.version
 
 if sys.version_info.major == 3:
     basestring = str
+
 
 def launch(cfg):
     """
@@ -99,6 +101,10 @@ def launch(cfg):
     toolbox.register("mutate", (lambda ind, indpb: ind.mutate(indpb)), indpb=cfg.ga.mut_indpb)
     toolbox.register("similarity", (lambda ind1, ind2: ind1.similar(ind2)))
     toolbox.register("select", deap.tools.selNSGA2)
+    
+    # Multiprocessing pool (Resolve pickle!)
+    # pool = Pool(initializer=lambda: setattr(sys, 'stdout', open(str(os.getpid()) + ".out", "w")))
+    # toolbox.register("map", pool.map)
 
     if cfg.output.history:
         history = deap.tools.History()
@@ -133,7 +139,6 @@ def launch(cfg):
         verbose=cfg.output.verbose, stats=stats)
 
     return population, log, elite
-
 
 
 def enable_logging(path=None, name=None, debug=False):
