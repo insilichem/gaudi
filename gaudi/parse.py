@@ -21,7 +21,9 @@ from __future__ import print_function
 import logging
 from importlib import import_module
 import os
-from collections import namedtuple
+from collections import namedtuple, Mapping
+from string import ascii_letters
+from random import choice
 # External dependencies
 import yaml
 from munch import Munch, munchify
@@ -148,10 +150,10 @@ class Settings(Munch):
         Path to YAML file
     """
 
-    default_values = Munch({
+    default_values = {
         'output': {
             'path': '.',
-            'name': '',
+            'name': ''.join(choice(ascii_letters) for _ in range(5)),
             'precision': None,
             'compress': True,
             'history': False,
@@ -176,10 +178,10 @@ class Settings(Munch):
         },
         'genes': [{}],
         'objectives': [{}]
-    })
+    }
 
     _validator = Schema({
-            Required('output'): {
+            'output': {
                 'path': MakeDir(RelPathToInputFile()),
                 'name': All(str, Length(min=1, max=255)),
                 'precision': All(int, Range(min=0, max=6)),
@@ -204,29 +206,28 @@ class Settings(Munch):
                 'args': [],
                 'kwargs': {}
             },
-            Required('genes'): All(Length(min=1),
-                                   [{'name': str,
-                                     'module': Importable,
-                                     Extra: object}]),
-            Required('objectives'): All(Length(min=1),
-                                        [{'name': str,
-                                          'module': Importable,
-                                          Extra: object}])
-        }, extra=REMOVE_EXTRA)
+            'genes': All(Length(min=1),
+                         [{'name': str,
+                           'module': Importable,
+                           Extra: object}]),
+            'objectives': All(Length(min=1),
+                              [{'name': str,
+                                'module': Importable,
+                                Extra: object}])
+        }, extra=ALLOW_EXTRA)
 
     def __init__(self, path=None, validation=True):
-        self.update(munchify(self.default_values))
-
+        data = self.default_values.copy()
+        print(data)
         if path is not None:
-            self._path = path
             gaudi.__input_path__ = os.environ['GAUDI_INPUT_PATH'] = os.path.dirname(path)
             with open(path) as f:
                 loaded = yaml.load(f)
             if validation:
-                self.validate(loaded)
-            else:
-                self.update(munchify(loaded))
-
+                loaded = self.validate(loaded)
+            data = deep_update(data, loaded)
+        self.update(munchify(data))
+        self._path = path
 
     @property
     def weights(self):
@@ -237,8 +238,20 @@ class Settings(Munch):
         return [obj.name for obj in self.objectives]
 
     def validate(self, data):
-        validated = self._validator(data)
-        self.update(munchify(validated)) 
+        return self._validator(data)
+
+def deep_update(source, overrides):
+    """Update a nested dictionary or similar mapping.
+
+    Modify ``source`` in place.
+    """
+    for key, value in overrides.iteritems():
+        if isinstance(value, Mapping) and value:
+            returned = deep_update(source.get(key, {}), value)
+            source[key] = returned  
+        else:
+            source[key] = overrides[key]
+    return source
 
 
 def parse_rawstring(s):
