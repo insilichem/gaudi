@@ -96,7 +96,10 @@ class DSX(ObjectiveProvider):
         self.covalent = covalent
 
         self.oldworkingdir = os.getcwd()
-        self.tempdir = tempfile._get_default_tempdir()
+        if os.name == 'posix' and os.path.exists('/dev/shm'):
+            self.tempdir = '/dev/shm'
+        else:
+            self.tempdir = tempfile._get_default_tempdir()
 
     def get_molecule_by_name(self, ind, *names):
         """
