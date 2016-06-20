@@ -25,6 +25,10 @@ import os
 import subprocess
 import tempfile
 import logging
+# Chimera
+import chimera
+from SplitMolecule.split import molecule_from_atoms
+from WriteMol2 import writeMol2
 # GAUDI
 from gaudi.objectives import ObjectiveProvider
 from gaudi import parse
@@ -74,12 +78,13 @@ class DSX(ObjectiveProvider):
         parse.Required('ligands'): [parse.Molecule_name],
         parse.Required('terms'): parse.All([parse.Boolean()], parse.Length(min=5, max=5)),
         'sorting': parse.All(parse.Coerce(int), parse.Range(min=0, max=6)),
-        'cofactor_handling': parse.All(parse.Coerce(int), parse.Range(min=0, max=7))
+        'cofactor_handling': parse.All(parse.Coerce(int), parse.Range(min=0, max=7)),
+        'covalent': bool
         }, extra=parse.ALLOW_EXTRA)
     
     def __init__(self, binary=None, potentials=None, proteins=('Protein',),
-                 ligands=('Ligand',), terms=None, sorting=1, cofactor_handling=1,
-                 *args, **kwargs):
+                 ligands=('Ligand',), terms=None, sorting=1, cofactor_handling=0,
+                 covalent=False, *args, **kwargs):
         ObjectiveProvider.__init__(self, **kwargs)
         self.binary = binary
         self.potentials = potentials
@@ -88,6 +93,8 @@ class DSX(ObjectiveProvider):
         self.terms = terms
         self.sorting = sorting
         self.cofactor_handling = cofactor_handling
+        self.covalent = covalent
+
         self.oldworkingdir = os.getcwd()
         self.tempdir = tempfile._get_default_tempdir()
 
@@ -115,13 +122,32 @@ class DSX(ObjectiveProvider):
         # Retrieve ligands and write them to single mol2 file
         ligandpath = '{}_ligand.mol2'.format(tmpfile)
         ligands = list(self.get_molecule_by_name(ind, *self.ligand_names))
-        last_ligand = ligands.pop()
-        last_ligand.write(absolute=ligandpath, combined_with=ligands)
+        # Split metals from ligand
+        notmetals, metals = [], []
+        for ligand in ligands:
+            for atom in ligand.compound.mol.atoms:
+                if atom.element in chimera.elements.metals:
+                    metals.append(atom)
+                else:
+                    notmetals.append(atom)
+        metalpath = '{}_metals.mol2'.format(tmpfile)
+        if metals:
+            without_metals = molecule_from_atoms(ligands[0].compound.mol, notmetals)
+            only_metals = molecule_from_atoms(ligands[0].compound.mol, metals)
+            writeMol2([without_metals], ligandpath, temporary=True, multimodelHandling='combined')
+            writeMol2([only_metals], metalpath, temporary=True, multimodelHandling='combined')
+        else:
+            last_ligand = ligands.pop()
+            last_ligand.write(absolute=ligandpath, combined_with=ligands)
+
+
         T0, T1, T2, T3, T4 = [1.0 * t for t in self.terms]
-        command = map(str, (self.binary, '-P', proteinpath, '-L', ligandpath,
-                            '-I', self.cofactor_handling, '-S', self.sorting,
-                            '-T0', T0, '-T1', T1, '-T2', T2, '-T3', T3, '-T4',
-                            T4, '-D', self.potentials))
+        command = map(str, [self.binary, '-c' if self.covalent else '',
+                            '-P', proteinpath, '-L', ligandpath] +
+                            (['-M', metalpath] if metals else []) + 
+                            ['-I', self.cofactor_handling, '-S', self.sorting,
+                            '-T0', T0, '-T1', T1, '-T2', T2, '-T3', T3, '-T4', T4,
+                            '-D', self.potentials])
         os.chdir(tempfile._get_default_tempdir())
         dsx_results = None
         try:
@@ -144,4 +170,7 @@ class DSX(ObjectiveProvider):
                 os.remove(dsx_results)
             os.remove(proteinpath)
             os.remove(ligandpath)
+            if metals:
+                os.remove(metalpath)
             os.chdir(self.oldworkingdir)
+
