@@ -23,7 +23,7 @@ The lower, the better, so usually you will use a -1.0 weight.
 # Python
 import os
 import subprocess
-import tempfile
+from tempfile import _get_default_tempdir as default_tempdir, _get_candidate_names as tempnames
 import logging
 # Chimera
 import chimera
@@ -76,7 +76,7 @@ class DSX(ObjectiveProvider):
         parse.Required('potentials'): parse.ExpandUserPathExists,
         parse.Required('proteins'): [parse.Molecule_name],
         parse.Required('ligands'): [parse.Molecule_name],
-        parse.Required('terms'): parse.All([parse.Boolean()], parse.Length(min=5, max=5)),
+        parse.Required('terms'): parse.All([parse.Coerce(bool)], parse.Length(min=5, max=5)),
         'sorting': parse.All(parse.Coerce(int), parse.Range(min=0, max=6)),
         'cofactor_mode': parse.All(parse.Coerce(int), parse.Range(min=0, max=7)),
         'with_covalent': parse.Coerce(bool),
@@ -102,23 +102,21 @@ class DSX(ObjectiveProvider):
         if os.name == 'posix' and os.path.exists('/dev/shm'):
             self.tmpdir = '/dev/shm'
         else:
-            self.tmpdir = tempfile._get_default_tempdir()
+            self.tmpdir = default_tempdir()
 
     def get_molecule_by_name(self, ind, *names):
         """
         Get a molecule gene instance of individual by its name
         """
         for name in names:
-            for gene in ind.genes.values():
-                if gene.__class__.__name__ == 'Molecule' and gene.name == name:
-                    yield gene
+            yield ind._molecules[name]
 
     def evaluate(self, ind):
         """
         Run a subprocess calling DSX binary with provided options,
         and parse the results. Clean tmp files at exit.
         """
-        self.tmpfile = os.path.join(self.tmpdir, next(tempfile._get_candidate_names()))
+        self.tmpfile = os.path.join(self.tmpdir, next(tempnames()))
         proteins = list(self.get_molecule_by_name(ind, *self.protein_names))
         ligands = list(self.get_molecule_by_name(ind, *self.ligand_names))
 
@@ -139,14 +137,12 @@ class DSX(ObjectiveProvider):
             os.chdir(self._oldworkingdir)
 
     def prepare_proteins(self, proteins):
-        # Retrieve proteins and write them to single mol2 file
         proteinpath = '{}_proteins.pdb'.format(self.tmpfile)
         last_protein = proteins.pop()
-        last_protein.write_pdb(absolute=proteinpath, combined_with=proteins)
+        last_protein.write(absolute=proteinpath, combined_with=proteins, filetype='pdb')
         self._paths['proteins'] = proteinpath
 
     def prepare_ligands(self, ligands):
-        # Retrieve ligands and write them to single mol2 file
         ligandpath = '{}_ligands.mol2'.format(self.tmpfile)
         metalpath = '{}_metals.mol2'.format(self.tmpfile)
         ligand_mols = [lig.compound.mol for lig in ligands]
@@ -154,22 +150,22 @@ class DSX(ObjectiveProvider):
         if self.with_metals:
             # Split metals from ligand
             nonmetal_mols, metal_mols = [], []
-            for ligand in ligands:
+            for ligand in ligand_mols:
                 nonmetals, metals = [], []
-                for atom in ligand.compound.mol.atoms:
+                for atom in ligand.atoms:
                     if atom.element in chimera.elements.metals:
                         metals.append(atom)
                     else:
                         nonmetals.append(atom)
-                nonmetal_mols.append(molecule_from_atoms(ligand.compound.mol, nonmetals))
+                nonmetal_mols.append(molecule_from_atoms(ligand, nonmetals))
                 if metals:
-                    metal_mols.append(molecule_from_atoms(ligand.compound.mol, metals))
+                    metal_mols.append(molecule_from_atoms(ligand, metals))
             if metal_mols:
                 writeMol2(metal_mols, metalpath, temporary=True)
                 self._paths['metals'] = metalpath
                 ligand_mols = nonmetal_mols
        
-        writeMol2(ligand_mols, ligandpath, temporary=True)
+        writeMol2(ligand_mols, ligandpath, temporary=True, multimodelHandling='combined')
         self._paths['ligands'] = ligandpath
 
     def prepare_command(self):
