@@ -93,13 +93,10 @@ class Energy(ObjectiveProvider):
             self._simulation = None
 
         self.topology = topology
-        energy = self.calculate_energy(coordinates)
-
-        return energy
+        return self.calculate_energy(coordinates)
 
     def molecules(self, individual):
-        return tuple(m.compound.mol for m in individual.genes.values()
-                     if m.__class__.__name__ == "Molecule")
+        return individual._molecules.values()
 
     @property
     def simulation(self):
@@ -139,9 +136,7 @@ class Energy(ObjectiveProvider):
         self.simulation.context.setPositions(coordinates)
         # Retrieve initial energy
         state = self.simulation.context.getState(getEnergy=True)
-        potential_energy = state.getPotentialEnergy()
-
-        return potential_energy._value
+        return state.getPotentialEnergy()._value
 
     @staticmethod
     def chimera_molecule_to_openmm(*molecules):

@@ -27,11 +27,12 @@ between the target molecule and its environment.
 import logging
 # Chimera
 import chimera
-import FindHBond
+from FindHBond import findHBonds
+from FindHBond.base import filterHBondsBySel
 # GAUDI
 from gaudi import parse
 from gaudi.objectives import ObjectiveProvider
-import gaudi.box
+from gaudi.box import draw_interactions
 
 logger = logging.getLogger(__name__)
 
@@ -76,8 +77,7 @@ class Hbonds(ObjectiveProvider):
         self.radius = radius
 
     def molecules(self, ind):
-        return tuple(m.compound.mol for m in ind.genes.values()
-                     if m.__class__.__name__ == "Molecule")
+        return ind._molecules.values()
 
     def probe(self, ind):
         return [ind.genes[p].compound.mol for p in self._probe]
@@ -91,12 +91,11 @@ class Hbonds(ObjectiveProvider):
         molecules = self.molecules(ind)
         probe_atoms = [a for m in self.probe(ind) for a in m.atoms]
         test_atoms = self._surrounding_atoms(probe_atoms, molecules)
-        hbonds = FindHBond.findHBonds(molecules, cacheDA=self._cache,
+        hbonds = findHBonds(molecules, cacheDA=self._cache,
                                       donors=test_atoms, acceptors=test_atoms,
                                       distSlop=self.distance_tolerance,
                                       angleSlop=self.angle_tolerance)
-        hbonds = FindHBond.base.filterHBondsBySel(
-            hbonds, probe_atoms, 'any')
+        hbonds = filterHBondsBySel(hbonds, probe_atoms, 'any')
 
         return len(hbonds)
 
@@ -104,14 +103,12 @@ class Hbonds(ObjectiveProvider):
         """
         Mock method to show a graphical depiction of the found H Bonds.
         """
-        return gaudi.box.draw_interactions(bonds, name=self.name,
-                                           startCol='00FFFF', endCol='00FFFF')
+        return draw_interactions(bonds, name=self.name, startCol='00FFFF', endCol='00FFFF')
 
     ###
     def _surrounding_atoms(self, atoms, molecules):
         self.zone.clear()
         self.zone.add(atoms)
         self.zone.merge(chimera.selection.REPLACE,
-                        chimera.specifier.zone(self.zone, 'atom', None,
-                                               self.radius, molecules))
+                        chimera.specifier.zone(self.zone, 'atom', None, self.radius, molecules))
         return self.zone.atoms()

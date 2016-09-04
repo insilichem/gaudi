@@ -54,30 +54,19 @@ class Angle(ObjectiveProvider):
 
     validate = parse.Schema({
         parse.Required('probes'): parse.AssertList(parse.Named_spec("molecule", "atom")),
-        parse.Required('threshold'): parse.Any(parse.Coerce(float), parse.In(['planar'])),
-        'tolerance': parse.Coerce(float),
+        parse.Required('threshold'): parse.Any(parse.Coerce(float), parse.In(['planar']))
         }, extra=parse.ALLOW_EXTRA)
 
-    def __init__(self, threshold=None, tolerance=-0.1, probes=None,
-                 *args, **kwargs):
+    def __init__(self, threshold=None, probes=None, *args, **kwargs):
         ObjectiveProvider.__init__(self, **kwargs)
         self.threshold = threshold
-        self.tolerance = tolerance
         self._probes = probes
 
     def probes(self, ind):
         for probe in self._probes:
             mol, serial = probe
             try:
-                if isinstance(serial, int):
-                    atom = next(a for a in ind.genes[mol].compound.mol.atoms
-                                if serial == a.serialNumber)
-                else:
-                    atom = next(a for a in ind.genes[mol].compound.mol.atoms
-                                if serial == a.name)
-            except KeyError:
-                logger.exception("Molecule not found")
-                raise
+                atom = next(a for a in ind.genes[mol].compound.mol.atoms if serial == a.serialNumber)
             except StopIteration:
                 logger.exception("No atoms matched for probe %s", probe)
                 raise
@@ -85,18 +74,17 @@ class Angle(ObjectiveProvider):
                 yield atom
 
     def evaluate(self, ind):
-        atoms_coords = [a.molecule.openState.xform.apply(a.coord()) for a in self.probes(ind)]
+        atoms_coords = [a.xformCoord() for a in self.probes(ind)]
         delta = 180.0
         try:
             angle = chimera.angle(*atoms_coords)
         except TypeError:  # four atoms, means dihedral
             angle = chimera.dihedral(*atoms_coords)
-        except TypeError:  # threshold is str, calc abs sine
-            if self.threshold == 'planar':
-                delta = abs(math.sin(math.radians(angle)))
-        else:
-            delta = abs(self.threshold - angle.real)
+        
+        if self.threshold == 'planar':
+            return abs(math.sin(math.radians(angle)))
+        return abs(self.threshold - angle.real)
 
-        return delta
+
 
 # TODO: Probes get lost if rotamers are applied!

@@ -103,15 +103,43 @@ class SimpleCoordination(ObjectiveProvider):
         else:
             self.evaluate = self.evaluate_simple
 
-    def probe(self, ind):
-        return self._getatom(ind, self._probe)
-
     def molecules(self, ind):
-        return tuple(g.compound.mol for g in ind.genes.values()
-                     if g.__class__.__name__ == "Molecule")
+        return ind._molecules.values()
+
+    def probe(self, ind):
+        mol, serial = probe
+        try:
+            if isinstance(serial, int):
+                atom = next(a for a in ind.genes[mol].compound.mol.atoms
+                            if serial == a.serialNumber)
+            else:
+                atom = next(a for a in ind.genes[mol].compound.mol.atoms
+                            if serial == a.name)
+        except KeyError:
+            logger.exception("Molecule %s not found", mol)
+            raise
+        except StopIteration:
+            logger.exception("No atoms matched for probe %s", probe)
+            raise
+        else:
+            return atom
+
 
     def residues(self, ind):
-        return set(self._getresidue(ind, *self._residues))
+        for mol, pos in residues:
+            try:
+                if pos == '*':
+                    for r in ind.genes[mol].compound.mol.residues:
+                        yield r
+                else:
+                    yield next(r for r in ind.genes[mol].compound.mol.residues
+                               if pos == r.id.position)
+            except KeyError:
+                logger.exception("Molecule %s not found", mol)
+                raise
+            except StopIteration:
+                logger.exception("No residues matched for pos %s", pos)
+                raise
 
     def evaluate_simple(self, ind):
         """
@@ -265,48 +293,6 @@ class SimpleCoordination(ObjectiveProvider):
 
         return atoms_by_distance
 
-    # TODO: Probes get lost if rotamers are applied!
-    def _getatom(self, ind, probe):
-        """
-        Parse `Molecule/serialNumber` string and return a chimera.Atom located at
-        `Molecule` with serial number `serialNumber`
-        """
-        mol, serial = probe
-        try:
-            if isinstance(serial, int):
-                atom = next(a for a in ind.genes[mol].compound.mol.atoms
-                            if serial == a.serialNumber)
-            else:
-                atom = next(a for a in ind.genes[mol].compound.mol.atoms
-                            if serial == a.name)
-        except KeyError:
-            logger.exception("Molecule %s not found", mol)
-            raise
-        except StopIteration:
-            logger.exception("No atoms matched for probe %s", probe)
-            raise
-        else:
-            return atom
-
-    def _getresidue(self, ind, *residues):
-        """
-        Parse `Molecule/position` string and return a chimera.Residue located at
-        `Molecule` with serial number `position`
-        """
-        for mol, pos in residues:
-            try:
-                if pos == '*':
-                    for r in ind.genes[mol].compound.mol.residues:
-                        yield r
-                else:
-                    yield next(r for r in ind.genes[mol].compound.mol.residues
-                               if pos == r.id.position)
-            except KeyError:
-                logger.exception("Molecule %s not found", mol)
-                raise
-            except StopIteration:
-                logger.exception("No residues matched for pos %s", pos)
-                raise
 
     def _update_zone(self, ind):
         """

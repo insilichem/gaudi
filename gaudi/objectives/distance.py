@@ -64,7 +64,8 @@ class Distance(ObjectiveProvider):
     def __init__(self, threshold=None, tolerance=-0.1, target=None, probes=None,
                  *args, **kwargs):
         ObjectiveProvider.__init__(self, **kwargs)
-        self.threshold = threshold
+        if threshold == 'covalent'
+            self.threshold = threshold
         self.tolerance = tolerance
         self._probes = probes
         self._target = target
@@ -73,16 +74,9 @@ class Distance(ObjectiveProvider):
         """
         Get the target atom
         """
+        mol, serial = self._target
         try:
-            if isinstance(self._target.atom, int):
-                atom = next(a for a in ind.genes[self._target.molecule].compound.mol.atoms
-                            if self._target.atom == a.serialNumber)
-            else:
-                atom = next(a for a in ind.genes[self._target.molecule].compound.mol.atoms
-                            if self._target.atom == a.name)
-        except KeyError:
-            logger.exception("Molecule not found")
-            raise
+            atom = next(a for a in ind.genes[mol].compound.mol.atoms if serial == a.serialNumber)
         except StopIteration:
             logger.exception("No atoms matched for target %s", atom)
             raise
@@ -96,17 +90,7 @@ class Distance(ObjectiveProvider):
         for probe in self._probes:
             mol, serial = probe
             try:
-                if isinstance(serial, int):
-                    atom = next(a for a in ind.genes[mol].compound.mol.atoms
-                                if serial == a.serialNumber)
-                elif serial == 'last':
-                    atom = ind.genes[mol].compound.acceptor
-                else:
-                    atom = next(a for a in ind.genes[mol].compound.mol.atoms
-                                if serial == a.name)
-            except KeyError:
-                logger.exception("Molecule not found")
-                raise
+                atom = next(a for a in ind.genes[mol].compound.mol.atoms if serial == a.serialNumber)
             except StopIteration:
                 logger.exception("No atoms matched for target %s", probe)
                 raise
@@ -123,8 +107,7 @@ class Distance(ObjectiveProvider):
         for a in self.probes(ind):
             d = self._distance(a, target)
             if self.threshold == 'covalent':
-                threshold = chimera.Element.bondLength(
-                    a.element, target.element)
+                threshold = chimera.Element.bondLength(a.element, target.element)
             else:
                 threshold = self.threshold
             d = d - threshold
