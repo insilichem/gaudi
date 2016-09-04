@@ -53,6 +53,9 @@ class Torsion(GeneProvider):
         arbitrary rotations. 
     anchor : str
         Molecule/atom_serial_number of reference atom for torsions
+    rotatable_atom_types : list of str
+        Which type of atom types (as in chimera.Atom.name) should rotate.
+        Defaults to ('C3', 'N3', 'C2', 'N2', 'P').
 
     Notes
     -----
@@ -69,16 +72,19 @@ class Torsion(GeneProvider):
         'flexibility': parse.Degrees,
         'max_bonds': parse.All(parse.Coerce(int), parse.Range(min=0)),
         'anchor': parse.Named_spec("molecule", "atom"),
+        'rotatable_atom_types': [str],
         }, extra=parse.ALLOW_EXTRA)
 
     BONDS_ROTS = {}
 
-    def __init__(self, target=None, flexibility=None, max_bonds=30, anchor=None, **kwargs):
+    def __init__(self, target=None, flexibility=None, max_bonds=30, anchor=None,
+                 rotatable_atom_types=('C3', 'N3', 'C2', 'N2', 'P'), **kwargs):
         GeneProvider.__init__(self, **kwargs)
         self._kwargs = kwargs
         self.target = target
         self.flexibility = 360.0 if flexibility > 360 else flexibility
         self.max_bonds = max_bonds
+        self.rotatable_atom_types = rotatable_atom_types
         self._anchor = anchor
         self.nonrotatable = ()
         self.allele = [self.random_angle() for i in xrange(self.max_bonds)]

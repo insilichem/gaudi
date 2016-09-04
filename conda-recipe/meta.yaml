@@ -25,5 +25,13 @@ requirements:
     - scipy
 
 test:
+  requires:
+    - pytest
+    
   imports:
     - gaudi
+
+  commands:
+    - pychimera run_test.py
+
+
