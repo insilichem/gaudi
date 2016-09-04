@@ -111,8 +111,7 @@ class Torsion(GeneProvider):
     def mutate(self, indpb):
         self.allele, = mutPolynomialBounded(self.allele,
                                             indpb=self.indpb, eta=self.mteta,
-                                            low=-0.5 *
-                                            self.flexibility,
+                                            low=-0.5 * self.flexibility,
                                             up=0.5 * self.flexibility)
 
     #####
@@ -148,25 +147,36 @@ class Torsion(GeneProvider):
         """
         atoms = self.parent.genes[self.target].compound.mol.atoms
         bonds = set(b for a in atoms for b in a.bonds if not a.element.isMetal)
-        bonds = sorted(
-            bonds, key=lambda b: min(y.serialNumber for y in b.atoms))
+        bonds = sorted(bonds, key=lambda b: min(y.serialNumber for y in b.atoms))
+
+        def conditions(*atoms):
+            # If any of the atoms is a dummy atom, we don't care: rotate that one
+            for a in atoms:
+                if a.name == 'DUM':
+                    return True
+
+            # Must be satisfied by all atoms
+            for a in atoms:
+                if a.numBonds <= 1:
+                    return False
+            
+            # Must be satisfied by at least one atom
+            for a in atoms:
+                if a not in self.nonrotatable and a.idatmType in ('C3', 'N3', 'C2', 'N2', 'P'):
+                    return True
 
         for b in bonds:
             try:
                 br = self.BONDS_ROTS[b]
             except KeyError:
-                a1, a2 = b.atoms
-                if a1 not in self.nonrotatable and \
-                        a1.idatmType in ('C3', 'N3', 'C2', 'N2', 'P') and \
-                        (a1.numBonds > 1 and a2.numBonds > 1) or \
-                        a1.name == 'DUM' or a2.name == 'DUM':
+                if conditions(*b.atoms):
                     try:
                         br = chimera.BondRot(b)
                     except (chimera.error, ValueError) as v:
                         if "cycle" in str(v):
                             continue  # discard bonds in cycles!
                         elif "already used" in str(v):
-                            print str(v)
+                            logger.info(str(v))
                             continue
                         else:
                             raise
@@ -176,12 +186,6 @@ class Torsion(GeneProvider):
                 else:
                     continue
             yield br
-
-    def update_rotatable_bonds(self):
-        """
-        Probably unneded now
-        """
-        self.rotatable_bonds[:] = list(self.get_rotatable_bonds())
 
     @property
     def anchor(self):
@@ -195,9 +199,8 @@ class Torsion(GeneProvider):
         if self._anchor is not None:
             mol, atom = self._anchor
             try:
-                molecule = next(g for g in self.parent.genes.values()
-                                if g.__class__.__name__ == 'Molecule' and g.name == mol)
-                anchor = next(a for a in molecule.compound.mol.atoms if a.serialNumber == atom)
+                molecule = self.parent._molecules[mol].compound.mol
+                anchor = next(a for a in molecule.atoms if a.serialNumber == atom)
             except StopIteration:
                 pass
             else:
