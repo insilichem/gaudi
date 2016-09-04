@@ -23,7 +23,7 @@ This objective calculates SASA and/or SESA for the given system (or region).
     Hopefully, UCSF Chimera 2.0 will implement a custom alternative to MSMS which won't have these
     problems. At least, that's what they stated \
     (here)[http://www.cgl.ucsf.edu/pipermail/chimera-users/2013-February/008497.html]. You can see
-    a beta implementation in :mod:`gaudi.objectives.volume`.It's faster, less prone to errors
+    a beta implementation in :mod:`gaudi.objectives.volume`. It's faster, less prone to errors
     but the output is not in agreement with MSMS'.
 
 """
