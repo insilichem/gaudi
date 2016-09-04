@@ -1,0 +1,7 @@
+include README.rst
+include environment.yml
+include .gitignore
+recursive-include docs *
+recursive-include examples *
+recursive-include resources *
+recursive-include tests *

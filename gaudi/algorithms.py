@@ -139,7 +139,8 @@ def ea_mu_plus_lambda(population, toolbox, mu, lambda_, cxpb, mutpb, ngen,
                            speed='{:.2f} ev/s'.format(speed), eta=remaining, **record)
             if verbose:
                 print(logbook.stream)
-        except (Exception, KeyboardInterrupt):
+        except (Exception, KeyboardInterrupt) as e:
+            logging.error(e)
             answer = raw_input('\nInterruption detected. Write results so far? (y/N): ')
             if answer.lower() not in ('y', 'yes'):
                 sys.exit('Ok, bye!')

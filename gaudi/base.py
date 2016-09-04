@@ -19,6 +19,7 @@ Contains the core classes we use to build individuals
 
 # Python
 from collections import OrderedDict
+from contextlib import contextmanager
 from copy import deepcopy
 from zipfile import ZipFile, ZIP_DEFLATED, ZIP_STORED
 import logging
@@ -84,6 +85,8 @@ class Individual(object):
     def __init__(self, cfg=None, cache=None, dummy=False, **kwargs):
         logger.debug("Creating new individual with id %s", id(self))
         self.cfg = cfg
+        self.genes = OrderedDict()
+        self.fitness = None
         self.expressed = False
         self._molecules = OrderedDict()
         if not dummy:
@@ -95,7 +98,6 @@ class Individual(object):
         `__deepcopy__`. It's just the second part of a two-stage
         `__init__`.
         """
-        self.genes = OrderedDict()
         gaudi.plugin.load_plugins(self.cfg.genes, container=self.genes,
                                   parent=self,
                                   cxeta=self.cfg.ga.cx_eta,
@@ -299,3 +301,11 @@ class Fitness(deap.base.Fitness):
         new = self.__class__(self.weights)
         new.wvalues = self.wvalues + ()
         return new
+
+@contextmanager
+def expressed(individual):
+    individual.express()
+    try:
+        yield individual
+    finally:
+        individual.unexpress()

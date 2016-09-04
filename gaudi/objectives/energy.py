@@ -12,7 +12,7 @@
 ##############
 
 """
-This gene is a wrapper around OpenMM, providing a GPU-accelerated energy 
+This objective is a wrapper around OpenMM, providing a GPU-accelerated energy 
 calculation of the system with a simple forcefield evaluation.
 """
 
@@ -63,7 +63,7 @@ class Energy(ObjectiveProvider):
         'auto_parametrize': [parse.Molecule_name]
         }, extra=parse.ALLOW_EXTRA)
 
-    def __init__(self, forcefields=('amber99sbildn.xml'), auto_parametrize=None, *args, **kwargs):
+    def __init__(self, forcefields=('amber99sbildn.xml',), auto_parametrize=None, *args, **kwargs):
         ObjectiveProvider.__init__(self, **kwargs)
         self.auto_parametrize = auto_parametrize
         self.topology = None
@@ -235,7 +235,7 @@ def calculate_energy(filename, forcefield=None):
                              nonbondedMethod=openmm_app.CutoffNonPeriodic,
                              nonbondedCutoff=1.0*unit.nanometers,
                              rigidWater=True, constraints=None)
-    integrator = openmm_app.VerletIntegrator(0.001)
+    integrator = openmm.VerletIntegrator(0.001)
     sim = openmm_app.Simulation(mol.topology, system, integrator)
     sim.context.setPositions(mol.positions)
     state = sim.context.getState(getEnergy=True)
@@ -307,3 +307,7 @@ def _test_topology_equality(t1, t2):
             return False
 
     return True
+
+if __name__ == "__main__":
+    import sys
+    print(calculate_energy(sys.argv[1]))
