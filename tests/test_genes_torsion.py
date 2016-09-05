@@ -8,7 +8,7 @@ from gaudi.genes.molecule import Molecule
 from gaudi.genes.torsion import Torsion
 
 
-@pytest.mark.parametrize("path,angle,bonds,rotatable,distance", [
+@pytest.mark.parametrize("path, angle, bonds, rotatable, distance", [
     ('3pk2_ligand.pdb', 1.0, 49, 8, 3.796920067633768),
 ])
 def test_torsion(individual, path, angle, bonds, rotatable, distance):
@@ -26,7 +26,7 @@ def test_torsion(individual, path, angle, bonds, rotatable, distance):
         assert Distance._distance(atom1, atom2) == distance
 
 
-@pytest.mark.parametrize("path,angle,distance", [
+@pytest.mark.parametrize("path, angle, distance", [
     ('1amb.pdb', 90.0, 58.986905376603815),
 ])
 def test_backbone_torsion(individual, path, angle, distance):

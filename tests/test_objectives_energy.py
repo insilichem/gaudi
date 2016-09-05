@@ -5,7 +5,7 @@ import pytest
 from conftest import datapath, expressed
 
 
-@pytest.mark.parametrize("path,energy", [
+@pytest.mark.parametrize("path, energy", [
     ('5dfr_minimized.pdb', 10701.1228976),
     ('1amb.pdb', 4401.90005384),
 ])

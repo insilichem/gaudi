@@ -7,7 +7,7 @@ from conftest import datapath, expressed
 from gaudi.genes.molecule import Molecule
 
 
-@pytest.mark.parametrize("path,atoms", [
+@pytest.mark.parametrize("path, atoms", [
     ('5dfr_minimized.pdb', 2489),
     ('1amb.pdb', 438),
     ('3pk2_ligand.pdb', 41),
