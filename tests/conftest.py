@@ -3,22 +3,25 @@
 
 import os
 import pytest
+from gaudi.base import expressed
+import chimera
 
 TESTPATH = os.path.dirname(os.path.abspath(__file__))
 
+def datapath(path):
+    return os.path.join(TESTPATH, 'data', path)
 
 @pytest.fixture
-def individual(request):
+def individual():
     from gaudi.base import Individual
-    from gaudi.genes.molecule import Molecule
     individual = Individual(dummy=True)
-    path = os.path.join(TESTPATH, 'data', '5dfr_minimized.pdb')
-    individual.genes['Molecule'] = Molecule(path=path)
-    return individual
+    yield individual
+    individual.clear_cache()
+    chimera.closeSession()
 
 @pytest.fixture
-def expressed_individual(individual):
-    individual.express()
-    yield individual
-    individual.unexpress()
-
+def environment():
+    from gaudi.base import Environment
+    environment = Environment()
+    yield environment
+    environment.clear_cache()

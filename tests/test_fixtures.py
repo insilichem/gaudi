@@ -1,9 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-
+individual_global = None
 def test_individual(individual):
-    assert individual.genes['Molecule'].compound.mol.numAtoms == 2489
+    global individual_global
+    individual_global = individual
+    assert True
 
-def test_expressed_individual(expressed_individual):
-    assert expressed_individual.expressed is True
+def test_individuals(individual):
+    global individual_global
+    assert id(individual) != id(individual_global)
