@@ -57,15 +57,14 @@ class Distance(ObjectiveProvider):
     validate = parse.Schema({
         parse.Required('probes'): parse.AssertList(parse.Named_spec("molecule", "atom")),
         parse.Required('target'): parse.Named_spec("molecule", "atom"),
-        parse.Required('threshold'): parse.Any(parse.Coerce(float),parse.In(['covalent'])),
+        parse.Required('threshold'): parse.Any(parse.Coerce(float), parse.In(['covalent'])),
         'tolerance': parse.Coerce(float)
     }, extra=parse.ALLOW_EXTRA)
 
     def __init__(self, threshold=None, tolerance=-0.1, target=None, probes=None,
                  *args, **kwargs):
         ObjectiveProvider.__init__(self, **kwargs)
-        if threshold == 'covalent'
-            self.threshold = threshold
+        self.threshold = threshold
         self.tolerance = tolerance
         self._probes = probes
         self._target = target
