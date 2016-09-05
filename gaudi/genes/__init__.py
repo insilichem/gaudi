@@ -100,3 +100,7 @@ class GeneProvider(object):
         with open(fullname, 'w') as f:
             f.write(pp.pformat(self.allele))
         return fullname
+
+    @classmethod
+    def clear_cache(cls):
+        cls._cache.clear()

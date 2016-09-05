@@ -82,15 +82,14 @@ class Individual(object):
     _CACHE = {}
     _CACHE_OBJ = {}
 
-    def __init__(self, cfg=None, cache=None, dummy=False, **kwargs):
+    def __init__(self, cfg=None, cache=None, **kwargs):
         logger.debug("Creating new individual with id %s", id(self))
         self.cfg = cfg
         self.genes = OrderedDict()
         self.fitness = None
         self.expressed = False
         self._molecules = OrderedDict()
-        if not dummy:
-            self.__ready__()
+        self.__ready__()
 
     def __ready__(self):
         """
@@ -98,19 +97,21 @@ class Individual(object):
         `__deepcopy__`. It's just the second part of a two-stage
         `__init__`.
         """
-        gaudi.plugin.load_plugins(self.cfg.genes, container=self.genes,
-                                  parent=self,
-                                  cxeta=self.cfg.ga.cx_eta,
-                                  mteta=self.cfg.ga.cx_eta,
-                                  indpb=self.cfg.ga.mut_indpb)
+        if self.cfg is not None:
+            gaudi.plugin.load_plugins(self.cfg.genes, container=self.genes,
+                                      parent=self,
+                                      cxeta=self.cfg.ga.cx_eta,
+                                      mteta=self.cfg.ga.cx_eta,
+                                      indpb=self.cfg.ga.mut_indpb)
+
+            self.fitness = Fitness(self.cfg.weights)
+            mod, fn = self.cfg.similarity.module.rsplit('.', 1)
+            self._similarity = getattr(sys.modules[mod], fn)
+
         for name, gene in self.genes.items():
             gene.__ready__()
             if gene.__class__.__name__ == 'Molecule':
                 self._molecules[name] = gene
-
-        self.fitness = Fitness(self.cfg.weights)
-        mod, fn = self.cfg.similarity.module.rsplit('.', 1)
-        self._similarity = getattr(sys.modules[mod], fn)
 
     def __deepcopy__(self, memo):
         new = self.__class__(cfg=self.cfg, dummy=True)
@@ -246,34 +247,43 @@ class Individual(object):
         self.unexpress()
         return zipfilename
 
+    def clear_cache(self):
+        self._CACHE.clear()
+        self._CACHE_OBJ.clear()
+        for gene in self.genes.values():
+            gene.clear_cache()
+
+
+@contextmanager
+def expressed(individual):
+    individual.express()
+    try:
+        yield individual
+    finally:
+        individual.unexpress()
+
 
 class Environment(object):
 
     """
-    Augmented `Fitness` class to self-include `objectives` objects.
-
-    It subclasses  DEAP's `Fitness` to include details of objectives being evaluated
-    and a helper function to evaluate them all at once. Since Fitness it's an Attribute
-    of every `individual`, it should result in a self-contained object.
+    Objective container and helper to evaluate an individual. It must be
+    instantiated with a gaudi.parse.Settings object.
 
     Parameters
     ----------
     cfg : gaudi.parse.Settings
         The parsed configuration YAML file that contains objectives information
-    args
-        Positional arguments that will be passed to `deap.base.Fitness.__init__`
-    kwargs
-        Optional arguments that will be passed to `deap.base.Fitness.__init__`
     """
 
-    def __init__(self, cfg, *args, **kwargs):
-        self.cfg = cfg
-        self.weights = self.cfg.weights
+    def __init__(self, cfg=None, *args, **kwargs):
         self.zone = chimera.selection.ItemizedSelection()
         self.objectives = OrderedDict()
-        gaudi.plugin.load_plugins(self.cfg.objectives,
-                                  container=self.objectives,
-                                  zone=self.zone, environment=self)
+        self.cfg = cfg
+        if self.cfg is not None:
+            self.weights = self.cfg.weights
+            gaudi.plugin.load_plugins(self.cfg.objectives,
+                                      container=self.objectives,
+                                      zone=self.zone, environment=self)
 
     def evaluate(self, individual):
         """
@@ -288,6 +298,10 @@ class Environment(object):
         individual.unexpress()
         return scores
 
+    def clear_cache(self):
+        for obj in self.objectives.values():
+            obj.clear_cache()
+
 
 class Fitness(deap.base.Fitness):
 
@@ -301,11 +315,3 @@ class Fitness(deap.base.Fitness):
         new = self.__class__(self.weights)
         new.wvalues = self.wvalues + ()
         return new
-
-@contextmanager
-def expressed(individual):
-    individual.express()
-    try:
-        yield individual
-    finally:
-        individual.unexpress()

@@ -226,6 +226,11 @@ class Molecule(GeneProvider):
             raise ValueError('Filetype {} not recognized. Try with mol2 or pdb'.format(filetype))
         return fullname
 
+    @classmethod
+    def clear_cache(cls):
+        GeneProvider.clear_cache()
+        cls._CATALOG.clear()
+
     ############
     def __getitem__(self, key):
         """Implements dict-like item retrieval"""

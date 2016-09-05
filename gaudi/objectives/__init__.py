@@ -72,3 +72,7 @@ class ObjectiveProvider(object):
         """
         Return the score of the individual under the current conditions.
         """
+
+    @classmethod
+    def clear_cache(cls):
+        cls._cache.clear()
