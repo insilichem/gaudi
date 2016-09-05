@@ -96,7 +96,7 @@ class Energy(ObjectiveProvider):
         return self.calculate_energy(coordinates)
 
     def molecules(self, individual):
-        return individual._molecules.values()
+        return [m.compound.mol for m in individual._molecules.values()]
 
     @property
     def simulation(self):
