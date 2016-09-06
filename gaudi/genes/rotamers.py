@@ -110,6 +110,7 @@ class Rotamers(GeneProvider):
         # Avoid unnecesary calls to expensive get_rotamers if residue is known
         # to not have any rotamers
         self._residues_without_rotamers = ['ALA', 'GLY']
+    
     @property
     def residues(self):
         """
@@ -132,8 +133,12 @@ class Rotamers(GeneProvider):
         """
         for molecule, resid in self._residues:
             try:
-                res = next(r for r in self.parent.genes[molecule].compound.mol.residues
-                           if r.id.position == resid)
+                if resid == '*':
+                    res = next(r for r in self.parent.genes[molecule].compound.mol.residues)
+                    resid = res.id.position
+                else:
+                    res = next(r for r in self.parent.genes[molecule].compound.mol.residues
+                               if r.id.position == resid)
             # molecule or residue not found
             except (KeyError, StopIteration):
                 raise
