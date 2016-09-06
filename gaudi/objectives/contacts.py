@@ -92,7 +92,7 @@ class Contacts(ObjectiveProvider):
         self._probes = probes
 
     def molecules(self, ind):
-        return ind._molecules.values()
+        return [m.compound.mol for m in ind._molecules.values()]
         
     def probes(self, ind):
         return [ind.genes[p].compound.mol for p in self._probes]
