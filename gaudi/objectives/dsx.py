@@ -66,10 +66,14 @@ class DSX(ObjectiveProvider):
             sas potentials, 
             hbond potentials
 
-    sorting : int
+    sorting : int, defaults to 1
         Sorting mode. An int between 0-6, read binary help for -S
-    cofactor_handling : int
+    cofactor_mode : int, defaults to 0
         Cofactor handling mode. An int between 0-7, read binary help for -I
+    with_covalent : bool, defaults to False
+        Whether to deal with covalently bonded atoms as normal atoms (False) or not (True)
+    with_metals : bool, defaults to True
+        Whether to deal with metal atoms as normal atoms (False) or not (True)
     """
     validate = parse.Schema({
         parse.Required('binary'): parse.ExpandUserPathExists,
