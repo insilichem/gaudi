@@ -68,6 +68,9 @@ class GeneProvider(object):
     def __ready__(self):
         pass
 
+    def __expression_hooks__(self):
+        pass
+
     @abc.abstractmethod
     def express(self):
         """

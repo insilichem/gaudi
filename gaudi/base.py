@@ -90,7 +90,8 @@ class Individual(object):
         self.expressed = False
         self._molecules = OrderedDict()
         self.__ready__()
-
+        self.__expression_hooks__()
+        
     def __ready__(self):
         """
         A *post-init* method used to avoid initialization problems with
@@ -112,6 +113,11 @@ class Individual(object):
             gene.__ready__()
             if gene.__class__.__name__ == 'Molecule':
                 self._molecules[name] = gene
+
+    def __expression_hooks__(self):
+        with expressed(self):
+            for name, gene in self.genes.items():
+                gene.__expression_hooks__()
 
     def __deepcopy__(self, memo):
         new = self.__class__(cfg=self.cfg, dummy=True)

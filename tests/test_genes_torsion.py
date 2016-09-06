@@ -15,6 +15,7 @@ def test_torsion(individual, path, angle, bonds, rotatable, distance):
     individual.genes['Molecule'] = Molecule(parent=individual, path=datapath(path))
     individual.genes['Torsion'] = torsion = Torsion(parent=individual, target='Molecule')
     individual.__ready__()
+    individual.__expression_hooks__()
 
     torsion.allele = [angle] * torsion.max_bonds
 
