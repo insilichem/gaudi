@@ -32,6 +32,7 @@ import chimera
 # GAUDI
 from gaudi import parse
 from gaudi.objectives import ObjectiveProvider
+from gaudi.box import silent_stdout
 
 logger = logging.getLogger(__name__)
 
@@ -83,14 +84,16 @@ class Volume(ObjectiveProvider):
 
     def evaluate_volume(self, ind):
         molecule = self.target(ind)
-        surface = Surface.gridsurf.ses_surface(molecule.atoms)
+        with silent_stdout():
+            surface = Surface.gridsurf.ses_surface(molecule.atoms)
         volume, area, holes = MeasureVolume.surface_volume_and_area(surface)
         chimera.openModels.close([surface])
         return abs(volume - self.threshold)
 
     def evaluate_convexhull(self, ind):
         molecule = self.target(ind)
-        surface = Surface.gridsurf.ses_surface(molecule.atoms)
+        with silent_stdout():
+            surface = Surface.gridsurf.ses_surface(molecule.atoms)
         volume, area, holes = MeasureVolume.surface_volume_and_area(surface)
         convex_volume = convexhull_volume(surface)
         chimera.openModels.close([surface])

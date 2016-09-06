@@ -34,6 +34,9 @@ import logging
 import chimera
 import MoleculeSurface
 from MoleculeSurface import Surface_Calculation_Error
+import MeasureVolume
+import Surface.gridsurf
+
 # GAUDI
 from gaudi import parse
 from gaudi.objectives import ObjectiveProvider
@@ -62,28 +65,32 @@ class Solvation(ObjectiveProvider):
 
     validate = parse.Schema({
         parse.Required('target'): parse.Molecule_name,
-        'which': ['ses', 'sas']
+        'which': parse.In(['msms_ses', 'msms_sas', 'grid']),
+        'threshold': parse.All(parse.Coerce(float), parse.Range(min=0))
         }, extra=parse.ALLOW_EXTRA)
 
-    def __init__(self, which='ses', target=None,
+    def __init__(self, which='grid', target=None, threshold=0.0,
                  *args, **kwargs):
         ObjectiveProvider.__init__(self, **kwargs)
         self._target = target
         self.which = which
+        self.threshold = threshold
+        if which in ('ses', 'sas'):
+            self.evaluate = self.evaluate_msms
+        else:
+            self.evaluate = self.evaluate_grid
 
     def target(self, ind):
         return ind.genes[self._target].compound.mol
 
     def molecules(self, ind):
-        return tuple(m.compound.mol for m in ind.genes.values()
-                     if m.__class__.__name__ == "Molecule")
+        return tuple(m.compound.mol for m in ind._molecules.values())
 
-    def evaluate(self, ind):
+    def evaluate_msms(self, ind):
         molecules = self.molecules(ind)
         target = self.target(ind)
         try:
-            atoms, ses, sas = self._solvation(self.zone_atoms(target,
-                                                              molecules))
+            atoms, ses, sas = self._solvation(self.zone_atoms(target, molecules))
         except Surface_Calculation_Error:
             raise Surface_Calculation_Error(
                 'Problem with solvation calc. Read this: '
@@ -94,6 +101,14 @@ class Solvation(ObjectiveProvider):
             elif self.which == 'sas':
                 surfaces = sas
             return sum(s for (a, s) in zip(atoms, surfaces) if a in target.atoms)
+
+    def evaluate_grid(self, ind):
+        molecule = self.target(ind)
+        with silent_stdout():
+            surface = Surface.gridsurf.ses_surface(molecule.atoms)
+        volume, area, holes = MeasureVolume.surface_volume_and_area(surface)
+        chimera.openModels.close([surface])
+        return abs(area - self.threshold)
 
     def zone_atoms(self, probe, molecules):
         self.zone.clear()
