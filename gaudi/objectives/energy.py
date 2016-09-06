@@ -22,6 +22,7 @@ try:
 except ImportError:
     from StringIO import StringIO
 import os
+import logging
 # 3rd party
 import chimera
 import simtk.openmm.app as openmm_app
@@ -32,6 +33,7 @@ from openmoltools.utils import create_ffxml_file
 from gaudi import parse
 from gaudi.objectives import ObjectiveProvider
 
+logger = logging.getLogger(__name__)
 _openmm_builtin_forcefields = os.listdir(os.path.join(openmm_app.__path__[0], 'data'))
 
 def enable(**kwargs):
