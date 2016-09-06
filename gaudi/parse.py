@@ -167,13 +167,13 @@ class Settings(Munch):
         'ga': {
             'population': 10,
             'generations': 3,
-            'mu': 0.75,
-            'lambda_': 0.75,
+            'mu': 1,
+            'lambda_': 3,
             'mut_eta': 5,
-            'mut_pb': 0.10,
-            'mut_indpb': 0.05,
+            'mut_pb': 0.50,
+            'mut_indpb': 0.75,
             'cx_eta': 5,
-            'cx_pb': 0.75,
+            'cx_pb': 0.5,
         },
         'similarity': {
             'type': 'gaudi.similarity.rmsd',
