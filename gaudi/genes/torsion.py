@@ -81,7 +81,7 @@ class Torsion(GeneProvider):
 
     BONDS_ROTS = {}
 
-    def __init__(self, target=None, flexibility=360.0, max_bonds=30, anchor=None,
+    def __init__(self, target=None, flexibility=360.0, max_bonds=None, anchor=None,
                  rotatable_atom_types=('C3', 'N3', 'C2', 'N2', 'P'), 
                  rotatable_atom_names=(), **kwargs):
         GeneProvider.__init__(self, **kwargs)
@@ -92,7 +92,12 @@ class Torsion(GeneProvider):
         self.rotatable_atom_types = rotatable_atom_types
         self.rotatable_atom_names = rotatable_atom_names
         self._anchor = anchor
+        self.allele = [self.random_angle() for i in xrange(50)]
         self.nonrotatable = ()
+
+    def __expression_hooks__(self):
+        if self.max_bonds is None:
+            self.max_bonds = len(list(self.rotatable_bonds))
         self.allele = [self.random_angle() for i in xrange(self.max_bonds)]
 
     def express(self):
@@ -125,6 +130,10 @@ class Torsion(GeneProvider):
                                             indpb=self.indpb, eta=self.mteta,
                                             low=-0.5 * self.flexibility,
                                             up=0.5 * self.flexibility)
+
+    def clear_cache(self):
+        GeneProvider.clear_cache()
+        self.BONDS_ROTS.clear()
 
     #####
     def random_angle(self):

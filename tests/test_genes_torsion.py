@@ -23,7 +23,7 @@ def test_torsion(individual, path, angle, bonds, rotatable, distance):
         assert individual.genes['Molecule'].compound.mol.numBonds == bonds
         atom1 = individual.genes['Molecule'].compound.mol.atoms[0]
         atom2 = individual.genes['Molecule'].compound.mol.atoms[-1]
-        assert len(list(torsion.rotatable_bonds)) == rotatable
+        assert len(list(torsion.rotatable_bonds)) == rotatable == torsion.max_bonds
         assert Distance._distance(atom1, atom2) == distance
 
 
