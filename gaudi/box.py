@@ -24,6 +24,8 @@ This module is a messy collection of useful functions used all along GAUDI.
 # Python
 import os
 import cProfile
+from contextlib import contextmanager
+import sys
 # Chimera
 import chimera
 # Gaudi
@@ -375,6 +377,12 @@ def rmsd(a, b):
 
     return math.sqrt(sqdist / float(len(a)))
 
+@contextmanager
+def silent_stdout():
+    _stdout = sys.stdout
+    with open(os.devnull, 'w') as sys.stdout:
+        yield
+    sys.stdout = _stdout
 
 def _hex_to_rgb(hexa):
     return [int(hexa[i:i + 2], 16) for i in range(0, 6, 2)]

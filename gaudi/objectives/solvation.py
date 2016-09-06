@@ -37,6 +37,7 @@ from MoleculeSurface import Surface_Calculation_Error
 # GAUDI
 from gaudi import parse
 from gaudi.objectives import ObjectiveProvider
+from gaudi.box import silent_stdout
 
 logger = logging.getLogger(__name__)
 
