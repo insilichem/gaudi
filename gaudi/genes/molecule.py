@@ -389,8 +389,9 @@ class Compound(object):
         elif not molecule or molecule == 'dummy':
             self.mol = _dummy_mol('dummy')
         else:
-            self.mol = chimera.openModels.open(molecule)[0]
-            chimera.openModels.remove([self.mol])
+            molecules = chimera.openModels.open(molecule)
+            self.mol = molecules[0]
+            chimera.openModels.remove(molecules)
 
         self.mol.gaudi = self
         self.rotatable_bonds = []
