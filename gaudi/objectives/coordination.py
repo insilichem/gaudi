@@ -108,7 +108,7 @@ class SimpleCoordination(ObjectiveProvider):
         return ind._molecules.values()
 
     def probe(self, ind):
-        mol, serial = probe
+        mol, serial = self._probe
         try:
             if isinstance(serial, int):
                 atom = next(a for a in ind.genes[mol].compound.mol.atoms
@@ -120,14 +120,14 @@ class SimpleCoordination(ObjectiveProvider):
             logger.exception("Molecule %s not found", mol)
             raise
         except StopIteration:
-            logger.exception("No atoms matched for probe %s", probe)
+            logger.exception("No atoms matched for probe %s", self._probe)
             raise
         else:
             return atom
 
 
     def residues(self, ind):
-        for mol, pos in residues:
+        for mol, pos in self._residues:
             try:
                 if pos == '*':
                     for r in ind.genes[mol].compound.mol.residues:
