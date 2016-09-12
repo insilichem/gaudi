@@ -19,6 +19,7 @@ and have a certain class structure
 # Python
 import abc
 import logging
+from uuid import uuid4
 # GAUDI
 from gaudi import plugin
 
@@ -57,10 +58,10 @@ class ObjectiveProvider(object):
     __metaclass__ = plugin.PluginMount
     _cache = {}
 
-    def __init__(self, environment=None, name=None, weight=None, cache=None, zone=None,
+    def __init__(self, environment=None, name=None, weight=None, zone=None,
                  **kwargs):
         self.environment = environment
-        self.name = name
+        self.name = name if name is not None else str(uuid4())
         self.weight = weight
         self.zone = zone
 

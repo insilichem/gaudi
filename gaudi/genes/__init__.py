@@ -21,6 +21,7 @@ import abc
 import logging
 import os
 import pprint
+from uuid import uuid4
 # GAUDI
 from gaudi import plugin, parse
 
@@ -56,11 +57,11 @@ class GeneProvider(object):
     __metaclass__ = plugin.PluginMount
     _cache = {}
 
-    def __init__(self, parent=None, name=None, cache=None,
+    def __init__(self, parent=None, name=None,
                  cxeta=5.0, mteta=5.0, indpb=0.75,
                  **kwargs):
         self.parent = parent
-        self.name = name
+        self.name = name if name is not None else str(uuid4())
         self.cxeta = cxeta
         self.mteta = mteta
         self.indpb = indpb
