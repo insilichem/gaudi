@@ -296,12 +296,11 @@ class Environment(object):
         individual : Individual
         """
         scores = []
-        individual.express()
-        for name, obj in self.objectives.items():
-            score = obj.evaluate(individual)
-            scores.append(score)
-            logger.debug("%s fitness is %s", name, score)
-        individual.unexpress()
+        with expressed(individual):
+            for name, obj in self.objectives.items():
+                score = obj.evaluate(individual)
+                scores.append(score)
+                logger.debug("%s fitness is %s", name, score)
         return scores
 
     def clear_cache(self):
