@@ -137,7 +137,7 @@ class DSX(ObjectiveProvider):
         else:
             return self.parse_output(stream)
         finally:
-            self.clean()
+            # self.clean()
             os.chdir(self._oldworkingdir)
 
     def prepare_proteins(self, proteins):
@@ -157,7 +157,7 @@ class DSX(ObjectiveProvider):
             for ligand in ligand_mols:
                 nonmetals, metals = [], []
                 for atom in ligand.atoms:
-                    if atom.element in chimera.elements.metals:
+                    if atom.element.isMetal:
                         metals.append(atom)
                     else:
                         nonmetals.append(atom)

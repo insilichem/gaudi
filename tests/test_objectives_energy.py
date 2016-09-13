@@ -12,8 +12,9 @@ from conftest import datapath, expressed
 def test_energy(individual, path, energy):
     from gaudi.objectives.energy import Energy
     from gaudi.genes.molecule import Molecule
-    individual.genes['Molecule'] = Molecule(path=datapath(path))
+    individual.genes['Molecule'] = Molecule(parent=individual, path=datapath(path))
     individual.__ready__()
+    individual.__expression_hooks__()
     objective = Energy()
     with expressed(individual):
         result = objective.evaluate(individual)
