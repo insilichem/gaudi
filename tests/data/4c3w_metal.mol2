@@ -1,0 +1,12 @@
+@<TRIPOS>MOLECULE
+4c3w_metal.pdb
+1 0 1 0 0
+SMALL
+NO_CHARGES
+
+
+@<TRIPOS>ATOM
+      1 V          -3.2790  -20.2450    3.7610 V         1 UNK    0.0000
+@<TRIPOS>BOND
+@<TRIPOS>SUBSTRUCTURE
+     1 UNK     1 RESIDUE           4 A     UNK     0 ROOT

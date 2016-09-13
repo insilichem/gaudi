@@ -1,0 +1,36 @@
+@<TRIPOS>MOLECULE
+3pk2_metals.pdb 1
+1 0 1 0 0
+SMALL
+NO_CHARGES
+
+
+@<TRIPOS>ATOM
+      1 IR1        28.7900   26.2370  -16.1410 Ir        1 4IR    0.0000
+@<TRIPOS>BOND
+@<TRIPOS>SUBSTRUCTURE
+     1 4IR     1 RESIDUE           4 A     4IR     0 ROOT
+@<TRIPOS>MOLECULE
+3pk2_metals.pdb 2 1
+1 0 1 0 0
+SMALL
+NO_CHARGES
+
+
+@<TRIPOS>ATOM
+      1 IR         22.9960   15.1100  -21.6780 Ir        1 IR3    0.0000
+@<TRIPOS>BOND
+@<TRIPOS>SUBSTRUCTURE
+     1 IR3     1 RESIDUE           4 A     IR3     0 ROOT
+@<TRIPOS>MOLECULE
+3pk2_metals.pdb 2 2
+1 0 1 0 0
+SMALL
+NO_CHARGES
+
+
+@<TRIPOS>ATOM
+      1 IR         19.2900   39.2010   -1.5640 Ir        1 IR3    0.0000
+@<TRIPOS>BOND
+@<TRIPOS>SUBSTRUCTURE
+     1 IR3     1 RESIDUE           4 A     IR3     0 ROOT
