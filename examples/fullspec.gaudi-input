@@ -129,8 +129,9 @@ objectives:
     -   name: Solvation
         module: gaudi.objectives.solvation
         weight: -1.0
-        which: ses #or 'sas'
+        which: grid # also: msms_ses, msms_sas
         target: Ligand
+        radius: 5.0
 
     -   name: Coordination
         module: gaudi.objectives.coordination

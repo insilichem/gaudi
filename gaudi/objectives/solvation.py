@@ -57,7 +57,7 @@ class Solvation(ObjectiveProvider):
 
     Parameters
     ----------
-    which : {'ses', 'sas'}
+    which : {'msms_ses', 'msms_sas', 'grid'}
         Type of solvation to measure
     target : str
         Name of the molecule gene being analyzed
@@ -66,16 +66,18 @@ class Solvation(ObjectiveProvider):
     validate = parse.Schema({
         parse.Required('target'): parse.Molecule_name,
         'which': parse.In(['msms_ses', 'msms_sas', 'grid']),
-        'threshold': parse.All(parse.Coerce(float), parse.Range(min=0))
+        'threshold': parse.All(parse.Coerce(float), parse.Range(min=0)),
+        'radius': parse.All(parse.Coerce(float), parse.Range(min=0))
         }, extra=parse.ALLOW_EXTRA)
 
-    def __init__(self, which='grid', target=None, threshold=0.0,
+    def __init__(self, which='grid', target=None, threshold=0.0, radius=5.0,
                  *args, **kwargs):
         ObjectiveProvider.__init__(self, **kwargs)
         self._target = target
         self.which = which
         self.threshold = threshold
-        if which in ('ses', 'sas'):
+        self.radius = radius
+        if which in ('msms_ses', 'msms_sas'):
             self.evaluate = self.evaluate_msms
         else:
             self.evaluate = self.evaluate_grid
@@ -103,9 +105,9 @@ class Solvation(ObjectiveProvider):
             return sum(s for (a, s) in zip(atoms, surfaces) if a in target.atoms)
 
     def evaluate_grid(self, ind):
-        molecule = self.target(ind)
+        atoms = self.zone_atoms(self.target(ind), self.molecules(ind))
         with silent_stdout():
-            surface = Surface.gridsurf.ses_surface(molecule.atoms)
+            surface = Surface.gridsurf.ses_surface(atoms)
         volume, area, holes = MeasureVolume.surface_volume_and_area(surface)
         chimera.openModels.close([surface])
         return abs(area - self.threshold)
@@ -114,12 +116,8 @@ class Solvation(ObjectiveProvider):
         self.zone.clear()
         self.zone.add(probe.atoms)
         self.zone.merge(chimera.selection.REPLACE,
-                        chimera.specifier.zone(
-                            self.zone, 'atom',
-                            None, self.radius,
-                            molecules
-                        )
-                        )
+                        chimera.specifier.zone(self.zone, 'atom', None, 
+                                               self.radius, molecules))
         return self.zone.atoms()
     ###
 
