@@ -137,7 +137,7 @@ class DSX(ObjectiveProvider):
         else:
             return self.parse_output(stream)
         finally:
-            # self.clean()
+            self.clean()
             os.chdir(self._oldworkingdir)
 
     def prepare_proteins(self, proteins):
