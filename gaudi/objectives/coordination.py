@@ -113,7 +113,7 @@ class SimpleCoordination(ObjectiveProvider):
             self.evaluate = self.evaluate_simple
 
     def molecules(self, ind):
-        return ind._molecules.values()
+        return [m.compound.mol for m in ind._molecules.values()]
 
     def probe(self, ind):
         mol, serial = self._probe
