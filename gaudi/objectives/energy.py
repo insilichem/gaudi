@@ -25,10 +25,12 @@ import os
 import logging
 # 3rd party
 import chimera
+from Molecule import atom_positions
 import simtk.openmm.app as openmm_app
 from simtk import unit, openmm
 from openmoltools.amber import run_antechamber
 from openmoltools.utils import create_ffxml_file
+import numpy
 # GAUDI
 from gaudi import parse
 from gaudi.objectives import ObjectiveProvider
@@ -48,9 +50,11 @@ class Energy(ObjectiveProvider):
 
     Parameters
     ----------
-    forcefields : list of str
+    targets : list of str, default=None
+        If set, which molecules should be evaluated. Else, all will be evaluated.
+    forcefields : list of str, default=('amber99sbildn.xml',)
         Which forcefields to use
-    auto_parametrize: list of str
+    auto_parametrize: list of str, default=None
         List of Molecule instances GAUDI should try to auto parametrize with antechamber.
 
     Returns
@@ -61,22 +65,25 @@ class Energy(ObjectiveProvider):
     """
 
     validate = parse.Schema({
-        'forcefields': parse.Any(parse.ExpandUserPathExists, parse.In(_openmm_builtin_forcefields)),
+        'molecules': [parse.Molecule_name],
+        'forcefields': [parse.Any(parse.ExpandUserPathExists, parse.In(_openmm_builtin_forcefields))],
         'auto_parametrize': [parse.Molecule_name]
         }, extra=parse.ALLOW_EXTRA)
 
-    def __init__(self, forcefields=('amber99sbildn.xml',), auto_parametrize=None, *args, **kwargs):
+    def __init__(self, targets=None, forcefields=('amber99sbildn.xml',), auto_parametrize=None, *args, **kwargs):
         ObjectiveProvider.__init__(self, **kwargs)
         self.auto_parametrize = auto_parametrize
+        self._targets = targets
         self.topology = None
         self._simulation = None
 
+        additional_ffxml = []
         if auto_parametrize:
             filenames = [g.path for m in auto_parametrize
                          for g in self.environment.cfg.genes
                          if g.name == m]
             additional_ffxml = self._gaff2xml(*filenames)
-            forcefields.append(additional_ffxml)
+            forcefields = forcefields + (additional_ffxml,)
 
         self.forcefields = forcefields
         self.forcefield = openmm_app.ForceField(*self.forcefields)
@@ -84,21 +91,30 @@ class Energy(ObjectiveProvider):
     def evaluate(self, individual):
         """
         Calculates the energy of current individual
-        """
-        molecules = self.molecules(individual)
-        topology, coordinates = self.chimera_molecule_to_openmm(*molecules)
-        # Topology changed -> rebuild universe
-        # Instead of checking if the topologies are equivalent,
-        # check if GAUDI input can produce more than one topology
-        if not self._gaudi_is_static(individual):
-            # This forces a Simulation rebuild
-            self._simulation = None
 
-        self.topology = topology
+        Notes
+        -----
+        For static calculations, where molecules are essentially always the same,
+        but with different coordinates, we only need to generate topologies once.
+        However, for dynamic jobs, with potentially different molecules involved
+        each time, we cannot guarantee having the same topology. As a result,
+        we generate it again for each evaluation.
+        """
+        molecules = self.molecules(individual)            
+        coordinates = self.chimera_molecule_to_openmm_positions(*molecules)
+        
+        # Build topology if it's first time or a dynamic job
+        if self.topology is None or not self._gaudi_is_static(individual):
+            self.topology = self.chimera_molecule_to_openmm_topology(*molecules)
+            self._simulation = None  # This forces a Simulation rebuild
+        
         return self.calculate_energy(coordinates)
 
     def molecules(self, individual):
-        return [m.compound.mol for m in individual._molecules.values()]
+        if self._targets is None:
+            return [m.compound.mol for m in individual._molecules.values()]
+        else:
+            return [individual._molecules[t].compound.mol for t in self._targets]
 
     @property
     def simulation(self):
@@ -107,8 +123,8 @@ class Energy(ObjectiveProvider):
 
         Notes
         -----
-        self.topology must be defined previously! Use self.chimera_molecule_to_openmm()
-        to get topology and coordinates, and set it manually.
+        self.topology must be defined previously! 
+        Use self.chimera_molecule_to_openmm_topology to set it.
 
         """
         if self._simulation is None:
@@ -141,7 +157,58 @@ class Energy(ObjectiveProvider):
         return state.getPotentialEnergy()._value
 
     @staticmethod
-    def chimera_molecule_to_openmm(*molecules):
+    def chimera_molecule_to_openmm_topology(*molecules):
+        """
+        Convert a Chimera Molecule object to OpenMM structure,
+        providing topology and coordinates.
+
+        Parameters
+        ----------
+        molecule : chimera.Molecule
+
+        Returns
+        -------
+        topology : simtk.openmm.app.topology.Topology
+        coordinates : simtk.unit.Quantity
+
+        """
+        # Create topology
+        
+        atoms, residues, chains = {}, {}, {}
+        topology = openmm_app.Topology()
+        for i, mol in enumerate(molecules):
+            for a in mol.atoms:
+                chain_id = a.residue.id.chainId
+                try:
+                    chain = chains[(i, chain_id)]
+                except KeyError:
+                    chain = chains[(i, chain_id)] = topology.addChain()
+                
+                r = a.residue
+                try:
+                    residue = residues[r]
+                except KeyError:
+                    residue = residues[r] = topology.addResidue(r.type, chain)
+                
+                name = a.name
+                element = openmm_app.Element.getByAtomicNumber(a.element.number)
+                serial = a.serialNumber
+                atoms[a] = topology.addAtom(name, element, residue, serial)
+               
+            for b in mol.bonds:
+                topology.addBond(atoms[b.atoms[0]], atoms[b.atoms[1]])
+
+        return topology
+
+    @staticmethod
+    def chimera_molecule_to_openmm_positions(*molecules):
+        # Get positions
+        positions = [atom_positions(m.atoms, m.openState.xform) for m in molecules]
+        all_positions = numpy.concatenate(positions)
+        return unit.Quantity(all_positions, unit=unit.angstrom)
+
+    @staticmethod
+    def chimera_molecule_to_openmm_old(*molecules):
         """
         Convert a Chimera Molecule object to OpenMM structure,
         providing topology and coordinates.
@@ -164,6 +231,7 @@ class Energy(ObjectiveProvider):
 
         molecule = openmm_app.PDBFile(pdbfile)
         return molecule.topology, molecule.positions
+
 
     @staticmethod
     def _gaff2xml(*filenames):
