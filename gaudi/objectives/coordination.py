@@ -70,6 +70,8 @@ class SimpleCoordination(ObjectiveProvider):
         parse.Required('probe'): parse.Named_spec("molecule", "atom"),
         'radius': parse.Coerce(float),
         'atom_types': [str],
+        'atom_names': [str],
+        'atom_elements': [str],
         'residues': [parse.Named_spec("molecule", "residue")],
         'distance': parse.All(parse.Coerce(float), parse.Range(min=0)),
         'angle': parse.Coerce(float),
@@ -80,15 +82,19 @@ class SimpleCoordination(ObjectiveProvider):
         'method': parse.In(['simple', 'metalgeom', 'metalgeom_directional'])
         }, extra=parse.ALLOW_EXTRA)
     
-    def __init__(self, method='simple', probe=None, radius=None, atom_types=(), residues=(),
-                 distance=0, angle=None, dihedral=None, min_atoms=1, geometry='tetrahedral',
-                 enforce_all_residues=False, only_one_ligand_per_residue=False, *args, **kwargs):
+    def __init__(self, method='metalgeom_directional', probe=None, radius=None, atom_types=(),
+                 atom_elements=(), atom_names=(), residues=(), geometry='tetrahedral',
+                 distance=0, angle=None, dihedral=None, min_atoms=1, prevent_intruders=True,
+                 enforce_all_residues=False, only_one_ligand_per_residue=False,
+                 *args, **kwargs):
         ObjectiveProvider.__init__(self, **kwargs)
         self.method = method
         self._probe = probe
         self._residues = residues
         self.radius = radius
         self.atom_types = atom_types
+        self.atom_names = atom_names
+        self.atom_elements = atom_elements
         self.distance = distance
         self.angle = angle
         self.dihedral = dihedral
@@ -263,21 +269,24 @@ class SimpleCoordination(ObjectiveProvider):
         def abs_distance(a):
             return abs(self.distance - metal.xformCoord().distance(a.xformCoord()))
         if self.atom_types:
-            def atom_in_types(a): return a.name in self.atom_types 
+            def atom_is_valid(a): return a.idatmType in self.atom_types
+        elif self.atom_elements:
+            def atom_is_valid(a): return a.element.name in self.atom_elements
+        elif self.atom_names:
+            def atom_is_valid(a): return a.name in self.atom_names
         else:
-            def atom_in_types(a): return True
+            def atom_is_valid(a): return True
 
         self._update_zone(ind)
         metal = self.probe(ind)
         residues = self.residues(ind)
         atoms = [a for a in self.zone.atoms() if a is not metal]
-        
 
         atoms_by_distance = []
         found_residues = set()
         distance_and_atoms = sorted((abs_distance(a), a) for a in atoms)
         for d, a in distance_and_atoms:
-            if atom_in_types(a) and a.residue in residues and d > 1.0:
+            if atom_is_valid(a) and a.residue in residues and d > 1.0:
                 atoms_by_distance.append((d, a))
                 found_residues.add(a.residue)
             else:
