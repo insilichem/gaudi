@@ -77,13 +77,14 @@ class Torsion(GeneProvider):
         'anchor': parse.Named_spec("molecule", "atom"),
         'rotatable_atom_types': [str],
         'rotatable_atom_names': [str],
+        'rotatable_elements': [str],
         }, extra=parse.ALLOW_EXTRA)
 
     BONDS_ROTS = {}
 
     def __init__(self, target=None, flexibility=360.0, max_bonds=None, anchor=None,
                  rotatable_atom_types=('C3', 'N3', 'C2', 'N2', 'P'), 
-                 rotatable_atom_names=(), **kwargs):
+                 rotatable_atom_names=(), rotatable_elements=(), **kwargs):
         GeneProvider.__init__(self, **kwargs)
         self._kwargs = kwargs
         self.target = target
@@ -91,6 +92,7 @@ class Torsion(GeneProvider):
         self.max_bonds = max_bonds
         self.rotatable_atom_types = rotatable_atom_types
         self.rotatable_atom_names = rotatable_atom_names
+        self.rotatable_elements = rotatable_elements
         self._anchor = anchor
         self.allele = [self.random_angle() for i in xrange(50)]
         self.nonrotatable = ()
@@ -185,7 +187,8 @@ class Torsion(GeneProvider):
             for a in atoms:
                 if a not in self.nonrotatable and \
                     (a.idatmType in self.rotatable_atom_types or
-                     a.name in self.rotatable_atom_names):
+                     a.name in self.rotatable_atom_names or
+                     a.element.name in self.rotatable_elements):
                     return True
 
         for b in bonds:
