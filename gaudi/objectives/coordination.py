@@ -79,6 +79,7 @@ class SimpleCoordination(ObjectiveProvider):
         'geometry': parse.In(MG_geometries.keys()),
         'enforce_all_residues': parse.Coerce(bool),
         'only_one_ligand_per_residue': parse.Coerce(bool),
+        'prevent_intruders': parse.Coerce(bool),
         'method': parse.In(['simple', 'metalgeom', 'metalgeom_directional'])
         }, extra=parse.ALLOW_EXTRA)
     
@@ -101,6 +102,7 @@ class SimpleCoordination(ObjectiveProvider):
         self.min_atoms = min_atoms
         self.only_one_ligand_per_residue = only_one_ligand_per_residue
         self.enforce_all_residues = enforce_all_residues
+        self.prevent_intruders = prevent_intruders
         if self.method == 'metalgeom':
             self.evaluate = self.evaluate_MetalGeom
             self.geometry = MG_geometries[geometry]
@@ -289,7 +291,7 @@ class SimpleCoordination(ObjectiveProvider):
             if atom_is_valid(a) and a.residue in residues and d > 1.0:
                 atoms_by_distance.append((d, a))
                 found_residues.add(a.residue)
-            else:
+            elif self.prevent_intruders:
                 break
 
         if len(atoms_by_distance) < self.min_atoms:
