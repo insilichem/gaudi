@@ -76,7 +76,7 @@ class Hbonds(ObjectiveProvider):
         self.radius = radius
 
     def molecules(self, ind):
-        return ind._molecules.values()
+        return [m.compound.mol for m in ind._molecules.values()]
 
     def probe(self, ind):
         return [ind.genes[p].compound.mol for p in self._probe]
