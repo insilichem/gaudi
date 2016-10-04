@@ -106,9 +106,15 @@ class SimpleCoordination(ObjectiveProvider):
         if self.method == 'metalgeom':
             self.evaluate = self.evaluate_MetalGeom
             self.geometry = MG_geometries[geometry]
+            self.n_vertices = len(self.geometry.normVecs)
         elif self.method == 'metalgeom_directional':
             self.evaluate = self.evaluate_MetalGeom_directional
             self.geometry = MG_geometries[geometry]
+            self.n_vertices = len(self.geometry.normVecs)
+            if self.n_vertices < self.min_atoms:
+                self.min_ligands = self.n_vertices
+                logger.warn('# Vertices in selected geometry < min_ligands! Overriding '
+                            'min_ligands with {}'.format(self.n_vertices))
         else:
             self.evaluate = self.evaluate_simple
 
@@ -209,10 +215,9 @@ class SimpleCoordination(ObjectiveProvider):
             return -1000 * self.weight
         else:
             try:
-                max_ligands = len(self.geometry.normVecs)
                 rmsd = geomDistEval_patched(
                     self.geometry, self.probe(ind).xformCoord(),
-                    [a.xformCoord() for a in test_atoms[:max_ligands]],
+                    [a.xformCoord() for a in test_atoms[:self.n_vertices]],
                     min_ligands=self.min_atoms)
             except Exception as e:
                 logger.exception(e)  #
@@ -233,8 +238,7 @@ class SimpleCoordination(ObjectiveProvider):
             logger.warning("Not enough atoms or some residues missing")
             return -1000 * self.weight
         
-        max_ligands = len(self.geometry.normVecs)
-        ligands = test_atoms[:max_ligands]
+        ligands = test_atoms[:self.n_vertices]
         ligand_coords = [a.xformCoord() for a in ligands]
         metal = self.probe(ind)
         metal_coord = metal.xformCoord()
