@@ -283,9 +283,9 @@ class SimpleCoordination(ObjectiveProvider):
 
         self._update_zone(ind)
         metal = self.probe(ind)
-        residues = self.residues(ind)
+        residues = list(self.residues(ind))
         atoms = [a for a in self.zone.atoms() if a is not metal]
-
+            
         atoms_by_distance = []
         found_residues = set()
         distance_and_atoms = sorted((abs_distance(a), a) for a in atoms)
@@ -295,7 +295,6 @@ class SimpleCoordination(ObjectiveProvider):
                 found_residues.add(a.residue)
             elif self.prevent_intruders:
                 break
-
         if len(atoms_by_distance) < self.min_atoms:
             logger.warning("Could not find requested atoms from residues in probe environment. "
                            "Got {} out of {}".format(len(atoms_by_distance), self.min_atoms))
