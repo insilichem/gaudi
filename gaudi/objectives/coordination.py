@@ -251,11 +251,7 @@ class SimpleCoordination(ObjectiveProvider):
             logger.exception(e)  #
             logger.warning("Geometry not feasible in current conditions")
             return -1000 * self.weight
-        
-        # directionality (Marti)
-        # ligand_objects = [LigandHelper(ligand, ligands, metal) for ligand in ligands]
-        # directionality = directional_evaluation(ligand_objects)
-        # directionality (Jaime)
+        # directionality
         directionality = sum(ideal_bond_deviation(metal, ligand, ligands) for ligand in ligands)
 
         return rmsd + directionality
@@ -357,7 +353,7 @@ def geomDistEval_patched(geom, metal_coord, ligands_coords, min_ligands=2):
     """
 
     if len(ligands_coords) == 1:
-        return (0.0, None, None)
+        return 0.0
     mc = metal_coord
     lcoords = ligands_coords
     lvecs = [lc - mc for lc in lcoords]
