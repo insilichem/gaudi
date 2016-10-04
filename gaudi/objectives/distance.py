@@ -54,14 +54,14 @@ class Distance(ObjectiveProvider):
         expressed as <molecule name>/<atom serial>. If more than one
         is provided, the average of all of them is returned
     """
-    validate = parse.Schema({
+    _validate = {
         parse.Required('probes'): parse.AssertList(parse.Named_spec("molecule", "atom")),
         parse.Required('target'): parse.Named_spec("molecule", "atom"),
         parse.Required('threshold'): parse.Any(parse.Coerce(float), parse.In(['covalent'])),
         'tolerance': parse.Coerce(float)
-    }, extra=parse.ALLOW_EXTRA)
+    }
 
-    def __init__(self, threshold=None, tolerance=-0.1, target=None, probes=None,
+    def __init__(self, threshold=None, tolerance=None, target=None, probes=None,
                  *args, **kwargs):
         ObjectiveProvider.__init__(self, **kwargs)
         self.threshold = threshold
@@ -69,48 +69,32 @@ class Distance(ObjectiveProvider):
         self._probes = probes
         self._target = target
 
-    def target(self, ind):
-        """
-        Get the target atom
-        """
-        mol, serial = self._target
-        try:
-            atom = next(a for a in ind.genes[mol].compound.mol.atoms if serial == a.serialNumber)
-        except StopIteration:
-            logger.exception("No atoms matched for target %s", atom)
-            raise
-        else:
-            return atom
-
-    def probes(self, ind):
-        """
-        Get the probe atoms
-        """
-        for probe in self._probes:
-            mol, serial = probe
+    def atoms(self, ind, *targets):
+        for target in targets:
+            mol, serial = target
             try:
-                atom = next(a for a in ind.genes[mol].compound.mol.atoms if serial == a.serialNumber)
+                atom = next(a for a in ind.genes[mol].compound.mol.atoms
+                            if serial == a.serialNumber)
             except StopIteration:
-                logger.exception("No atoms matched for target %s", probe)
+                logger.exception("No atoms matched for target %s", target)
                 raise
             else:
                 yield atom
-    ###
 
     def evaluate(self, ind):
         """
         Measure the distance
         """
         distances = []
-        target = self.target(ind)
-        for a in self.probes(ind):
+        target = next(self.atoms(ind, self._target))
+        for a in self.atoms(ind, *self._probes):
             d = self._distance(a, target)
             if self.threshold == 'covalent':
                 threshold = chimera.Element.bondLength(a.element, target.element)
             else:
                 threshold = self.threshold
             d = d - threshold
-            if d < self.tolerance:
+            if self.tolerance is not None and d < self.tolerance:
                 distances.append(-1000 * self.weight)
             else:
                 distances.append(d)
