@@ -95,7 +95,7 @@ class NormalModes(GeneProvider):
         _chimera2prody[chimera_index] = prody_index
     """
 
-    validate = parse.Schema({
+    _validate = {
         parse.Required('method'): parse.In(['prody', 'gaussian']),
         'path': parse.RelPathToInputFile(),
         'write_modes': parse.Boolean,
@@ -105,7 +105,7 @@ class NormalModes(GeneProvider):
         'modes': [parse.All(parse.Coerce(int), parse.Range(min=0))],
         'n_samples': parse.All(parse.Coerce(int), parse.Range(min=1)),
         'rmsd': parse.All(parse.Coerce(float), parse.Range(min=0))
-    }, extra=parse.ALLOW_EXTRA)
+    }
 
     def __init__(self, method='prody', target=None, modes=None, n_samples=10000, rmsd=1.0,
                  group_by=None, group_lambda=None,

@@ -24,6 +24,7 @@ import pprint
 from uuid import uuid4
 # GAUDI
 from gaudi import plugin, parse
+from gaudi.base import Individual
 
 logger = logging.getLogger(__name__)
 pp = pprint.PrettyPrinter(4)
@@ -56,15 +57,16 @@ class GeneProvider(object):
     # This sole line is the magic behind the plugin system!
     __metaclass__ = plugin.PluginMount
     _cache = {}
+    _validate = {}
 
-    def __init__(self, parent=None, name=None,
-                 cxeta=5.0, mteta=5.0, indpb=0.75,
+    def __init__(self, parent=None, name=None, cx_eta=5.0, mut_eta=5.0, mut_indpb=0.75,
                  **kwargs):
         self.parent = parent
         self.name = name if name is not None else str(uuid4())
-        self.cxeta = cxeta
-        self.mteta = mteta
-        self.indpb = indpb
+        self.cxeta = cx_eta
+        self.mteta = mut_eta
+        self.indpb = mut_indpb
+
 
     def __ready__(self):
         pass
@@ -95,6 +97,18 @@ class GeneProvider(object):
         """
         Perform a crossover with another gene of the same kind.
         """
+
+    @classmethod
+    def validate(cls, data):
+        schema = {parse.Required('parent'): Individual,
+                  'name': str,
+                  'module': parse.Importable,
+                  'cx_eta': parse.Coerce(float),
+                  'mut_eta': parse.Coerce(float),
+                  'mut_indpb': parse.Coerce(float)}
+        schema.update(cls._validate)
+        return parse.validate(schema, data)
+
 
     def write(self, path, name, *args, **kwargs):
         """

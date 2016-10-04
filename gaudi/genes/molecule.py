@@ -118,12 +118,12 @@ class Molecule(GeneProvider):
 
     """
     
-    validate = parse.Schema({
+    _validate = {
         parse.Required('path'): parse.RelPathToInputFile(),
         'symmetry': [str],
         'hydrogens': parse.Boolean,
         'pdbfix': parse.Boolean,
-        }, extra=parse.ALLOW_EXTRA)
+        }
     
     _CATALOG = {}
     SUPPORTED_FILETYPES = ('mol2', 'pdb')

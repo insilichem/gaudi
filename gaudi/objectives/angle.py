@@ -52,10 +52,10 @@ class Angle(ObjectiveProvider):
         <molecule_name>/<serial_number> strings
     """
 
-    validate = parse.Schema({
+    _validate = {
         parse.Required('probes'): parse.AssertList(parse.Named_spec("molecule", "atom")),
         parse.Required('threshold'): parse.Any(parse.Coerce(float), parse.In(['planar']))
-        }, extra=parse.ALLOW_EXTRA)
+        }
 
     def __init__(self, threshold=None, probes=None, *args, **kwargs):
         ObjectiveProvider.__init__(self, **kwargs)

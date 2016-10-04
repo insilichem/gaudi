@@ -75,7 +75,7 @@ class DSX(ObjectiveProvider):
     with_metals : bool, defaults to True
         Whether to deal with metal atoms as normal atoms (False) or not (True)
     """
-    validate = parse.Schema({
+    _validate = {
         parse.Required('binary'): parse.ExpandUserPathExists,
         parse.Required('potentials'): parse.ExpandUserPathExists,
         parse.Required('proteins'): [parse.Molecule_name],
@@ -85,7 +85,7 @@ class DSX(ObjectiveProvider):
         'cofactor_mode': parse.All(parse.Coerce(int), parse.Range(min=0, max=7)),
         'with_covalent': parse.Coerce(bool),
         'with_metals': parse.Coerce(bool)
-        }, extra=parse.ALLOW_EXTRA)
+        }
     
     def __init__(self, binary=None, potentials=None, proteins=('Protein',),
                  ligands=('Ligand',), terms=None, sorting=1, cofactor_mode=0,

@@ -76,14 +76,14 @@ class Rotamers(GeneProvider):
     hydrogens : bool, optional
         If True, add hydrogens to rotamers
     """
-    validate = parse.Schema({
+    _validate = {
         parse.Required('residues'): [parse.Named_spec("molecule", "residue")],
         'library': parse.Any('Dunbrack', 'dunbrack', 'Dynameomics', 'dynameomics'),
         'mutations': [parse.ResidueThreeLetterCode],
         'ligation': parse.Boolean,
         'hydrogens': parse.Boolean,
         'avoid_replacement': parse.Boolean,
-        }, extra=parse.ALLOW_EXTRA)
+        }
     
     def __init__(self, residues=None, library='Dunbrack', avoid_replacement=False,
                  mutations=[], ligation=False, hydrogens=False, **kwargs):

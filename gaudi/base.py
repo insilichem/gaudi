@@ -101,9 +101,9 @@ class Individual(object):
         if self.cfg is not None:
             gaudi.plugin.load_plugins(self.cfg.genes, container=self.genes,
                                       parent=self,
-                                      cxeta=self.cfg.ga.cx_eta,
-                                      mteta=self.cfg.ga.cx_eta,
-                                      indpb=self.cfg.ga.mut_indpb)
+                                      cx_eta=self.cfg.ga.cx_eta,
+                                      mut_eta=self.cfg.ga.mut_eta,
+                                      mut_indpb=self.cfg.ga.mut_indpb)
 
             self.fitness = Fitness(self.cfg.weights)
             mod, fn = self.cfg.similarity.module.rsplit('.', 1)

@@ -64,11 +64,11 @@ class Energy(ObjectiveProvider):
 
     """
 
-    validate = parse.Schema({
+    _validate = {
         'molecules': [parse.Molecule_name],
         'forcefields': [parse.Any(parse.ExpandUserPathExists, parse.In(_openmm_builtin_forcefields))],
         'auto_parametrize': [parse.Molecule_name]
-        }, extra=parse.ALLOW_EXTRA)
+        }
 
     def __init__(self, targets=None, forcefields=('amber99sbildn.xml',), auto_parametrize=None, *args, **kwargs):
         ObjectiveProvider.__init__(self, **kwargs)

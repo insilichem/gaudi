@@ -63,12 +63,12 @@ class Solvation(ObjectiveProvider):
         Name of the molecule gene being analyzed
     """
 
-    validate = parse.Schema({
+    _validate = {
         parse.Required('target'): parse.Molecule_name,
         'which': parse.In(['msms_ses', 'msms_sas', 'grid']),
         'threshold': parse.All(parse.Coerce(float), parse.Range(min=0)),
         'radius': parse.All(parse.Coerce(float), parse.Range(min=0))
-        }, extra=parse.ALLOW_EXTRA)
+        }
 
     def __init__(self, which='grid', target=None, threshold=0.0, radius=5.0,
                  *args, **kwargs):

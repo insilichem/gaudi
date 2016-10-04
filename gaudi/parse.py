@@ -28,6 +28,7 @@ from random import choice
 import yaml
 from munch import Munch, munchify
 from voluptuous import *
+from voluptuous.humanize import validate_with_humanized_errors
 # Own
 import gaudi
 
@@ -184,8 +185,8 @@ class Settings(Munch):
         'objectives': [{}]
     }
 
-    _validator = Schema({
-            'output': {
+    schema = {
+            Required('output'): {
                 'path': MakeDir(RelPathToInputFile()),
                 'name': All(str, Length(min=1, max=255)),
                 'precision': All(int, Range(min=0, max=6)),
@@ -205,20 +206,14 @@ class Settings(Munch):
                 'cx_eta': All(Coerce(int), Range(min=0)),
                 'cx_pb': All(Coerce(float), Range(min=0, max=1)),
             },
-            'similarity': {
+            Required('similarity'): {
                 'module': str,
-                'args': [],
-                'kwargs': {}
+                'args': list,
+                'kwargs': dict
             },
-            'genes': All(Length(min=1),
-                         [{'name': str,
-                           'module': Importable,
-                           Extra: object}]),
-            'objectives': All(Length(min=1),
-                              [{'name': str,
-                                'module': Importable,
-                                Extra: object}])
-        }, extra=ALLOW_EXTRA)
+            Required('genes'): All(Length(min=1), [dict]),
+            Required('objectives'): All(Length(min=1), [dict])
+        }
 
     def __init__(self, path=None, validation=True):
         data = self.default_values.copy()
@@ -241,7 +236,7 @@ class Settings(Munch):
         return [obj.name for obj in self.objectives]
 
     def validate(self, data):
-        return self._validator(data)
+        return validate(self.schema, data)
 
 def deep_update(source, overrides):
     """Update a nested dictionary or similar mapping.
@@ -270,3 +265,11 @@ def parse_rawstring(s):
     except ValueError:
         pass  # is str
     return molecule, res_or_atom
+
+
+def validate(schema, data):
+    # TODO - print valid keys when not allowed key is used
+    try:
+        return validate_with_humanized_errors(data, Schema(schema))
+    except Exception as e:
+        raise e

@@ -65,11 +65,11 @@ class Volume(ObjectiveProvider):
         Calculated volume in A³
     """
 
-    validate = parse.Schema({
+    _validate = {
         'target': parse.Molecule_name,
         'threshold': parse.Any(float, 'auto'),
         'cavities': bool
-        }, extra=parse.ALLOW_EXTRA)
+        }
 
     def __init__(self, threshold=0.0, target=None, cavities=False,
                  *args, **kwargs):

@@ -70,7 +70,7 @@ class Torsion(GeneProvider):
 
     """
 
-    validate = parse.Schema({
+    _validate = {
         parse.Required('target'): parse.Molecule_name,
         'flexibility': parse.Degrees,
         'max_bonds': parse.All(parse.Coerce(int), parse.Range(min=0)),
@@ -78,7 +78,7 @@ class Torsion(GeneProvider):
         'rotatable_atom_types': [str],
         'rotatable_atom_names': [str],
         'rotatable_elements': [str],
-        }, extra=parse.ALLOW_EXTRA)
+        }
 
     BONDS_ROTS = {}
 

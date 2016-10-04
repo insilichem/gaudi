@@ -116,14 +116,14 @@ class Search(GeneProvider):
 
     """
 
-    validate = parse.Schema({
+    _validate = {
         parse.Required('target'): parse.Named_spec("molecule", "atom"),
         'center': parse.Any(parse.Coordinates, parse.Named_spec("molecule", "atom")),
         'radius': parse.Coerce(float),
         'rotate': parse.Boolean,
         'precision': parse.All(parse.Coerce(int), parse.Range(min=0, max=6)),
         'mut_eta': parse.All(parse.Coerce(float), parse.Range(min=0, max=1.0))
-        }, extra=parse.ALLOW_EXTRA)
+        }
 
     def __init__(self, target=None, center=None, radius=None, rotate=True,
                  precision=0, mut_eta=0.5, **kwargs):

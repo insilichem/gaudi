@@ -20,8 +20,13 @@ and have a certain class structure
 import abc
 import logging
 from uuid import uuid4
+# 3rd party
+from voluptuous.humanize import validate_with_humanized_errors
+# Chimera
+import chimera
 # GAUDI
-from gaudi import plugin
+from gaudi import plugin, parse
+from gaudi.base import Environment
 
 logger = logging.getLogger(__name__)
 
@@ -57,6 +62,7 @@ class ObjectiveProvider(object):
 
     __metaclass__ = plugin.PluginMount
     _cache = {}
+    _validate = {}
 
     def __init__(self, environment=None, name=None, weight=None, zone=None,
                  **kwargs):
@@ -77,3 +83,14 @@ class ObjectiveProvider(object):
     @classmethod
     def clear_cache(cls):
         cls._cache.clear()
+
+    @classmethod
+    def validate(cls, data):
+        schema = {parse.Required('environment'): Environment,
+                  'module': parse.Importable,
+                  'name': str,
+                  'weight': parse.Coerce(float),
+                  'zone': chimera.selection.ItemizedSelection}
+        schema.update(cls._validate)
+        return parse.validate(schema, data)
+        

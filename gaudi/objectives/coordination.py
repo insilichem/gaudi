@@ -66,7 +66,7 @@ class SimpleCoordination(ObjectiveProvider):
     angle : float
         Target angle `probe`, ligand and neighbor should form ideally
     """
-    validate = parse.Schema({
+    _validate = {
         parse.Required('probe'): parse.Named_spec("molecule", "atom"),
         'radius': parse.Coerce(float),
         'atom_types': [str],
@@ -75,13 +75,13 @@ class SimpleCoordination(ObjectiveProvider):
         'residues': [parse.Named_spec("molecule", "residue")],
         'distance': parse.All(parse.Coerce(float), parse.Range(min=0)),
         'angle': parse.Coerce(float),
-        'min_atoms': parse.All(parse.Coerce(int), parse.Range(min=0)),
+        'min_atoms': parse.All(parse.Coerce(int), parse.Range(min=2)),
         'geometry': parse.In(MG_geometries.keys()),
         'enforce_all_residues': parse.Coerce(bool),
         'only_one_ligand_per_residue': parse.Coerce(bool),
         'prevent_intruders': parse.Coerce(bool),
         'method': parse.In(['simple', 'metalgeom', 'metalgeom_directional'])
-        }, extra=parse.ALLOW_EXTRA)
+        }
     
     def __init__(self, method='metalgeom_directional', probe=None, radius=None, atom_types=(),
                  atom_elements=(), atom_names=(), residues=(), geometry='tetrahedral',
@@ -132,7 +132,6 @@ class SimpleCoordination(ObjectiveProvider):
             raise
         else:
             return atom
-
 
     def residues(self, ind):
         for mol, pos in self._residues:
@@ -195,7 +194,6 @@ class SimpleCoordination(ObjectiveProvider):
                         dihedrals.append(planarity)
 
             return sum(numpy.average(x) for x in (distances, angles, dihedrals) if x)
-
 
     def evaluate_MetalGeom(self, ind):
         """
