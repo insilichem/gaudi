@@ -174,4 +174,12 @@ objectives:
         target: Protein
         cavities: True
 
+    -   name: AxesOfInertia
+        module: gaudi.objectives.inertia
+        weight: -1.0
+        reference: Protein
+        targets: [Ligand]
+        threshold: 0.84
+        
+
 
