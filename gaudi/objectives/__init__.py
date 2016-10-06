@@ -20,8 +20,6 @@ and have a certain class structure
 import abc
 import logging
 from uuid import uuid4
-# 3rd party
-from voluptuous.humanize import validate_with_humanized_errors
 # Chimera
 import chimera
 # GAUDI
