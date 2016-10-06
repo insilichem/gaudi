@@ -114,6 +114,7 @@ def ea_mu_plus_lambda(population, toolbox, mu, lambda_, cxpb, mutpb, ngen,
             offspring = varOr(population, toolbox, lambda_, cxpb, mutpb)
 
             # Evaluate the individuals with an invalid fitness
+            t1 = time()
             invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
             fitnesses = toolbox.map(toolbox.evaluate, invalid_ind)
             for ind, fit in zip(invalid_ind, fitnesses):
@@ -128,15 +129,16 @@ def ea_mu_plus_lambda(population, toolbox, mu, lambda_, cxpb, mutpb, ngen,
 
             # Update the statistics with the new population
             nevals = len(invalid_ind)
-            t1 = time()
-            speed = nevals / (t1-t0)
+            t2 = time()
+            ev_speed = nevals / (t2-t1)
+            speed = nevals / (t2-t0)
             performed_evals += nevals
             remaining_evals = estimated_evals - performed_evals
             remaining = timedelta(seconds=int(remaining_evals / speed))
             record = stats.compile(population) if stats is not None else {}
             progress = '{:.2f}%'.format(100*(gen+1)/(ngen+1))
             logbook.record(gen=gen, progress=progress, nevals=nevals, 
-                           speed='{:.2f} ev/s'.format(speed), eta=remaining, **record)
+                           speed='{:.2f} ev/s'.format(ev_speed), eta=remaining, **record)
             if verbose:
                 print(logbook.stream)
         except (Exception, KeyboardInterrupt) as e:
