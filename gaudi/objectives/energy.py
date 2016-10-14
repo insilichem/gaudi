@@ -24,7 +24,6 @@ except ImportError:
 import os
 import logging
 # 3rd party
-import chimera
 from Molecule import atom_positions
 import simtk.openmm.app as openmm_app
 from simtk import unit, openmm
@@ -65,26 +64,31 @@ class Energy(ObjectiveProvider):
     """
 
     _validate = {
-        'molecules': [parse.Molecule_name],
+        'targets': [parse.Molecule_name],
         'forcefields': [parse.Any(parse.ExpandUserPathExists, parse.In(_openmm_builtin_forcefields))],
-        'auto_parametrize': [parse.Molecule_name]
+        'auto_parametrize': [parse.Molecule_name],
+        'parameters': [parse.All([parse.ExpandUserPathExists], parse.Length(min=2, max=2))],
         }
 
-    def __init__(self, targets=None, forcefields=('amber99sbildn.xml',), auto_parametrize=None, *args, **kwargs):
+    def __init__(self, targets=None, forcefields=('amber99sbildn.xml',), auto_parametrize=None,
+                 parameters=None, *args, **kwargs):
         ObjectiveProvider.__init__(self, **kwargs)
         self.auto_parametrize = auto_parametrize
         self._targets = targets
+        self._parameters = parameters
         self.topology = None
         self._simulation = None
 
         additional_ffxml = []
+        if parameters:
+            additional_ffxml.append(create_ffxml_file(*zip(*parameters)))
         if auto_parametrize:
             filenames = [g.path for m in auto_parametrize
                          for g in self.environment.cfg.genes
                          if g.name == m]
-            additional_ffxml = self._gaff2xml(*filenames)
-            forcefields = forcefields + (additional_ffxml,)
-
+            additional_ffxml.append(self._gaff2xml(*filenames))
+        
+        forcefields = forcefields + tuple(additional_ffxml)
         self.forcefields = forcefields
         self.forcefield = openmm_app.ForceField(*self.forcefields)
 
@@ -179,16 +183,10 @@ class Energy(ObjectiveProvider):
         for i, mol in enumerate(molecules):
             for a in mol.atoms:
                 chain_id = a.residue.id.chainId
-                try:
-                    chain = chains[(i, chain_id)]
-                except KeyError:
-                    chain = chains[(i, chain_id)] = topology.addChain()
+                chain = chains.setdefault((i, chain_id), topology.addChain())
                 
                 r = a.residue
-                try:
-                    residue = residues[r]
-                except KeyError:
-                    residue = residues[r] = topology.addResidue(r.type, chain)
+                residue = residues.setdefault(r, topology.addResidue(r.type, chain))
                 
                 name = a.name
                 element = openmm_app.Element.getByAtomicNumber(a.element.number)
@@ -206,32 +204,6 @@ class Energy(ObjectiveProvider):
         positions = [atom_positions(m.atoms, m.openState.xform) for m in molecules]
         all_positions = numpy.concatenate(positions)
         return unit.Quantity(all_positions, unit=unit.angstrom)
-
-    @staticmethod
-    def chimera_molecule_to_openmm_old(*molecules):
-        """
-        Convert a Chimera Molecule object to OpenMM structure,
-        providing topology and coordinates.
-
-        Parameters
-        ----------
-        molecule : chimera.Molecule
-
-        Returns
-        -------
-        topology : simtk.openmm.app.topology.Topology
-        coordinates : simtk.unit.Quantity
-
-        """
-        # Write PDB to StringIO (memory file)
-        pdbfile = StringIO()
-        for molecule in molecules:
-            chimera.pdbWrite([molecule], molecule.openState.xform, pdbfile)
-        pdbfile.seek(0)
-
-        molecule = openmm_app.PDBFile(pdbfile)
-        return molecule.topology, molecule.positions
-
 
     @staticmethod
     def _gaff2xml(*filenames):
@@ -256,7 +228,6 @@ class Energy(ObjectiveProvider):
             frcmods.append(frcmod)
             gaffmol2s.append(gaffmol2)
         return create_ffxml_file(gaffmol2s, frcmods)
-
 
     def _gaudi_is_static(self, individual):
         """
