@@ -234,10 +234,16 @@ class SimpleCoordination(ObjectiveProvider):
         """
         try:
             test_atoms = [a for d, a in self.coordination_sphere(ind)]
-        except (NotEnoughAtomsError, SomeResiduesMissingError):
+        except SomeResiduesMissingError:
             logger.warning("Not enough atoms or some residues missing")
             return -1000 * self.weight
-        
+       
+        missing_atoms = self.min_atoms - len(test_atoms)
+        if missing_atoms > 0:
+            logger.warning("Could not find enough ligand atoms in probe environment. "
+                           "{} missing".format(missing_atoms))
+            return -100 * missing_atoms * self.weight
+
         ligands = test_atoms[:self.n_vertices]
         ligand_coords = [a.xformCoord() for a in ligands]
         metal = self.probe(ind)
@@ -253,7 +259,7 @@ class SimpleCoordination(ObjectiveProvider):
             return -1000 * self.weight
         # directionality
         directionality = sum(ideal_bond_deviation(metal, ligand, ligands) for ligand in ligands)
-
+        
         return rmsd + directionality
 
 
@@ -291,10 +297,6 @@ class SimpleCoordination(ObjectiveProvider):
                 found_residues.add(a.residue)
             elif self.prevent_intruders:
                 break
-        if len(atoms_by_distance) < self.min_atoms:
-            logger.warning("Could not find requested atoms from residues in probe environment. "
-                           "Got {} out of {}".format(len(atoms_by_distance), self.min_atoms))
-            raise NotEnoughAtomsError
 
         if self.enforce_all_residues and found_residues != residues:
             logger.warning("Some atoms found, but some residues are missing")
