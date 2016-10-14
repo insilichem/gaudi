@@ -25,11 +25,11 @@ Lennard-Jones 12-6 like function.
 """
 
 # Python
+from __future__ import print_function
 import logging
 # Chimera
 import chimera
 import DetectClash
-import ChemGroup as cg
 # GAUDI
 from gaudi import parse
 from gaudi.objectives import ObjectiveProvider
@@ -56,15 +56,14 @@ class Contacts(ObjectiveProvider):
         for possible interactions
     which : {'hydrophobic', 'clashes'}
         Type of interactions to measure
-    threshold : float, optional
+    clash_threshold : float, optional
         Maximum overlap of van-der-Waals spheres that is considered as
         a contact (attractive). If the overlap is greater, it's 
         considered a clash (repulsive)
-    threshold_h : float, optional
-        If the involved atoms can form a H-bond, use this threshold instead.
-    treshold_c : float, optional
-        If the involved atoms can form a hydrophobic patch, use this threshold 
-        instead. (sure??)
+    hydrophobic_threshold : float, optional
+        Maximum overlap for hydrophobic patches.
+    hydrophobic_elements : list of str, optional, defaults to [C, S]
+        Which elements are allowed to interact in hydrophobic patches
     cutoff : float, optional
         If the overlap volume is greater than this, a penalty is applied. 
         Useful to filter bad solutions.
@@ -73,23 +72,29 @@ class Contacts(ObjectiveProvider):
         parse.Required('probes'): [parse.Molecule_name],
         'radius': parse.All(parse.Coerce(float), parse.Range(min=0)),
         'which': parse.In(['hydrophobic', 'clashes']),
-        'threshold': parse.Coerce(float),
-        'threshold_h': parse.Coerce(float),
-        'threshold_c': parse.Coerce(float),
+        'clash_threshold': parse.Coerce(float),
+        'hydrophobic_threshold': parse.Coerce(float),
         'cutoff': parse.Coerce(float),
+        'hydrophobic_elements': [str],
         }
     
     def __init__(self, probes=None, radius=5.0, which='hydrophobic',
-                 threshold=0.6, threshold_h=0.2, threshold_c=0.6, cutoff=100.0,
-                 *args, **kwargs):
+                 clash_threshold=0.6, hydrophobic_threshold=-0.4, cutoff=0.0,
+                 hydrophobic_elements=('C', 'S'), *args, **kwargs):
         ObjectiveProvider.__init__(self, **kwargs)
         self.which = which
         self.radius = radius
-        self.threshold = threshold
-        self.threshold_h = threshold_h
-        self.threshold_c = threshold_c
+        self.clash_threshold = clash_threshold
+        self.hydrophobic_threshold = hydrophobic_threshold
         self.cutoff = cutoff
+        self.hydrophobic_elements = set(hydrophobic_elements)
         self._probes = probes
+        if which == 'hydrophobic':
+            self.evaluate = self.evaluate_hydrophobic
+            self.threshold = hydrophobic_threshold
+        else:
+            self.evaluate = self.evaluate_clashes
+            self.threshold = clash_threshold
 
     def molecules(self, ind):
         return [m.compound.mol for m in ind._molecules.values()]
@@ -97,58 +102,26 @@ class Contacts(ObjectiveProvider):
     def probes(self, ind):
         return [ind.genes[p].compound.mol for p in self._probes]
 
-    def evaluate(self, ind):
-        """
-        Get interacting pairs of atoms with DetectClash (Chimera's) and submit them
-        to our parsers.
-        """
-        test_atoms = self._surrounding_atoms(ind)
-        clashes = DetectClash.detectClash(test_atoms, test=test_atoms, intraRes=True,
-                                          interSubmodel=True, clashThreshold=self.threshold,
-                                          hbondAllowance=self.threshold_h, assumedMaxVdw=2.1,
-                                          bondSeparation=4)
-        try:
-            positive, negative = self._parse_clashes_c(clashes, ind)
-        except StopIteration:
-            positive, negative = 0, 0
+    def evaluate_clashes(self, ind):
+        positive, negative = self.find_interactions(ind)
+        clashscore = sum(abs(vol_overlap) for (a1, a2, overlap, vol_overlap) in negative)
+        if self.cutoff and clashscore > self.cutoff:
+            clashscore = -1000 * self.weight
+        return clashscore
+        
+    def evaluate_hydrophobic(self, ind):
+        positive, negative = self.find_interactions(ind)
+        return sum(lj_energy for (a1, a2, overlap, lj_energy) in positive)
 
-        if self.which == 'clashes':
-            clashscore = sum(abs(a[3]) for a in negative) / 2
-            if clashscore > self.cutoff:
-                clashscore = -1000 * self.weight
-            return clashscore
-        elif self.which == 'hydrophobic':
-            return sum(1 - a[3] for a in positive) / 2
+    def find_interactions(self, ind):
+        atoms = self._surrounding_atoms(ind)
+        options = dict(test=atoms, intraRes=True, interSubmodel=True,
+                       clashThreshold=self.threshold, assumedMaxVdw=2.1,
+                       hbondAllowance=0.2, bondSeparation=4)                                          
+        clashes = DetectClash.detectClash(atoms, **options)
+        return self._analyze_interactions(clashes)
 
-    ###
-    def _parse_clashes(self, clashes, ind):
-        ALIPH = ['C3', [[cg.C, [cg.C, [cg.C, [cg.R, cg.R, cg.R, cg.R]],
-                                cg.R, cg.R]], cg.R, cg.R, cg.R]], [1, 1, 1, 1, 1, 0, 0]
-        AROMATIC = set(
-            a for g in cg.findGroup("aromatic ring", self.molecules(ind)) for a in g)
-        ALIPHATIC = set(a for g in cg.findGroup(ALIPH, self.molecules(ind))
-                        for a in g if a not in AROMATIC)
-
-        positive, negative = [], []
-        for a1, c in clashes.items():
-            for a2, dist in c.items():
-                if dist <= self.threshold and a1.residue != a2.residue:
-                    if a1 in AROMATIC and a2 in AROMATIC:
-                        positive.append(
-                            [a1, a2, dist, self._lennard_jones(a1, a2)])
-                    elif a1 in AROMATIC and a2 in ALIPHATIC:
-                        positive.append(
-                            [a1, a2, dist, self._lennard_jones(a1, a2)])
-                    elif a1 in ALIPHATIC and a2 in AROMATIC:
-                        positive.append(
-                            [a1, a2, dist, self._lennard_jones(a1, a2)])
-                elif dist > self.threshold:
-                    negative.append(
-                        [a1, a2, dist, self._vdw_vol_overlap(a1, a2)])
-
-        return positive, negative
-
-    def _parse_clashes_c(self, clashes, ind):
+    def _analyze_interactions(self, clashes):
         """
         Interpret contacts provided by DetectClash.
 
@@ -157,8 +130,7 @@ class Contacts(ObjectiveProvider):
         clashes : dict of dict
             Output of DetectClash. It's a dict of atoms, whose values are dicts.
             These subdictionaries contain all the contacting atoms as keys, and
-            the respective distance as values.
-        ind : Individual
+            the respective overlaping length as values.
 
         Returns
         -------
@@ -182,20 +154,19 @@ class Contacts(ObjectiveProvider):
             the volumetric overlap of the involved atoms' Van der Waals spheres.
 
         """
-        vdwatoms = set(a for m in self.molecules(ind) for a in m.atoms
-                       if a.element.name in ('C', 'S'))
-
         positive, negative = [], []
-        for a1, c in clashes.items():
-            for a2, dist in c.items():
-                if dist <= self.threshold and a1.molecule != a2.molecule:
-                    if a1 in vdwatoms and a2 in vdwatoms:
-                        positive.append(
-                            [a1, a2, dist, self._lennard_jones(a1, a2)])
-                elif dist > self.threshold:
-                    negative.append(
-                        [a1, a2, dist, self._vdw_vol_overlap(a1, a2)])
-
+        for a1, clash in clashes.items():
+            for a2, overlap in clash.items():
+                # overlap < clash threhold : can be a hydrophobic interaction
+                if overlap <= self.clash_threshold:
+                    if (a1.element.name in self.hydrophobic_elements
+                        and a2.element.name in self.hydrophobic_elements):
+                        lj_energy = self._lennard_jones(a1, a2, overlap)
+                        positive.append([a1, a2, overlap, lj_energy])
+                # overlap > clash threshold : clash!
+                else:
+                    volumetric_overlap = self._vdw_vol_overlap(a1, a2, overlap)
+                    negative.append([a1, a2, overlap, volumetric_overlap])           
         return positive, negative
 
     def _surrounding_atoms(self, ind):
@@ -210,44 +181,61 @@ class Contacts(ObjectiveProvider):
         return self.zone.atoms()
 
     @staticmethod
-    def _lennard_jones(a1, a2):
+    def _lennard_jones(a1, a2, overlap=None):
         """
         VERY rough aproximation of a Lennard-Jones score (12-6).
 
         Parameters
         ----------
         a1, a2 : chimera.Atom
+        overlap : float
+            Overlapping radii of involved atoms, as provided
+            by DetectClash.
 
-        .. todo ::
+        Notes
+        -----
+        The usual implementation of a LJ potential is:
 
-            The distance is usually computed in the clash parsers, so get it
-            instead of computing it again. At least, as an optional kw.
+            LJ = 4*epsilon*(0.25*((r0/r)**12) - 0.5*((r0/r)**6))
+
+        Two approximations are done:
+            - The atoms involves are considered equal, hence the
+              distance at which the energy is minimum (r0) is just
+              the sum of their radii.
+            - Epsilon is always 1.  
         """
-        dist = a1.xformCoord().distance(a2.xformCoord())
-        zero = 0.98 * (a1.radius + a2.radius)
-        x = zero / dist
-        return (x ** 12 - 2 * x ** 6)
+        r0 = a1.radius + a2.radius
+        if overlap is None:
+            distance = a1.xformCoord().distance(a2.xformCoord())
+        else:
+            distance = r0 - overlap
+        x = (r0 / distance)**6
+        return (x*x - 2*x)
 
     @staticmethod
-    def _vdw_vol_overlap(a1, a2):
+    def _vdw_vol_overlap(a1, a2, overlap=None):
         """
         Volumetric overlap of Van der Waals spheres of atoms.
 
         Parameters
         ----------
         a1, a2 : chimera.Atom
-
+        overlap : float
+            Overlapping sphere segment of involved atoms
         .. note ::
             Adapted from Eran Eyal, Comput Chem 25: 712-724, 2004
         """
         PI = 3.14159265359
-        d = a1.xformCoord().distance(a2.xformCoord())
-        if not d:
+        if overlap is None:
+            d = a1.xformCoord().distance(a2.xformCoord())
+        else:
+            d = a1.radius + a2.radius - overlap
+        if d == 0:
             return 1000
         h_a, h_b = 0, 0
-        if d and d < a1.radius + a2.radius:
+        if d < (a1.radius + a2.radius):
             h_a = (a2.radius ** 2 - (d - a1.radius) ** 2) / (2 * d)
             h_b = (a1.radius ** 2 - (d - a2.radius) ** 2) / (2 * d)
-        v = (PI / 3) * (h_a ** 2) * (3 * a1.radius - h_a) + \
-            (PI / 3) * (h_b ** 2) * (3 * a2.radius - h_b)
-        return v
+
+        return (PI / 3) * ((h_a ** 2) * (3 * a1.radius - h_a) + 
+                           (h_b ** 2) * (3 * a2.radius - h_b))
