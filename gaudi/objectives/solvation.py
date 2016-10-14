@@ -12,35 +12,24 @@
 ##############
 
 """
-This objective calculates SASA and/or SESA for the given system (or region).
-
-.. note::
-
-    This objective depends on MoleculeSurface, which in turn depends on MSMS package.
-    MSMS is known to fail quite often with large proteins, so expect this to not work most
-    of the times. (More details)[http://www.rbvi.ucsf.edu/chimera/docs/UsersGuide/surfprobs.html].
-
-    Hopefully, UCSF Chimera 2.0 will implement a custom alternative to MSMS which won't have these
-    problems. At least, that's what they stated \
-    (here)[http://www.cgl.ucsf.edu/pipermail/chimera-users/2013-February/008497.html]. You can see
-    a beta implementation in :mod:`gaudi.objectives.volume`. It's faster, less prone to errors
-    but the output is not in agreement with MSMS'.
-
+This objective calculates SASA for the given system (or region).
 """
 
 # Python
 import logging
+from math import ceil
+# 3rd party
+import numpy as np
 # Chimera
 import chimera
-import MoleculeSurface
-from MoleculeSurface import Surface_Calculation_Error
-import MeasureVolume
-import Surface.gridsurf
-
+from _surface import surface_area
+from _multiscale import get_atom_coordinates, bounding_box
+from _gaussian import sphere_surface_distance
+from _contour import surface as contour_surface
+from Matrix import transform_points
 # GAUDI
 from gaudi import parse
 from gaudi.objectives import ObjectiveProvider
-from gaudi.box import silent_stdout
 
 logger = logging.getLogger(__name__)
 
@@ -57,75 +46,79 @@ class Solvation(ObjectiveProvider):
 
     Parameters
     ----------
-    which : {'msms_ses', 'msms_sas', 'grid'}
-        Type of solvation to measure
-    target : str
-        Name of the molecule gene being analyzed
+    targets : [str]
+        Names of the molecule genes being analyzed
+    threshold : float
+        Optimize the difference to this value
+    radius : float
+        Max distance to search for neighbor atoms from targets.
     """
 
     _validate = {
-        parse.Required('target'): parse.Molecule_name,
-        'which': parse.In(['msms_ses', 'msms_sas', 'grid']),
+        parse.Required('targets'): [parse.Molecule_name],
         'threshold': parse.All(parse.Coerce(float), parse.Range(min=0)),
         'radius': parse.All(parse.Coerce(float), parse.Range(min=0))
         }
 
-    def __init__(self, which='grid', target=None, threshold=0.0, radius=5.0,
+    def __init__(self, targets=None, threshold=0.0, radius=5.0,
                  *args, **kwargs):
         ObjectiveProvider.__init__(self, **kwargs)
-        self._target = target
-        self.which = which
+        self._targets = targets
         self.threshold = threshold
         self.radius = radius
-        if which in ('msms_ses', 'msms_sas'):
-            self.evaluate = self.evaluate_msms
-        else:
-            self.evaluate = self.evaluate_grid
 
-    def target(self, ind):
-        return ind.genes[self._target].compound.mol
+    def targets(self, ind):
+        return [ind.genes[target].compound.mol for target in self._targets]
 
     def molecules(self, ind):
         return tuple(m.compound.mol for m in ind._molecules.values())
 
-    def evaluate_msms(self, ind):
-        molecules = self.molecules(ind)
-        target = self.target(ind)
-        try:
-            atoms, ses, sas = self._solvation(self.zone_atoms(target, molecules))
-        except Surface_Calculation_Error:
-            raise Surface_Calculation_Error(
-                'Problem with solvation calc. Read this: '
-                'http://www.rbvi.ucsf.edu/chimera/docs/UsersGuide/surfprobs.html')
-        else:
-            if self.which == 'ses':
-                surfaces = ses
-            elif self.which == 'sas':
-                surfaces = sas
-            return sum(s for (a, s) in zip(atoms, surfaces) if a in target.atoms)
+    def evaluate(self, ind):
+        atoms = self.zone_atoms(self.targets(ind), self.molecules(ind))
+        return grid_sas_area(atoms)
 
-    def evaluate_grid(self, ind):
-        atoms = self.zone_atoms(self.target(ind), self.molecules(ind))
-        with silent_stdout():
-            surface = Surface.gridsurf.ses_surface(atoms)
-        volume, area, holes = MeasureVolume.surface_volume_and_area(surface)
-        chimera.openModels.close([surface])
-        return abs(area - self.threshold)
-
-    def zone_atoms(self, probe, molecules):
+    def zone_atoms(self, probes, molecules):
         self.zone.clear()
-        self.zone.add(probe.atoms)
+        self.zone.add([a for probe in probes for a in probe.atoms])
         self.zone.merge(chimera.selection.REPLACE,
                         chimera.specifier.zone(self.zone, 'atom', None, 
                                                self.radius, molecules))
         return self.zone.atoms()
-    ###
 
-    @staticmethod
-    def _solvation(atoms):
-        """
-        The actual wrapper around Chimera's own wrapper of MSMS
-        """
-        surfaces = MoleculeSurface.msms_geometry(atoms)
-        # return atoms, ses, sas
-        return atoms, surfaces[3][:, 0], surfaces[3][:, 1]
+
+def grid_sas_area(atoms, probe_radius=1.4, grid_spacing=0.5):
+    """
+    Stripped from Chimera's Surface.gridsurf
+    """
+    xyz = get_atom_coordinates(atoms, transformed = False)
+    radii = np.array([a.radius for a in atoms], np.float32)
+
+    # Compute bounding box for atoms
+    xyz_min, xyz_max = bounding_box(xyz)
+    pad = 2*probe_radius + radii.max()
+    origin = [x-pad for x in xyz_min]
+
+    # Create 3d grid for computing distance map
+    s = grid_spacing
+    shape = [int(ceil((xyz_max[a] - xyz_min[a] + 2*pad) / s))
+             for a in (2,1,0)]
+    matrix = np.empty(shape, np.float32)
+    max_index_range = 2
+    matrix[:,:,:] = max_index_range
+
+    # Transform centers and radii to grid index coordinates
+    xyz_to_ijk_tf = ((1.0/s, 0, 0, -origin[0]/s),
+                     (0, 1.0/s, 0, -origin[1]/s),
+                     (0, 0, 1.0/s, -origin[2]/s))
+    ijk = xyz.copy()
+    transform_points(ijk, xyz_to_ijk_tf)
+    probed_radii = radii.copy()
+    probed_radii += probe_radius
+    probed_radii /= s
+
+    # Compute distance map from surface of spheres, positive outside.
+    sphere_surface_distance(ijk, probed_radii, max_index_range, matrix)
+    # Get the SAS surface as a contour surface of the distance map
+    varray, tarray = contour_surface(matrix, 0, cap_faces=False, calculate_normals=False)
+
+    return surface_area(varray, tarray)
