@@ -47,10 +47,9 @@ setup(
         'Operating System :: OS Independent',
         'Topic :: Scientific/Engineering :: Chemistry',
     ],
-    # install_requires=[
-    #     dependencies are handled with conda-recipe/meta.yaml
-    #     check that file if you used setup.py manually
-    # ],
+    # dependencies are handled with conda-recipe/meta.yaml
+    # check that file if you used setup.py manually
+    # install_requires='deap click repoze.lru bunch voluptuous pyyaml'.split(),
     entry_points='''
         [console_scripts]
         gaudi=gaudi.cli.gaudi_cli:cli

@@ -8,7 +8,7 @@
 #            <jaime.rodriguezguerra@uab.cat>
 #           Jean-Didier Marechal
 #            <jeandidier.marechal@uab.cat>
-# Web: https://bitbucket.org/jrgp/gaudi
+# Web: https://bitbucket.org/insilichem/gaudi
 ##############
 
 """
