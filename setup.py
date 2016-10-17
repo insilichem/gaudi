@@ -6,6 +6,8 @@ from setuptools import setup, find_packages
 import os
 import io
 
+import versioneer
+
 import gaudi
 
 here = os.path.abspath(os.path.dirname(__file__))
@@ -24,12 +26,13 @@ long_description = read('README.rst')
 
 setup(
     name='gaudi',
-    version=gaudi.__version__,
-    url='https://bitbucket.org/jrgp/gaudi',
+    version=versioneer.get_version(),
+    cmdclass=versioneer.get_cmdclass(),
+    url=gaudi.__url__,
     license='Free For Educational Use',
-    author='Jaime Rodriguez-Guerra Pedregal',
+    author=gaudi.__author__,
     author_email='jaime.rogue@gmail.com',
-    description='GAUDI: Genetic Algorithms for Universal Design Inference',
+    description=gaudi.__description__,
     long_description=long_description,
     packages=find_packages(),
     include_package_data=True,

@@ -28,6 +28,7 @@ import sys
 import time
 from datetime import timedelta
 from importlib import import_module
+from textwrap import dedent
 # 3rd party
 import click
 # insilichem
@@ -63,15 +64,22 @@ def cli(prog_name='gaudi'):
     GAUDI: Genetic Algorithms for Universal Design Inference
 
     \b
-    By Jaime Rodríguez-Guerra and Jean-Didier Maréchal.
-    https://bitbucket.org/jrgp/gaudi
+    (C) 2016, InsiliChem
+    https://bitbucket.org/insilichem/gaudi
     """
     pychimera.patch_environ()
     pychimera.enable_chimera()
-    click.echo()
-    click.echo('GAUDI: Genetic Algorithms for Universal Design Inference')
-    click.echo('--------------------------------------------------------')
-    click.echo()
+    banner = dedent('''
+      .g8"""bgd       db   `7MMF'   `7MF'`7MM"""Yb. `7MMF'
+    .dP'     `M      ;MM:    MM       M    MM    `Yb. MM  
+    dM'       `     ,V^MM.   MM       M    MM     `Mb MM  
+    MM             ,M  `MM   MM       M    MM      MM MM  
+    MM.    `7MMF'  AbmmmqMA  MM       M    MM     ,MP MM  
+    `Mb.     MM   A'     VML YM.     ,M    MM    ,dP' MM  
+      `"bmmmdPY .AMA.   .AMMA.`bmmmmd"'  .JMMmmmdP' .JMML.''')
+    click.echo("{}\n{}".format(banner, '-'*len(banner.splitlines()[1])))
+    click.echo('GAUDI: Genetic Algorithms for Unified Design Inference')
+    click.echo('{} · v{}\n'.format(gaudi.__copyright__, gaudi.__version__))
 
 
 @cli.command()

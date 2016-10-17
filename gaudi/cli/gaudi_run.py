@@ -68,7 +68,6 @@ import gaudi.objectives
 import gaudi.parse
 import gaudi.plugin
 import gaudi.similarity
-import gaudi.version
 
 if sys.version_info.major == 3:
     basestring = str

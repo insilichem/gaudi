@@ -4,4 +4,6 @@ include .gitignore
 recursive-include docs *
 recursive-include examples *
 recursive-include resources *
-recursive-include tests *
+recursive-include tests *include versioneer.py
+include gaudi/_version.py
+include versioneer.py

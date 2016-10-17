@@ -27,8 +27,6 @@ how they are evaluated (:mod:`gaudi.objectives`).
 :mod:`gaudi.box` is a placeholder for several small functions that are used across GAUDI.
 """
 
-from .version import __version__, __version_info__, __author__, __copyright__, __project_name__
-
 # Logging
 import logging
 try:  # Python 2.7+
@@ -40,3 +38,12 @@ except ImportError:
             pass
 
 logging.getLogger(__name__).addHandler(NullHandler())
+
+__author__ = 'Jaime Rodriguez-Guerra, and Jean-Didier Marechal'
+__copyright__ = '2016, InsiliChem'
+__url__ = 'https://bitbucket.org/insilichem/gaudi'
+__description__ = 'GAUDI: Genetic Algorithms for Universal Design Inference'
+
+from ._version import get_versions
+__version__ = get_versions()['version']
+del get_versions
