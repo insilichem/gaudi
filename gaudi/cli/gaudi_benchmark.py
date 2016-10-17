@@ -8,7 +8,7 @@
 #            <jaime.rodriguezguerra@uab.cat>
 #           Jean-Didier Marechal
 #            <jeandidier.marechal@uab.cat>
-# Web: https://bitbucket.org/jrgp/gaudi
+# Web: https://bitbucket.org/insilichem/gaudi
 ##############
 
 """
@@ -20,13 +20,10 @@ Run it with ``gaudi benchmark``.
 
 from __future__ import print_function
 import os
-import tempfile
 import yaml
+from gaudi.cli import gaudi_run
 
-import gaudi_run
-
-
-def main(dataset, templatefile, gaudi='gaudi'):
+def main(dataset, templatefile):
     """
     Helper script to benchmark a dataset with a base GAUDI input.
 
@@ -41,8 +38,6 @@ def main(dataset, templatefile, gaudi='gaudi'):
         Path to the benchmark dataset
     templatefile : str
         Path to the base GAUDI input
-    gaudi : str
-        Path to the GAUDI binary
     """
 
     # Load input template
@@ -50,37 +45,39 @@ def main(dataset, templatefile, gaudi='gaudi'):
         template = yaml.load(f)
 
     # Find indices of Protein and Ligand genes
-    prot_index = next(
-        i for (i, g) in enumerate(template['genes']) if g['name'] == 'Protein')
-    ligand_index = next(
-        i for (i, g) in enumerate(template['genes']) if g['name'] == 'Ligand')
+    prot_index = next(i for (i, g) in enumerate(template['genes']) if g['name'] == 'Protein')
+    ligand_index = next(i for (i, g) in enumerate(template['genes']) if g['name'] == 'Ligand')
 
     protein = template['genes'][prot_index]['path']
     ligand = template['genes'][ligand_index]['path']
-    results = template['general']['outputpath']
+    results = template['output']['path']
+
+    try:
+        os.mkdir(results)
+    except (OSError, IOError):
+        pass
 
     # Scan directories in supplied dataset
+    dataset = os.path.abspath(dataset)
     dirs = os.listdir(dataset)
     for i, d in enumerate(dirs):
         # 1 - Perform calculation
-        print("Processing item ", i+1, ": ", d)
+        print("Processing item {}: {}".format(i+1, d))
         # Replace original output path with a subfolder in current dataset
-        template['general']['outputpath'] = os.path.join(dataset, d, results)
+        template['output']['path'] = os.path.join(results, d)
+        template['output']['name'] = d
 
         # Replace original Ligand and Protein paths with new ones
-        template['genes'][prot_index][
-            'path'] = os.path.join(dataset, d, protein)
-        template['genes'][ligand_index][
-            'path'] = os.path.join(dataset, d, ligand)
+        template['genes'][prot_index]['path'] = os.path.join(dataset, d, protein)
+        template['genes'][ligand_index]['path'] = os.path.join(dataset, d, ligand)
 
         # Write the overwritten template to a temp location
-        number, filename = tempfile.mkstemp()
-        with open(filename, 'w') as f:
+        input_filename = os.path.join(results, d + '.yaml')
+        with open(input_filename, 'w') as f:
             f.write(yaml.dump(template))
 
         # Launch the essay!
-        gaudi_run.main(filename)
+        gaudi_run.main(input_filename, debug=False)
 
         # Report progress after job is completed
-        print("Processed {}/{} ({}%)".format(
-            i+1, len(dirs), 100 * (i+1) / len(dirs)))
+        print("Processed {}/{} ({}%)".format(i+1, len(dirs), 100 * (i+1) / len(dirs)))

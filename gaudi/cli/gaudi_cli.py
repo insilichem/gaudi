@@ -114,15 +114,13 @@ def prepare(filename):
 @cli.command()
 @click.argument('dataset')
 @click.argument('template')
-@click.option('--gaudi', '-g', help='Location of gaudi binary',
-              default='gaudi')
-def benchmark(dataset, template, gaudi):
+def benchmark(dataset, template):
     """
     Performs the same essay over a dataset.
     """
     gaudi_benchmark = test_import('benchmark', 'gaudi_benchmark')
     ts = time.time()
-    gaudi_benchmark.main(dataset, template, gaudi)
+    gaudi_benchmark.main(dataset, template)
     te = time.time()
     click.echo('Finished after {:0>8}'.format(timedelta(seconds=int(te-ts))))
 
