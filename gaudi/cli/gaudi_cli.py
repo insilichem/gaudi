@@ -83,8 +83,7 @@ def cli(prog_name='gaudi'):
 
 
 @cli.command()
-@click.option('--debug', help='Dump debug info to logfile',
-              is_flag=True)
+@click.option('--debug', help='Dump debug info to logfile', is_flag=True)
 @click.argument('filename', required=True, type=click.Path(exists=True))
 def run(filename, debug):
     """
