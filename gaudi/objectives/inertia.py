@@ -69,7 +69,7 @@ class AxesOfInertia(ObjectiveProvider):
             axes = calculate_axes_of_inertia(target)
             all_axes.append(axes)
 
-        best_cosines = calculate_alignment(all_axes[0], *all_axes[1:])
+        best_cosines = list(calculate_alignment(all_axes[0], *all_axes[1:]))
         return abs(self.threshold - np.mean(best_cosines))
 
 
