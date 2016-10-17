@@ -75,7 +75,7 @@ class Contacts(ObjectiveProvider):
         'clash_threshold': parse.Coerce(float),
         'hydrophobic_threshold': parse.Coerce(float),
         'cutoff': parse.Coerce(float),
-        'hydrophobic_elements': [str],
+        'hydrophobic_elements': [basestring],
         }
     
     def __init__(self, probes=None, radius=5.0, which='hydrophobic',

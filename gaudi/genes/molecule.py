@@ -120,7 +120,7 @@ class Molecule(GeneProvider):
     
     _validate = {
         parse.Required('path'): parse.RelPathToInputFile(),
-        'symmetry': [str],
+        'symmetry': [basestring],
         'hydrogens': parse.Boolean,
         'pdbfix': parse.Boolean,
         }

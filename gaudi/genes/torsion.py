@@ -75,9 +75,9 @@ class Torsion(GeneProvider):
         'flexibility': parse.Degrees,
         'max_bonds': parse.All(parse.Coerce(int), parse.Range(min=0)),
         'anchor': parse.Named_spec("molecule", "atom"),
-        'rotatable_atom_types': [str],
-        'rotatable_atom_names': [str],
-        'rotatable_elements': [str],
+        'rotatable_atom_types': [basestring],
+        'rotatable_atom_names': [basestring],
+        'rotatable_elements': [basestring],
         }
 
     BONDS_ROTS = {}

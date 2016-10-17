@@ -188,7 +188,7 @@ class Settings(Munch):
     schema = {
             Required('output'): {
                 'path': MakeDir(RelPathToInputFile()),
-                'name': All(str, Length(min=1, max=255)),
+                'name': All(basestring, Length(min=1, max=255)),
                 'precision': All(int, Range(min=0, max=6)),
                 'compress': Coerce(bool),
                 'history': Coerce(bool),
@@ -207,7 +207,7 @@ class Settings(Munch):
                 'cx_pb': All(Coerce(float), Range(min=0, max=1)),
             },
             Required('similarity'): {
-                'module': str,
+                'module': basestring,
                 'args': list,
                 'kwargs': dict
             },

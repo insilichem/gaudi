@@ -69,9 +69,9 @@ class SimpleCoordination(ObjectiveProvider):
     _validate = {
         parse.Required('probe'): parse.Named_spec("molecule", "atom"),
         'radius': parse.Coerce(float),
-        'atom_types': [str],
-        'atom_names': [str],
-        'atom_elements': [str],
+        'atom_types': [basestring],
+        'atom_names': [basestring],
+        'atom_elements': [basestring],
         'residues': [parse.Named_spec("molecule", "residue")],
         'distance': parse.All(parse.Coerce(float), parse.Range(min=0)),
         'angle': parse.Coerce(float),
