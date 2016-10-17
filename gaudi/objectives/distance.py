@@ -53,21 +53,29 @@ class Distance(ObjectiveProvider):
         The atoms whose distance to `target` is being measured,
         expressed as <molecule name>/<atom serial>. If more than one
         is provided, the average of all of them is returned
+    center_of_mass : bool
+
     """
     _validate = {
         parse.Required('probes'): parse.AssertList(parse.Named_spec("molecule", "atom")),
         parse.Required('target'): parse.Named_spec("molecule", "atom"),
         parse.Required('threshold'): parse.Any(parse.Coerce(float), parse.In(['covalent'])),
-        'tolerance': parse.Coerce(float)
+        'tolerance': parse.Coerce(float),
+        'center_of_mass': parse.Coerce(float)
     }
 
     def __init__(self, threshold=None, tolerance=None, target=None, probes=None,
-                 *args, **kwargs):
+                 center_of_mass=False, *args, **kwargs):
         ObjectiveProvider.__init__(self, **kwargs)
         self.threshold = threshold
         self.tolerance = tolerance
+        self.center_of_mass = center_of_mass
         self._probes = probes
         self._target = target
+        if self.center_of_mass:
+            self.evaluate = self.evaluate_center_of_mass
+        else:
+            self.evaluate = self.evaluate_distances
 
     def atoms(self, ind, *targets):
         for target in targets:
@@ -81,7 +89,7 @@ class Distance(ObjectiveProvider):
             else:
                 yield atom
 
-    def evaluate(self, ind):
+    def evaluate_distances(self, ind):
         """
         Measure the distance
         """
@@ -101,6 +109,22 @@ class Distance(ObjectiveProvider):
 
         return numpy.mean(numpy.absolute(distances))
 
+    def evaluate_center_of_mass(self, ind):
+        target = next(self.atoms(ind, self._target))
+        probes = list(self.atoms(ind, *self._probes))
+        center_of_mass = self._center(*probes)
+        
+        return target.xformCoord().distance(chimera.Point(*center_of_mass))
+
     @staticmethod
     def _distance(atom1, atom2):
         return atom1.xformCoord().distance(atom2.xformCoord())
+
+    @staticmethod
+    def _center(*atoms):
+        coords, masses = [], []
+        for a in atoms:
+            coords.append(a.xformCoord())
+            masses.append(a.element.mass)
+
+        return numpy.average(coords, axis=0, weights=masses)
