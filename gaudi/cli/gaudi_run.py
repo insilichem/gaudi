@@ -12,7 +12,7 @@
 ##############
 
 """
-`gaudi.cli.gaudi_run` is the main hub for launching GAUDI essays.
+`gaudi.cli.gaudi_run` is the main hub for launching GAUDI jobs.
 
 It sets up the configuration environment needed by DEAP (responsible for the GA)
 and ties it up to the GAUDI custom classes that shape up the invididuals and
@@ -22,14 +22,14 @@ objectives. All in a loosely-coupled approach based on Python modules called on-
 
 .. code-block :: console
 
-    gaudi run /path/to/essay.gaudi-input
+    gaudi run /path/to/job.gaudi-input
 
 If the previous does not work, try with the manual mode:
 
 .. code-block :: console
 
     cd /path/to/gaudi/installation/directory/
-    /path/to/chimera/bin/chimera --nogui --script "gaudi_run.py /path/to/essay.gaudi-input"
+    /path/to/chimera/bin/chimera --nogui --script "gaudi_run.py /path/to/job.gaudi-input"
 
 
 .. todo::
@@ -76,7 +76,7 @@ if sys.version_info.major == 3:
 
 def launch(cfg):
     """
-    Runs a GAUDI essay
+    Runs a GAUDI job
 
     Parameters
     ----------
@@ -232,7 +232,7 @@ def main(cfg, debug=False):
 
     # Run simulation
     try:
-        logger.log(100, 'Launching essay ...')
+        logger.log(100, 'Launching job ...')
         pop, log, best = launch(cfg)
     except Exception as e:
         log_path = os.path.join(cfg.output.path, cfg.output.name + ".gaudi-log")
