@@ -1,11 +1,14 @@
 package:
   name: gaudi
-  version: "0.0.2"
+  version: {{ '{}{}{}'.format(environ['GIT_DESCRIBE_TAG'][1:], 
+                               (('+' + environ['GIT_DESCRIBE_NUMBER']) if environ['GIT_DESCRIBE_NUMBER'] else ''),
+                               (('.' + environ['GIT_DESCRIBE_HASH']) if environ['GIT_DESCRIBE_HASH'] else '')
+                              ) }}
 
 about:
-  home: https://bitbucket.org/jrgp/gaudi
+  home: https://bitbucket.org/insilichem/gaudi
   license: Free For Educational Use
-  summary: "Genetic Algorithms for Universal Design Inference and Atomic Scale Modeling"
+  summary: "Genetic Algorithms for Universal Design Inference"
 
 source:
   path: ../
@@ -25,13 +28,9 @@ requirements:
     - scipy
 
 test:
-  requires:
-    - pytest
-    
+ 
   imports:
     - gaudi
 
-  commands:
-    - pychimera run_test.py
 
 
