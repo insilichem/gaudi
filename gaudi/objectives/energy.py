@@ -88,9 +88,8 @@ class Energy(ObjectiveProvider):
                          if g.name == m]
             additional_ffxml.append(self._gaff2xml(*filenames))
         
-        forcefields = forcefields + tuple(additional_ffxml)
-        self.forcefields = forcefields
-        self.forcefield = openmm_app.ForceField(*self.forcefields)
+        self._forcefields = tuple(forcefields) + tuple(additional_ffxml)
+        self.forcefield = openmm_app.ForceField(*self._forcefields)
 
     def evaluate(self, individual):
         """
@@ -182,12 +181,17 @@ class Energy(ObjectiveProvider):
         topology = openmm_app.Topology()
         for i, mol in enumerate(molecules):
             for a in mol.atoms:
-                chain_id = a.residue.id.chainId
-                chain = chains.setdefault((i, chain_id), topology.addChain())
+                chain_id = (i, a.residue.id.chainId)
+                try:
+                    chain = chains[chain_id]
+                except KeyError:
+                    chain = chains[chain_id] = topology.addChain()
                 
                 r = a.residue
-                residue = residues.setdefault(r, topology.addResidue(r.type, chain))
-                
+                try:
+                    residue = residues[r]
+                except KeyError:
+                    residue = residues[r] = topology.addResidue(r.type, chain)
                 name = a.name
                 element = openmm_app.Element.getByAtomicNumber(a.element.number)
                 serial = a.serialNumber
@@ -257,16 +261,16 @@ class Energy(ObjectiveProvider):
         return True
 
 
-def calculate_energy(filename, forcefield=None):
+def calculate_energy(filename, forcefields=None):
     """
-    Calculate energy from PDB file with desired forcefield. If not specified,
+    Calculate energy from PDB file with desired forcefields. If not specified,
     amber99sbildn will be used. Returns potential energy in kJ/mol.
     """
-    if forcefield is None:
-        forcefield = ['amber99sbildn.xml']
+    if forcefields is None:
+        forcefields = ['amber99sbildn.xml']
 
     mol = openmm_app.PDBFile(filename)
-    ff = openmm_app.ForceField(*forcefield)
+    ff = openmm_app.ForceField(*forcefields)
     system = ff.createSystem(mol.topology,
                              nonbondedMethod=openmm_app.CutoffNonPeriodic,
                              nonbondedCutoff=1.0*unit.nanometers,
