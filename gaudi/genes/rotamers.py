@@ -25,14 +25,11 @@ the same backbone, which may not be representative of the in-vivo behaviour. Use
 
 # Python
 import random
-from collections import OrderedDict
+from collections import OrderedDict, namedtuple
 import logging
 # Chimera
-from AddH import simpleAddHydrogens, IdatmTypeInfo
-from Rotamers import getRotamers, useRotamer as replaceRotamer, NoResidueRotamersError
-import SwapRes
+from Rotamers import getRotamers, NoResidueRotamersError
 # External dependencies
-from repoze.lru import LRUCache
 import deap.tools
 # GAUDI
 from gaudi import parse
@@ -46,6 +43,9 @@ def enable(**kwargs):
     return Rotamers(**kwargs)
 
 
+Rotamer = namedtuple("Rotamer", ['residue', 'chis'])
+
+
 class Rotamers(GeneProvider):
 
     """
@@ -54,7 +54,7 @@ class Rotamers(GeneProvider):
     Parameters
     ----------
     residues : list of str
-        Residues to be analyzed with rotamers. This has to be in the form:
+        Residues that should be analyzed. This has to be in the form:
 
             [ Protein/233, Protein/109 ]
 
@@ -66,67 +66,32 @@ class Rotamers(GeneProvider):
 
     library : {'Dunbrack', 'Dynameomics'}
         The rotamer library to use.
-
-    mutations : list of str
-        Aminoacids (in 3-letter codes) rotamers can mutate to.
-
-    ligation : bool, optional
-        If True, all residues will mutate to the same type of aminoacid.
-
-    hydrogens : bool, optional
-        If True, add hydrogens to rotamers
     """
     _validate = {
         parse.Required('residues'): [parse.Named_spec("molecule", "residue")],
         'library': parse.Any('Dunbrack', 'dunbrack', 'Dynameomics', 'dynameomics'),
-        'mutations': [parse.ResidueThreeLetterCode],
-        'ligation': parse.Boolean,
-        'hydrogens': parse.Boolean,
-        'avoid_replacement': parse.Boolean,
-        }
-    
-    def __init__(self, residues=None, library='Dunbrack', avoid_replacement=False,
-                 mutations=[], ligation=False, hydrogens=False, **kwargs):
+       }
+
+    # Avoid unnecesary calls to expensive get_rotamers if residue is known
+    # to not have any rotamers
+    _residues_without_rotamers = ['ALA', 'GLY']
+
+    def __init__(self, residues=None, library='Dunbrack', **kwargs):
         GeneProvider.__init__(self, **kwargs)
         self._kwargs = kwargs
         self._residues = residues
         self.library = library
-        self.mutations = mutations
-        self.ligation = ligation
-        self.hydrogens = hydrogens
-        self.avoid_replacement = avoid_replacement
-        if hydrogens and avoid_replacement:
-            raise ValueError("`hydrogens` and `avoid_replacement` can't be both True")
         self.allele = []
         # set caches
-        if self.name + '_res' not in self._cache:
-            self._cache[self.name + '_res'] = OrderedDict()
-        if self.name + '_rot' not in self._cache:
-            cache_size = len(residues) * (1 + 0.5 * len(mutations))
-            self._cache[self.name + '_rot'] = LRUCache(int(cache_size))
-
-        if self.ligation:
-            self.random_number = random.random()
-        else:
-            self.random_number = None
-
-        # Avoid unnecesary calls to expensive get_rotamers if residue is known
-        # to not have any rotamers
-        self._residues_without_rotamers = ['ALA', 'GLY']
-    
-    @property
-    def residues(self):
-        """
-        Alias to the parsed chimera.Residue cache
-        """
-        return self._cache[self.name + '_res']
-
-    @property
-    def rotamers(self):
-        """
-        Alias to the parsed chimera.Rotamer cache
-        """
-        return self._cache[self.name + '_rot']
+        try:
+            self.residues = self._cache[self.name + '_residues']
+        except KeyError:
+            self.residues = self._cache[self.name + '_residues'] = OrderedDict()
+            
+        try:
+            self.rotamers = self._cache[self.name + '_rotamers']
+        except KeyError:
+            self.rotamers = self._cache[self.name + '_rotamers'] = {}
 
     def __ready__(self):
         """
@@ -134,154 +99,82 @@ class Rotamers(GeneProvider):
 
         It parses the requested residues strings to actual residues.
         """
-        for molecule, resid in self._residues:
+        for molname, pos in self._residues:
             try:
-                if resid == '*':
-                    res = next(r for r in self.parent.genes[molecule].compound.mol.residues)
-                    resid = res.id.position
-                else:
-                    res = next(r for r in self.parent.genes[molecule].compound.mol.residues
-                               if r.id.position == resid)
-            # molecule or residue not found
-            except (KeyError, StopIteration):
-                raise
-            else:  # residue was found!
-                self.residues[(molecule, resid)] = res
-                self.allele.append((self.choice(self.mutations + [res.type]),
-                                    random.random()))
+                mol = self.parent._molecules[molname].compound.mol
+            except KeyError:
+                available_molnames = self.parent._molecules.keys()
+                raise KeyError('Molecule {} was not found!'
+                               'Try with one of {}'.format(molname, available_molnames))
+            if pos == '*':
+                residues = mol.residues
+            else:
+                residues = [r for r in mol.residues if r.id.position == pos]
+                if len(residues) > 1:
+                    logger.warn('Found one more than residue for %s/%s', molname, pos)
+            for r in residues:
+                r._original_chis = [] # Save torsion angles of initial rotamer
+                for i in range(1, 5):
+                    try:
+                        chi = getattr(r, 'chi' + str(i))
+                        r._original_chis.append(chi)
+                    except AttributeError:
+                        continue 
+                self.residues[(molname, r.id.position)] = r
+                self.allele.append(random.random())
+    
+    def __deepcopy__(self, memo):
+        new = self.__class__(residues=self._residues, library=self.library, **self._kwargs )
+        new.residues = self.residues
+        new.rotamers = self.rotamers
+        new.allele = self.allele[:]
+        return new
 
     def express(self):
-        for (mol, pos), (restype, i) in zip(self.residues, self.allele):
-            replaced = False
+        for ((molname, pos), residue), i in zip(self.residues.items(), self.allele):
             try:
-                residue = self.residues[(mol, pos)]
-                rotamers = self.get_rotamers(mol, pos, restype)
+                rotamers = self.get_rotamers((molname, pos), residue)
             except NoResidueRotamersError:  # ALA, GLY...
-                if residue.type != restype:
-                    SwapRes.swap(residue, restype)
-                    replaced = True
+                logger.warn('%s/%s (%s) has no rotamers', molname, pos, residue.type)
             else:
-                rotamer_index = int(i * len(rotamers))
-                if self.avoid_replacement and residue.type == restype:
-                    self.update_rotamer_with_torsions(residue, rotamers[rotamer_index])
-                else:
-                    replaceRotamer(residue, [rotamers[rotamer_index]])
-                    replaced = True
-            if replaced:
-                self.residues[(mol, pos)] = \
-                    next(r for r in self.parent.genes[mol].compound.mol.residues
-                         if r.id.position == pos)
+                rotamer = rotamers[int(i * len(rotamers))]
+                self.update_rotamer(residue, rotamer.chis)
 
     def unexpress(self):
         for res in self.residues.values():
-            for a in res.atoms:
-                a.display = 0
+            self.update_rotamer(res, res._original_chis)
 
     def mate(self, mate):
-        if self.ligation:
-            self_residues, self_rotamers = zip(*self.allele)
-            mate_residues, mate_rotamers = zip(*mate.allele)
-            self_rotamers, mate_rotamers = deap.tools.cxTwoPoint(
-                list(self_rotamers), list(mate_rotamers))
-            self.allele = map(list, zip(self_residues, self_rotamers))
-            mate.allele = map(list, zip(mate_residues, mate_rotamers))
-        else:
-            self.allele, mate.allele = deap.tools.cxTwoPoint(
-                self.allele, mate.allele)
+        self.allele, mate.allele = deap.tools.cxTwoPoint(self.allele, mate.allele)
 
     def mutate(self, indpb):
-        if random.random() < self.indpb:
-            self.allele[:] = []
-            if self.ligation:  # don't forget to get a new random!
-                self.random_number = random.random()
-            for res in self.residues.values():
-                self.allele.append(
-                    (self.choice(self.mutations + [res.type]),
-                        random.random()
-                     )
-                )
+        self.allele = [random.random() if random.random() < indpb else i for i in self.allele]
 
-    ###
-
-    def choice(self, l):
-        """
-        Overrides ``random.choice`` with custom one so we can
-        reuse a previously obtained random number. This helps dealing
-        with the ``ligation`` parameter, which forces all the requested
-        residues to mutate to the same type
-        """
-        if self.random_number:
-            return l[int(self.random_number * len(l))]
-        return l[int(random.random() * len(l))]
-
-    def get_rotamers(self, mol, pos, restype):
+    def get_rotamers(self, key, residue):
         """
         Gets the requested rotamers out of cache and if not found,
-        creates the library and stores it in the cache.
+        creates the library of chis and stores it in the cache.
 
         Parameters
         ----------
-        mol : str
-            gaudi.genes.molecule name that contains the residue
-        pos : 
-            Residue position in `mol`
-        restype : 
-            Get rotamers of selected position with this type of residue. It does
-            not need to be the original type, so this allows mutations
+        residue : chimera.Residue
+            The residue that must be analyzed
 
         Returns
         -------
-            List of rotamers returned by ``Rotamers.getRotamers``.
+            List of Rotamer objects
         """
-        if restype in self._residues_without_rotamers:
-            raise NoResidueRotamersError
-        rotamers = self.rotamers.get((mol, pos, restype))
-        if rotamers is None:
-            residue = self.residues[(mol, pos)]
-            try:
-                rotamers = getRotamers(residue, resType=restype,
-                                       lib=self.library.title())[1]
-            except NoResidueRotamersError:  # ALA, GLY... has no rotamers
-                self._residues_without_rotamers.append(restype)
-                raise
-            except KeyError:
-                raise
-            else:
-                if self.hydrogens:
-                    self.add_hydrogens_to_isolated_rotamer(rotamers)
-                self.rotamers.put((mol, pos, restype), rotamers)
+        try: 
+            rotamers = self.rotamers[key]
+        except KeyError:
+            rotamers = []
+            for rotamer in getRotamers(residue, lib=self.library.title())[1]:
+                rotamers.append(Rotamer(residue.type, rotamer.chis))
+                rotamer.destroy()
+            self.rotamers[key] = tuple(rotamers)
         return rotamers
 
     @staticmethod
-    def update_rotamer_coords(residue, rotamer):
-        rotamer = rotamer.residues[0]
-        for name, rotamer_atoms in rotamer.atomsMap.items():
-            for res_atom, rot_atom in zip(residue.atomsMap[name], rotamer_atoms):
-                res_atom.setCoord(rot_atom.coord())
-
-    @staticmethod
-    def update_rotamer_with_torsions(residue, rotamer):
-        for i, chi in enumerate(rotamer.chis):
-            setattr(residue, 'chi{}'.format(i+1), chi)
-
-    @staticmethod
-    def add_hydrogens_to_isolated_rotamer(rotamers):
-        # Patch original definitions of atomtypes to account for existing bonds
-        # Force trigonal planar geometry so we get a good hydrogen
-        # Ideally, we'd use a tetrahedral geometry (4, 3), but with that one the
-        # hydrogen we get is sometimes in direct collision with next residues' N
-        patched_idatm = IdatmTypeInfo(3, 3)
-        unknown_types = {}
-        for rot in rotamers:
-            for a in rot.atoms:
-                if a.name == 'CA':
-                    unknown_types[a] = patched_idatm
-                    a.idatmType, a.idatmType_orig = "_CA", a.idatmType
-
-        # Add the hydrogens
-        simpleAddHydrogens(rotamers, unknownsInfo=unknown_types)
-        # Undo the monkey patch
-        for rot in rotamers:
-            for a in rot.atoms:
-                if a.name == 'CA':
-                    a.idatmType = a.idatmType_orig
+    def update_rotamer(residue, chis):
+        for i, chi in enumerate(chis):
+            setattr(residue, 'chi{}'.format(i + 1), chi)
