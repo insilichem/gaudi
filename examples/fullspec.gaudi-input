@@ -85,7 +85,7 @@ genes:
         precision: 3
         rotate: True
         target: Ligand/43
-        mut_eta: 0.5
+        interpolation: 0.5
 
 ###
 # OBJECTIVES
@@ -129,8 +129,8 @@ objectives:
     -   name: Solvation
         module: gaudi.objectives.solvation
         weight: -1.0
-        which: grid # also: msms_ses, msms_sas
-        target: Ligand
+        method: grid # also: msms_ses, msms_sas
+        targets: [Ligand]
         radius: 5.0
 
     -   name: Coordination
