@@ -95,12 +95,15 @@ class Rotamers(GeneProvider):
         self.ligation = ligation
         self.hydrogens = hydrogens
         self.avoid_replacement = avoid_replacement
+        if hydrogens and avoid_replacement:
+            raise ValueError("`hydrogens` and `avoid_replacement` can't be both True")
         self.allele = []
         # set caches
         if self.name + '_res' not in self._cache:
             self._cache[self.name + '_res'] = OrderedDict()
         if self.name + '_rot' not in self._cache:
-            self._cache[self.name + '_rot'] = LRUCache(300)
+            cache_size = len(residues) * (1 + 0.5 * len(mutations))
+            self._cache[self.name + '_rot'] = LRUCache(int(cache_size))
 
         if self.ligation:
             self.random_number = random.random()
@@ -152,17 +155,17 @@ class Rotamers(GeneProvider):
             replaced = False
             try:
                 residue = self.residues[(mol, pos)]
-                rotamer = self.get_rotamers(mol, pos, restype)
+                rotamers = self.get_rotamers(mol, pos, restype)
             except NoResidueRotamersError:  # ALA, GLY...
                 if residue.type != restype:
                     SwapRes.swap(residue, restype)
                     replaced = True
             else:
-                rotamer_index = int(i * len(rotamer))
+                rotamer_index = int(i * len(rotamers))
                 if self.avoid_replacement and residue.type == restype:
-                    self.update_rotamer_coords(residue, rotamer[rotamer_index])
+                    self.update_rotamer_with_torsions(residue, rotamers[rotamer_index])
                 else:
-                    replaceRotamer(residue, [rotamer[rotamer_index]])
+                    replaceRotamer(residue, [rotamers[rotamer_index]])
                     replaced = True
             if replaced:
                 self.residues[(mol, pos)] = \
@@ -234,8 +237,9 @@ class Rotamers(GeneProvider):
             raise NoResidueRotamersError
         rotamers = self.rotamers.get((mol, pos, restype))
         if rotamers is None:
+            residue = self.residues[(mol, pos)]
             try:
-                rotamers = getRotamers(self.residues[(mol, pos)], resType=restype,
+                rotamers = getRotamers(residue, resType=restype,
                                        lib=self.library.title())[1]
             except NoResidueRotamersError:  # ALA, GLY... has no rotamers
                 self._residues_without_rotamers.append(restype)
@@ -254,6 +258,11 @@ class Rotamers(GeneProvider):
         for name, rotamer_atoms in rotamer.atomsMap.items():
             for res_atom, rot_atom in zip(residue.atomsMap[name], rotamer_atoms):
                 res_atom.setCoord(rot_atom.coord())
+
+    @staticmethod
+    def update_rotamer_with_torsions(residue, rotamer):
+        for i, chi in enumerate(rotamer.chis):
+            setattr(residue, 'chi{}'.format(i+1), chi)
 
     @staticmethod
     def add_hydrogens_to_isolated_rotamer(rotamers):
