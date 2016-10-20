@@ -135,9 +135,12 @@ class Molecule(GeneProvider):
         self.symmetry = symmetry
         self.hydrogens = hydrogens
         self.pdbfix = pdbfix
+        try:
+            self.catalog = self._CATALOG[self.name]
+        except KeyError:
+            self.catalog = self._CATALOG[self.name] = tuple(self._compile_catalog())
         if self.name not in self._cache:
             self._cache[self.name] = LRUCache(300)
-            self._CATALOG[self.name] = tuple(self._compile_catalog())
         self.allele = random.choice(self.catalog)
 
         # An optimization for similarity methods: xform coords are
@@ -150,13 +153,6 @@ class Molecule(GeneProvider):
         Get expressed allele on-demand (read-only attribute)
         """
         return self.get(self.allele)
-
-    @property
-    def catalog(self):
-        """
-        Returns the catalog entry corresponding to this `Molecule`
-        """
-        return self._CATALOG[self.name]
 
     def express(self):
         """
