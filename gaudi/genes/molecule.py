@@ -177,6 +177,8 @@ class Molecule(GeneProvider):
 
             Allow mating while preserving symmetry
         """
+        if len(self.allele) == 1:
+            return
         if not self.symmetry:
             try:
                 self.allele, mate.allele = deap.tools.cxTwoPoint(
