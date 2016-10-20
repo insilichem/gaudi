@@ -92,6 +92,7 @@ def ea_mu_plus_lambda(population, toolbox, mu, lambda_, cxpb, mutpb, ngen,
 
     if halloffame is not None:
         halloffame.update(population)
+
     record = stats.compile(population) if stats is not None else {}
     nevals = len(invalid_ind)
     t1 = time()
@@ -120,8 +121,8 @@ def ea_mu_plus_lambda(population, toolbox, mu, lambda_, cxpb, mutpb, ngen,
             for ind, fit in zip(invalid_ind, fitnesses):
                 ind.fitness.values = fit
 
-            # Update the hall of fame with the generated individuals
-            if halloffame is not None:
+            # Update the hall of fame with the generated individuals # every 2 generations
+            if halloffame is not None: # and not gen % 2:
                 halloffame.update(offspring)
 
             # Select the next generation population
@@ -142,7 +143,7 @@ def ea_mu_plus_lambda(population, toolbox, mu, lambda_, cxpb, mutpb, ngen,
             if verbose:
                 print(logbook.stream)
         except (Exception, KeyboardInterrupt) as e:
-            logging.error(e)
+            logger.error(e)
             answer = raw_input('\nInterruption detected. Write results so far? (y/N): ')
             if answer.lower() not in ('y', 'yes'):
                 sys.exit('Ok, bye!')
@@ -155,5 +156,5 @@ def ea_mu_plus_lambda(population, toolbox, mu, lambda_, cxpb, mutpb, ngen,
         else:
             # Save a copy of an fully evaluated population, in case the 
             # simulation is stopped in next generation.
-            population_[:] = population
+            population_ = population[:]
     return population_, logbook
