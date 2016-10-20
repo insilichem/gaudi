@@ -142,7 +142,7 @@ class Molecule(GeneProvider):
 
         # An optimization for similarity methods: xform coords are
         # cached here after all genes have expressed. See Individual.express.
-        self._expressed_xformcoords_cache = None
+        self._expressed_xformcoords = None
 
     @property
     def compound(self):

@@ -57,8 +57,8 @@ def rmsd(ind1, ind2, subjects, threshold, *args, **kwargs):
     logger.debug("Comparing RMSD between #%s and #%s", id(ind1), id(ind2))
     rmsds = []
     for m1, m2 in zip(molecules1, molecules2):
-        coords1 = m1._expressed_xformcoords_cache
-        coords2 = m2._expressed_xformcoords_cache
+        coords1 = m1._expressed_xformcoords
+        coords2 = m2._expressed_xformcoords
         if coords1.shape[0] != coords2.shape[0]:
             return False
         rmsd_squared = ((coords1-coords2)**2).sum() / coords1.shape[0]
