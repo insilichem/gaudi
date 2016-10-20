@@ -116,8 +116,8 @@ def launch(cfg):
     if cfg.output.pareto:
         elite = deap.tools.ParetoFront(toolbox.similarity)
     else:
-        hof_size = int(cfg.ga.population * cfg.ga.mu)
-        elite = deap.tools.HallOfFame(hof_size, similar=toolbox.similarity)
+        elite_size = int(cfg.ga.population * cfg.ga.mu)
+        elite = deap.tools.HallOfFame(elite_size, similar=toolbox.similarity)
     
     if cfg.output.verbose:
         stats = deap.tools.Statistics(lambda ind: ind.fitness.values)
@@ -235,7 +235,9 @@ def main(cfg, debug=False):
 
     # Run simulation
     try:
-        logger.log(100, 'Launching job ...')
+        logger.log(100, 'Launching job with...')
+        logger.log(100, '  Genes: %s', ', '.join([g.name for g in cfg.genes]))
+        logger.log(100, '  Objectives: %s', ', '.join([o.name for o in cfg.objectives]))
         pop, log, best = launch(cfg)
     except Exception as e:
         log_path = os.path.join(cfg.output.path, cfg.output.name + ".gaudi-log")
