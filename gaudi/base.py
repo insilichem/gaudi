@@ -120,7 +120,7 @@ class Individual(object):
                 gene.__expression_hooks__()
 
     def __deepcopy__(self, memo):
-        new = self.__class__(cfg=self.cfg, dummy=True)
+        new = self.__class__(cfg=self.cfg)
         new.genes = deepcopy(self.genes, memo)
         new.fitness = deepcopy(self.fitness, memo)
         new._similarity = self._similarity
