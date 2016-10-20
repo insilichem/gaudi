@@ -28,6 +28,9 @@ import random
 from collections import OrderedDict
 import logging
 # Chimera
+import chimera
+from chimera import BondRot, dihedral
+from chimera.phipsi import chiAtoms, AtomsMissingError
 from Rotamers import getRotamerParams, NoResidueRotamersError
 # External dependencies
 import deap.tools
@@ -71,7 +74,7 @@ class Rotamers(GeneProvider):
 
     # Avoid unnecesary calls to expensive get_rotamers if residue is known
     # to not have any rotamers
-    _residues_without_rotamers = ['ALA', 'GLY']
+    _residues_without_rotamers = set(('ALA', 'GLY'))
 
     def __init__(self, residues=None, library='Dunbrack', **kwargs):
         GeneProvider.__init__(self, **kwargs)
@@ -81,7 +84,6 @@ class Rotamers(GeneProvider):
         self.allele = []
         # set caches
         self.residues = self._cache.setdefault(self.name + '_residues', OrderedDict())
-        self.rotamers = self._cache.setdefault(self.name + 'rotamers', dict())
 
     def __ready__(self):
         """
@@ -103,36 +105,32 @@ class Rotamers(GeneProvider):
                 if len(residues) > 1:
                     logger.warn('Found one more than residue for %s/%s', molname, pos)
             for r in residues:
-                r._original_chis = [] # Save torsion angles of initial rotamer
-                for i in range(1, 5):
-                    try:
-                        chi = getattr(r, 'chi' + str(i))
-                        r._original_chis.append(chi)
-                    except AttributeError:
-                        continue 
+                self.patch_residue(r)
                 self.residues[(molname, r.id.position)] = r
                 self.allele.append(random.random())
     
     def __deepcopy__(self, memo):
-        new = self.__class__(residues=self._residues, library=self.library, **self._kwargs )
+        new = self.__class__(residues=self._residues, library=self.library, **self._kwargs)
         new.residues = self.residues
-        new.rotamers = self.rotamers
         new.allele = self.allele[:]
         return new
 
     def express(self):
         for ((molname, pos), residue), i in zip(self.residues.items(), self.allele):
-            try:
-                rotamers = self.get_rotamers((molname, pos), residue)
-            except NoResidueRotamersError:  # ALA, GLY...
-                logger.warn('%s/%s (%s) has no rotamers', molname, pos, residue.type)
-            else:
-                rotamer = rotamers[int(i * len(rotamers))]
-                self.update_rotamer(residue, rotamer.chis)
+            if residue.type not in self._residues_without_rotamers:
+                try:
+                    rotamers = getRotamerParams(residue, lib=self.library.title())[2]
+                except NoResidueRotamersError:  # ALA, GLY...
+                    logger.warn('%s/%s (%s) has no rotamers', molname, pos, residue.type)
+                    self._residues_without_rotamers.add(residue.type)
+                else:
+                    rotamer = rotamers[int(i * len(rotamers))]
+                    self.update_rotamer(residue, rotamer.chis)
 
     def unexpress(self):
         for res in self.residues.values():
-            self.update_rotamer(res, res._original_chis)
+            for torsion in res._rotamer_torsions:
+                torsion.reset()
 
     def mate(self, mate):
         self.allele, mate.allele = deap.tools.cxTwoPoint(self.allele, mate.allele)
@@ -140,24 +138,36 @@ class Rotamers(GeneProvider):
     def mutate(self, indpb):
         self.allele = [random.random() if random.random() < indpb else i for i in self.allele]
 
-    def get_rotamers(self, key, residue):
-        """
-        Gets the requested rotamers out of cache and if not found,
-        creates the library of chis and stores it in the cache.
-
-        Parameters
-        ----------
-        residue : chimera.Residue
-            The residue that must be analyzed
-
-        Returns
-        -------
-            List of Rotamer objects
-        """
-        rotamers = getRotamerParams(residue, lib=self.library.title())[2]
-        return self.rotamers.setdefault(key, rotamers)
-
     @staticmethod
     def update_rotamer(residue, chis):
-        for i, chi in enumerate(chis):
-            setattr(residue, 'chi{}'.format(i + 1), chi)
+        for bondrot, chi in zip(residue._rotamer_torsions, chis):
+            bondrot.adjustAngle(chi - bondrot.chi, bondrot.anchor)
+
+    @staticmethod
+    def patch_residue(residue):
+        if getattr(residue, '_rotamer_torsions', None):
+            return
+        residue._rotamer_torsions = [] # BondRot objects cache
+        for chi in range(1, 5):
+            try:
+                atoms = chiAtoms(residue, chi)
+                bond = atoms[1].bondsMap[atoms[2]]
+                br = BondRot(bond)
+                br.anchor = br.biggerSide()
+                br.chi = dihedral(*[a.coord() for a in atoms])
+                residue._rotamer_torsions.append(br)
+            except AtomsMissingError:
+                break
+            except (chimera.error, ValueError) as v:
+                    if "cycle" in str(v) or "already used" in str(v):
+                        continue  # discard bonds in cycles and used!
+                    break
+    @staticmethod
+    def all_chis(residue):
+        chis = []
+        for i in range(1, 5):
+            try:
+                chis.append(getattr(residue, 'chi{}'.format(i)))
+            except AttributeError:
+                break
+        return chis
