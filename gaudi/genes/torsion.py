@@ -22,7 +22,6 @@ objects, if they exhibit free bond rotations.
 # Python
 import random
 import logging
-from itertools import izip
 # Chimera
 import chimera
 # External dependencies
@@ -106,7 +105,7 @@ class Torsion(GeneProvider):
         """
         Apply rotations to rotatable bonds
         """
-        for alpha, br in izip(self.allele, self.rotatable_bonds):
+        for alpha, br in zip(self.allele, self.rotatable_bonds):
             try:
                 if all(a.idatmType in ('C2', 'N2') for a in br.bond.atoms):
                     alpha = 0 if alpha < 180 else 180
@@ -138,6 +137,10 @@ class Torsion(GeneProvider):
         self.BONDS_ROTS.clear()
 
     #####
+    @property
+    def molecule(self):
+        return self.parent.genes[self.target].compound.mol
+
     def random_angle(self):
         """
         Returns a random angle within flexibility limits
@@ -168,7 +171,14 @@ class Torsion(GeneProvider):
         object (that's the nearest atom in the bond to the molecular anchor),
         and store the BondRot object in the rotations cache.
         """
-        atoms = self.parent.genes[self.target].compound.mol.atoms
+        try:
+            return self.molecule._rotatable_bonds
+        except AttributeError:
+            self.molecule._rotatable_bonds = list(self._compute_rotatable_bonds())
+            return self.molecule._rotatable_bonds
+
+    def _compute_rotatable_bonds(self):
+        atoms = self.molecule.atoms
         bonds = set(b for a in atoms for b in a.bonds if not a.element.isMetal)
         bonds = sorted(bonds, key=lambda b: min(y.serialNumber for y in b.atoms))
 
@@ -192,26 +202,16 @@ class Torsion(GeneProvider):
                     return True
 
         for b in bonds:
-            try:
-                br = self.BONDS_ROTS[b]
-            except KeyError:
-                if conditions(*b.atoms):
-                    try:
-                        br = chimera.BondRot(b)
-                    except (chimera.error, ValueError) as v:
-                        if "cycle" in str(v):
-                            continue  # discard bonds in cycles!
-                        elif "already used" in str(v):
-                            logger.info(str(v))
-                            continue
-                        else:
-                            raise
-                    else:
-                        br.rotanchor = box.find_nearest(self.anchor, b.atoms)
-                        self.BONDS_ROTS[b] = br
+            if conditions(*b.atoms):
+                try:
+                    br = chimera.BondRot(b)
+                except (chimera.error, ValueError) as v:
+                    if "cycle" in str(v) or "already used" in str(v):
+                        continue  # discard bonds in cycles and used!
+                    raise
                 else:
-                    continue
-            yield br
+                    br.rotanchor = box.find_nearest(self.anchor, b.atoms)
+                    yield br
 
     @property
     def anchor(self):
@@ -222,6 +222,10 @@ class Torsion(GeneProvider):
         Usually, this is the target atom in the Search gene, but if we can't find it,
         get the ``donor`` atom of the molecule.
         """
+        try:
+            return self.molecule._rotation_anchor
+        except AttributeError:
+            pass
         if self._anchor is not None:
             mol, atom = self._anchor
             try:
@@ -230,6 +234,7 @@ class Torsion(GeneProvider):
             except StopIteration:
                 pass
             else:
+                self.molecule._rotation_anchor = anchor
                 return anchor
         try:
             search = next(g for g in self.parent.genes.values()
@@ -243,4 +248,5 @@ class Torsion(GeneProvider):
                               if a.serialNumber == search.anchor)
             except (StopIteration, AttributeError):
                 anchor = self.parent.genes[self.target].compound.donor
+        self.molecule._rotation_anchor = anchor
         return anchor
