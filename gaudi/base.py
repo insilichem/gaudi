@@ -28,10 +28,10 @@ import pprint
 import sys
 # Chimera
 import chimera
+from Molecule import atom_positions
 # External dependencies
 import deap.base
 import yaml
-import numpy as np
 # GAUDI
 import gaudi.plugin
 import gaudi.similarity
@@ -157,10 +157,9 @@ class Individual(object):
                          name, pp.pformat(gene.allele))
             gene.express()
 
-        for molecule in self._molecules.values():
-            coords = np.array([a.xformCoord() for a in sorted(molecule.compound.mol.atoms,
-                                                             key=lambda a: a.serialNumber)])
-            molecule._expressed_xformcoords_cache = coords
+        for mol in self._molecules.values():
+            mol._expressed_xformcoords = atom_positions(mol.compound.mol.atoms, 
+                                                        mol.compound.mol.openState.xform)
         self.expressed = True
 
     def unexpress(self):
