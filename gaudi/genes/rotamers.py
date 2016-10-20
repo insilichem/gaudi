@@ -25,10 +25,10 @@ the same backbone, which may not be representative of the in-vivo behaviour. Use
 
 # Python
 import random
-from collections import OrderedDict, namedtuple
+from collections import OrderedDict
 import logging
 # Chimera
-from Rotamers import getRotamers, NoResidueRotamersError
+from Rotamers import getRotamerParams, NoResidueRotamersError
 # External dependencies
 import deap.tools
 # GAUDI
@@ -41,9 +41,6 @@ logger = logging.getLogger(__name__)
 def enable(**kwargs):
     kwargs = Rotamers.validate(kwargs)
     return Rotamers(**kwargs)
-
-
-Rotamer = namedtuple("Rotamer", ['residue', 'chis'])
 
 
 class Rotamers(GeneProvider):
@@ -83,15 +80,8 @@ class Rotamers(GeneProvider):
         self.library = library
         self.allele = []
         # set caches
-        try:
-            self.residues = self._cache[self.name + '_residues']
-        except KeyError:
-            self.residues = self._cache[self.name + '_residues'] = OrderedDict()
-            
-        try:
-            self.rotamers = self._cache[self.name + '_rotamers']
-        except KeyError:
-            self.rotamers = self._cache[self.name + '_rotamers'] = {}
+        self.residues = self._cache.setdefault(self.name + '_residues', OrderedDict())
+        self.rotamers = self._cache.setdefault(self.name + 'rotamers', dict())
 
     def __ready__(self):
         """
@@ -164,15 +154,8 @@ class Rotamers(GeneProvider):
         -------
             List of Rotamer objects
         """
-        try: 
-            rotamers = self.rotamers[key]
-        except KeyError:
-            rotamers = []
-            for rotamer in getRotamers(residue, lib=self.library.title())[1]:
-                rotamers.append(Rotamer(residue.type, rotamer.chis))
-                rotamer.destroy()
-            self.rotamers[key] = tuple(rotamers)
-        return rotamers
+        rotamers = getRotamerParams(residue, lib=self.library.title())[2]
+        return self.rotamers.setdefault(key, rotamers)
 
     @staticmethod
     def update_rotamer(residue, chis):
