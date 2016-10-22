@@ -22,7 +22,7 @@ from math import ceil
 import numpy as np
 # Chimera
 import chimera
-from _surface import surface_area
+from _surface import surface_area, enclosed_volume
 from _multiscale import get_atom_coordinates, bounding_box
 from _gaussian import sphere_surface_distance
 from _contour import surface as contour_surface
@@ -57,15 +57,21 @@ class Solvation(ObjectiveProvider):
     _validate = {
         parse.Required('targets'): [parse.Molecule_name],
         'threshold': parse.All(parse.Coerce(float), parse.Range(min=0)),
-        'radius': parse.All(parse.Coerce(float), parse.Range(min=0))
+        'radius': parse.All(parse.Coerce(float), parse.Range(min=0)),
+        'method': parse.In(['volume', 'area'])
         }
 
-    def __init__(self, targets=None, threshold=0.0, radius=5.0,
+    def __init__(self, targets=None, threshold=0.0, radius=5.0, method='area',
                  *args, **kwargs):
         ObjectiveProvider.__init__(self, **kwargs)
         self._targets = targets
         self.threshold = threshold
         self.radius = radius
+        self.method = method
+        if method == 'area':
+            self.evaluate = self.evaluate_area
+        else:
+            self.evaluate = self.evaluate_volume
 
     def targets(self, ind):
         return [ind.genes[target].compound.mol for target in self._targets]
@@ -73,20 +79,27 @@ class Solvation(ObjectiveProvider):
     def molecules(self, ind):
         return tuple(m.compound.mol for m in ind._molecules.values())
 
-    def evaluate(self, ind):
+    def surface(self, ind):
         atoms = self.zone_atoms(self.targets(ind), self.molecules(ind))
-        return grid_sas_area(atoms)
+        return grid_sas_surface(atoms)
+        
+    def evaluate_area(self, ind):
+        return surface_area(*self.surface(ind))
+
+    def evaluate_volume(self, ind):
+        return enclosed_volume(*self.surface(ind))
 
     def zone_atoms(self, probes, molecules):
         self.zone.clear()
         self.zone.add([a for probe in probes for a in probe.atoms])
-        self.zone.merge(chimera.selection.REPLACE,
-                        chimera.specifier.zone(self.zone, 'atom', None, 
-                                               self.radius, molecules))
+        if self.radius:
+            self.zone.merge(chimera.selection.REPLACE,
+                            chimera.specifier.zone(self.zone, 'atom', None, 
+                                                   self.radius, molecules))
         return self.zone.atoms()
 
 
-def grid_sas_area(atoms, probe_radius=1.4, grid_spacing=0.5):
+def grid_sas_surface(atoms, probe_radius=1.4, grid_spacing=0.5):
     """
     Stripped from Chimera's Surface.gridsurf
     """
@@ -119,6 +132,5 @@ def grid_sas_area(atoms, probe_radius=1.4, grid_spacing=0.5):
     # Compute distance map from surface of spheres, positive outside.
     sphere_surface_distance(ijk, probed_radii, max_index_range, matrix)
     # Get the SAS surface as a contour surface of the distance map
-    varray, tarray = contour_surface(matrix, 0, cap_faces=False, calculate_normals=False)
+    return contour_surface(matrix, 0, cap_faces=False, calculate_normals=False)
 
-    return surface_area(varray, tarray)
