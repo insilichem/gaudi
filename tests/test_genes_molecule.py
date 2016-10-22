@@ -21,6 +21,7 @@ def test_molecule(individual, path, atoms):
     with expressed(individual):
         assert individual.expressed is True
 
+
 @pytest.mark.parametrize("protein, ligand", [
     ('5er1_protein.mol2', '5er1_ligand.mol2'),
 ])

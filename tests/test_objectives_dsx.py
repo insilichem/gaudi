@@ -7,6 +7,7 @@ from conftest import datapath, expressed
 from gaudi.genes.molecule import Molecule
 from gaudi.objectives.dsx import DSX
 
+
 @pytest.mark.parametrize("protein, ligand, energy", [
     ('5er1_protein.mol2', '5er1_ligand.mol2', -169.462),
 ])
@@ -24,6 +25,7 @@ def test_dsx(individual, protein, ligand, energy):
     objective = DSX(**kwargs)
     with expressed(individual):
         assert energy == objective.evaluate(individual)
+
 
 @pytest.mark.parametrize("protein, ligand, energy", [
     ('3pk2_protein.pdb', '3pk2_ligand_with_metal.mol2', -161.680),

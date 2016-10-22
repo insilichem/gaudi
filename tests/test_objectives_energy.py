@@ -23,7 +23,6 @@ def test_topology(individual, path, atoms, bonds, residues):
         assert topology.getNumResidues() == sum(m.numResidues for m in molecules)
 
 
-
 @pytest.mark.parametrize("path, energy", [
     ('5dfr_minimized.pdb', 10701.1228976),
     ('1amb.pdb', 4401.90005384),
