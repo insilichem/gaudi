@@ -55,6 +55,10 @@ class Energy(ObjectiveProvider):
         Which forcefields to use
     auto_parametrize: list of str, default=None
         List of Molecule instances GAUDI should try to auto parametrize with antechamber.
+    parameters : list of 2-item list of str
+        List of (gaff.mol2, .frcmod) files to use as parametrization source.
+    platform : str
+        Which platform to use for calculations. Choose between CPU, CUDA, OpenCL.
 
     Returns
     -------
@@ -68,14 +72,16 @@ class Energy(ObjectiveProvider):
         'forcefields': [parse.Any(parse.ExpandUserPathExists, parse.In(_openmm_builtin_forcefields))],
         'auto_parametrize': [parse.Molecule_name],
         'parameters': [parse.All([parse.ExpandUserPathExists], parse.Length(min=2, max=2))],
+        'platform': parse.In(['CUDA', 'OpenCL', 'CPU'])
         }
 
     def __init__(self, targets=None, forcefields=('amber99sbildn.xml',), auto_parametrize=None,
-                 parameters=None, *args, **kwargs):
+                 parameters=None, platform=None, *args, **kwargs):
         ObjectiveProvider.__init__(self, **kwargs)
         self.auto_parametrize = auto_parametrize
         self._targets = targets
         self._parameters = parameters
+        self.platform = platform
         self.topology = None
         self._simulation = None
 
@@ -136,7 +142,11 @@ class Energy(ObjectiveProvider):
                                                   nonbondedCutoff=1.0*unit.nanometers,
                                                   rigidWater=True, constraints=None)
             integrator = openmm.VerletIntegrator(0.001)
-            self._simulation = openmm_app.Simulation(self.topology, system, integrator)
+            if self.platform is not None:
+                platform = openmm.Platform.getPlatformByName(self.platform),
+            else:
+                platform = ()
+            self._simulation = openmm_app.Simulation(self.topology, system, integrator, *platform)
         return self._simulation
 
     def calculate_energy(self, coordinates):
