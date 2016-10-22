@@ -261,7 +261,7 @@ class Energy(ObjectiveProvider):
         bool
         """
         for gene in individual.genes.values():
-            if gene.__class__.__name__ == 'Rotamers':
+            if gene.__class__.__name__ == 'Mutamers':
                 if gene.mutations:
                     return False
             if gene.__class__.__name__ == 'Molecule':

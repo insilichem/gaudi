@@ -6,6 +6,7 @@ from conftest import datapath, expressed
 from gaudi.genes.molecule import Molecule
 from gaudi.genes.rotamers import Rotamers
 
+
 @pytest.mark.parametrize("path, position, restype, rotamer_seed, original_chis, new_chis", [
     ('4c3w_protein.mol2', 5, 'ARG', 0, [179.734, 178.061, 60.608, 90.076], [-178.1, 179.9, -178.9, -171.1]),
 ])
