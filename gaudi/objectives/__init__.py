@@ -67,7 +67,7 @@ class ObjectiveProvider(object):
         self.environment = environment
         self.name = name if name is not None else str(uuid4())
         self.weight = weight
-        self.zone = zone
+        self.zone = zone if zone is not None else chimera.selection.ItemizedSelection()
 
     def __ready__(self):
         pass
