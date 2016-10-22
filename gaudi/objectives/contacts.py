@@ -157,7 +157,7 @@ class Contacts(ObjectiveProvider):
         positive, negative = [], []
         for a1, clash in clashes.items():
             for a2, overlap in clash.items():
-                # overlap < clash threhold : can be a hydrophobic interaction
+                # overlap < clash threshold : can be a hydrophobic interaction
                 if overlap <= self.clash_threshold:
                     if (a1.element.name in self.hydrophobic_elements
                         and a2.element.name in self.hydrophobic_elements):
