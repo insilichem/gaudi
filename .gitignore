@@ -63,3 +63,6 @@ docs/_build/
 # PyCharm
 .idea
 .idea/*
+
+# PyTest Benchmarks
+/.benchmarks
