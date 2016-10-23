@@ -8,17 +8,20 @@ from gaudi.genes.molecule import Molecule
 from gaudi.genes.torsion import Torsion
 
 
+def torsions(individual, path, angle, **kwargs):
+    individual.genes['Molecule'] = Molecule(parent=individual, path=datapath(path))
+    individual.genes['Torsion'] = torsion = Torsion(parent=individual, target='Molecule', **kwargs)
+    individual.__ready__()
+    individual.__expression_hooks__()
+    torsion.allele = [angle] * torsion.max_bonds
+    return torsion
+
+
 @pytest.mark.parametrize("path, angle, bonds, rotatable, distance", [
     ('3pk2_ligand.pdb', 1.0, 49, 8, 3.796920067633768),
 ])
 def test_torsion(individual, path, angle, bonds, rotatable, distance):
-    individual.genes['Molecule'] = Molecule(parent=individual, path=datapath(path))
-    individual.genes['Torsion'] = torsion = Torsion(parent=individual, target='Molecule')
-    individual.__ready__()
-    individual.__expression_hooks__()
-
-    torsion.allele = [angle] * torsion.max_bonds
-
+    torsion = torsions(individual, path, angle)
     with expressed(individual):
         assert individual.genes['Molecule'].compound.mol.numBonds == bonds
         atom1 = individual.genes['Molecule'].compound.mol.atoms[0]
@@ -31,17 +34,20 @@ def test_torsion(individual, path, angle, bonds, rotatable, distance):
     ('1amb.pdb', 90.0, 58.986905376603815),
 ])
 def test_backbone_torsion(individual, path, angle, distance):
-    individual.genes['Molecule'] = mol = Molecule(parent=individual, path=datapath(path))
-    individual.genes['Torsion'] = torsion = Torsion(parent=individual, target='Molecule')
-    individual.__ready__()
-
-    torsion.max_bonds = mol.compound.mol.numBonds
-    torsion.allele = [angle] * torsion.max_bonds
-    torsion.rotatable_atom_types = ()
-    torsion.rotatable_atom_names = ('CA',)
-
+    torsion = torsions(individual, path, angle, rotatable_atom_types=(), rotatable_atom_names=('CA',))
     with expressed(individual):
         assert all('CA' in [a.name for a in br.bond.atoms] for br in torsion.rotatable_bonds)
         atom1 = individual.genes['Molecule'].compound.mol.atoms[0]
         atom2 = individual.genes['Molecule'].compound.mol.atoms[-1]
-        assert Distance._distance(atom1, atom2) == distance
+        assert abs(Distance._distance(atom1, atom2) - distance) < 0.0001
+
+
+@pytest.mark.parametrize("path, angle", [
+    ('3pk2_ligand.pdb', 90.0), 
+])
+def test_benchmark_torsion(benchmark, individual, path, angle):
+    @benchmark
+    def run():
+        torsions(individual, path, angle)
+        with expressed(individual):
+            pass

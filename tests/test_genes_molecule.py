@@ -26,8 +26,8 @@ def test_molecule(individual, path, atoms):
     ('5er1_protein.mol2', '5er1_ligand.mol2'),
 ])
 def test_two_molecules(individual, protein, ligand):
-    individual.genes['Ligand'] = Molecule(parent=individual, path=datapath('5er1_ligand.mol2'))
-    individual.genes['Protein'] = Molecule(parent=individual, path=datapath('5er1_protein.mol2'))
+    individual.genes['Ligand'] = Molecule(parent=individual, path=datapath(ligand))
+    individual.genes['Protein'] = Molecule(parent=individual, path=datapath(protein))
     individual.__ready__()
     with expressed(individual):
         assert individual.expressed is True
