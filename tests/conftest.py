@@ -15,8 +15,8 @@ def datapath(path):
 
 @pytest.fixture
 def individual():
-    from gaudi.base import Individual
-    individual = Individual(dummy=True)
+    from gaudi.base import MolecularIndividual  
+    individual = MolecularIndividual(dummy=True)
     yield individual
     individual.clear_cache()
     chimera.closeSession()

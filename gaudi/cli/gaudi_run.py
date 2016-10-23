@@ -90,7 +90,7 @@ def launch(cfg):
     # DEAP setup: Fitness, Individuals, Population
     toolbox = deap.base.Toolbox()
     toolbox.register("call", (lambda fn, *args, **kwargs: fn(*args, **kwargs)))
-    toolbox.register("individual", toolbox.call, gaudi.base.Individual, cfg)
+    toolbox.register("individual", toolbox.call, gaudi.base.MolecularIndividual, cfg)
     toolbox.register("population", deap.tools.initRepeat, list, toolbox.individual)
     population = toolbox.population(n=cfg.ga.population)
 

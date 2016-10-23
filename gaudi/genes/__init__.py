@@ -24,7 +24,7 @@ import pprint
 from uuid import uuid4
 # GAUDI
 from gaudi import plugin, parse
-from gaudi.base import Individual
+from gaudi.base import MolecularIndividual as Individual
 
 logger = logging.getLogger(__name__)
 pp = pprint.PrettyPrinter(4)

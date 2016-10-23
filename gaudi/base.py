@@ -28,7 +28,7 @@ import pprint
 import sys
 # Chimera
 import chimera
-from Molecule import atom_positions
+from _multiscale import get_atom_coordinates
 # External dependencies
 import deap.base
 import yaml
@@ -37,11 +37,10 @@ import gaudi.plugin
 import gaudi.similarity
 
 pp = pprint.PrettyPrinter(4)
-
 logger = logging.getLogger(__name__)
 
 
-class Individual(object):
+class BaseIndividual(object):
 
     """
     Base class for `individual` objects that are evaluated by DEAP.
@@ -88,7 +87,6 @@ class Individual(object):
         self.genes = OrderedDict()
         self.fitness = None
         self.expressed = False
-        self._molecules = OrderedDict()
         self.__ready__()
         self.__expression_hooks__()
         
@@ -109,11 +107,6 @@ class Individual(object):
             mod, fn = self.cfg.similarity.module.rsplit('.', 1)
             self._similarity = getattr(sys.modules[mod], fn)
 
-        for name, gene in self.genes.items():
-            gene.__ready__()
-            if gene.__class__.__name__ == 'Molecule':
-                self._molecules[name] = gene
-
     def __expression_hooks__(self):
         with expressed(self):
             for name, gene in self.genes.items():
@@ -125,11 +118,6 @@ class Individual(object):
         new.fitness = deepcopy(self.fitness, memo)
         new._similarity = self._similarity
         new.expressed = self.expressed
-        for name, gene in new.genes.items():
-            gene.parent = new
-            if gene.__class__.__name__ == 'Molecule':
-                new._molecules[name] = gene
-
         return new
 
     def evaluate(self, environment):
@@ -147,29 +135,41 @@ class Individual(object):
         self.unexpress()
         return score
 
+    def pre_express(self):
+        pass
+
     def express(self):
         """
         Express genes in this environment. Very much like 'compiling' the
         individual to a chimera.Molecule.
         """
+        self.pre_express()
         for name, gene in self.genes.items():
             logger.debug("Expressing gene %s with allele\n%s",
                          name, pp.pformat(gene.allele))
             gene.express()
-
-        for mol in self._molecules.values():
-            mol._expressed_xformcoords = atom_positions(mol.compound.mol.atoms, 
-                                                        mol.compound.mol.openState.xform)
+        self.post_express()
         self.expressed = True
+
+    def post_express(self):
+        pass
+
+    def pre_unexpress(self):
+        pass
 
     def unexpress(self):
         """
         Undo .express()
         """
+        self.pre_unexpress()
         for gene in reversed(self.genes.values()):
             logger.debug("Reverting expression of gene %s", gene.name)
             gene.unexpress()
+        self.post_unexpress()
         self.expressed = False
+
+    def post_unexpress(self):
+        pass
 
     def mate(self, other):
         """
@@ -181,8 +181,8 @@ class Individual(object):
         other : Individual
             Another individual to mate with.
         """
-        for gene in self.genes.values():
-            gene.mate(other.genes[gene.name])
+        for this_gene, other_gene in zip(self.genes.values(), other.genes.values()):
+            this_gene.mate(other_gene)
         logger.debug("#%s mated #%s", id(self), id(other))
         return self, other
 
@@ -236,13 +236,13 @@ class Individual(object):
         zipfilename = os.path.join(path, '{}_{:03d}.zip'.format(name, i))
         with ZipFile(zipfilename, 'w', COMPRESS) as z:
             output = OrderedDict()
-            for gene in self.genes.values():
-                logger.debug("Writing %s to file", gene.name)
+            for name, gene in self.genes.items():
+                logger.debug("Writing %s to file", name)
                 filename = gene.write(path, "{}_{:03d}".format(name, i))
                 if filename:
                     z.write(filename, os.path.basename(filename))
                     os.remove(filename)
-                    output[gene.name] = os.path.basename(filename)
+                    output[name] = os.path.basename(filename)
             try:
                 output['score'] = list(self.fitness.values)
             except AttributeError:  # fitness not in individual :/
@@ -259,10 +259,45 @@ class Individual(object):
             gene.clear_cache()
 
 
+class MolecularIndividual(BaseIndividual):
+
+
+    def __init__(self, *args, **kwargs):
+        self._molecules = OrderedDict()
+        BaseIndividual.__init__(self, *args, **kwargs)
+
+    def __ready__(self):
+        BaseIndividual.__ready__(self)
+        for name, gene in self.genes.items():
+            gene.__ready__()
+            if gene.__class__.__name__ == 'Molecule':
+                self._molecules[name] = gene
+
+    def __deepcopy__(self, memo):
+        new = BaseIndividual.__deepcopy(self, memo)
+        for name, gene in new.genes.items():
+            gene.parent = new
+            if gene.__class__.__name__ == 'Molecule':
+                new._molecules[name] = gene
+        return new
+
+    def post_express(self):
+        for m in self._molecules.values():
+            m._expressed_xformcoords = get_atom_coordinates(m.compound.mol.atoms, 
+                                                            transformed=True)
+
+    def xyz(self, gene=None):
+        try:
+            return self._molecules[gene]._expressed_xformcoords
+        except KeyError:
+            return {name: mol._expressed_xformcoords 
+                    for name, mol in self._molecules.items()}
+
+
 @contextmanager
 def expressed(individual):
-    individual.express()
     try:
+        individual.express()
         yield individual
     finally:
         individual.unexpress()
