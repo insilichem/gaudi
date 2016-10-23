@@ -16,7 +16,7 @@ dependencies:
   - munch
   - voluptuous
   - click
-  - repoze.lru
+  - boltons
   - deap
   - pyyaml
   - prody

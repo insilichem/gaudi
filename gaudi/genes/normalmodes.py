@@ -32,7 +32,7 @@ import chimera
 from _multiscale import get_atom_coordinates
 # 3rd party
 import prody
-from repoze.lru import LRUCache
+from boltons.cacheutils import LRU
 from cclib.parser import Gaussian
 # GAUDI
 from gaudi.genes import GeneProvider
@@ -138,7 +138,7 @@ class NormalModes(GeneProvider):
             self.path = path
 
         if self.name not in self._cache:
-            self._cache[self.name] = LRUCache(300)
+            self._cache[self.name] = LRU(300)
 
     def __ready__(self):
         """
@@ -149,10 +149,10 @@ class NormalModes(GeneProvider):
         cached = self._CACHE.get('normal_modes')
         if not cached:
             normal_modes, normal_modes_samples, chimera2prody, prody_molecule = self.normal_modes_function()
-            self._CACHE.put('normal_modes', normal_modes)
-            self._CACHE.put('normal_modes_samples', normal_modes_samples)
-            self._CACHE.put('chimera2prody', chimera2prody)
-            self._CACHE.put('original_coords', chimeracoords2numpy(self.molecule))
+            self._CACHE['normal_modes'] =  normal_modes
+            self._CACHE['normal_modes_samples'] =  normal_modes_samples
+            self._CACHE['chimera2prody'] =  chimera2prody
+            self._CACHE['original_coords'] =  chimeracoords2numpy(self.molecule)
             if self.write_modes:
                 title = os.path.join(self.parent.cfg.output.path,
                                      '{}_modes.nmd'.format(self.molecule.name))
@@ -200,7 +200,7 @@ class NormalModes(GeneProvider):
 
     @property
     def _CACHE(self):
-        return self._cache.get(self.name)
+        return self._cache[self.name]
 
     @property
     def NORMAL_MODES(self):

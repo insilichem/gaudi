@@ -49,7 +49,7 @@ from WriteMol2 import writeMol2
 # External dependencies
 import deap
 import yaml
-from repoze.lru import LRUCache
+from boltons.cacheutils import LRU
 from pdbfixer import PDBFixer
 from simtk.openmm.app import PDBFile
 # GAUDI
@@ -107,17 +107,15 @@ class Molecule(GeneProvider):
     **Use of `_cache`**
 
     `Molecule` class uses `_cache` to store already built molecules. Its entry in
-    the `_cache` directory is a `repoze.lru.LRUCache` (least recently used) set to
-    a maximum size of 300 entries.
+    the `_cache` directory is a `boltons.cacheutils.LRU` cache (least recently used)
+    set to a maximum size of 300 entries.
 
     .. todo ::
 
-        The LRUCache size should be proportional to essay size, depending on 
+        The LRU cache size should be proportional to essay size, depending on
         the population size and number of generations, but also taking available
         memory into account (?).
 
-    The LRUCache is normally accessed with  `get()`. This method tries to return
-    a cached `Molecule` or, if not available, builds it and stores it in the cache.
 
     """
 
@@ -142,8 +140,9 @@ class Molecule(GeneProvider):
             self.catalog = self._CATALOG[self.name]
         except KeyError:
             self.catalog = self._CATALOG[self.name] = tuple(self._compile_catalog())
-        if self.name not in self._cache:
-            self._cache[self.name] = LRUCache(300)
+        self._compounds_cache = self._cache.setdefault(self.name + '_compounds', LRU(300))
+        self._atomlookup_cache = self._cache.setdefault(self.name + '_atomlookup', LRU(300))
+        self._residuelookup_cache = self._cache.setdefault(self.name + '_residuelookup', LRU(300))
         self.allele = random.choice(self.catalog)
 
         # An optimization for similarity methods: xform coords are
@@ -254,13 +253,11 @@ class Molecule(GeneProvider):
             The result of building the requested molecule.
 
         """
-
-        # repoze.lru does not raise exceptions, so some LBYL
-        compound = self._cache[self.name].get(key)
-        if not compound:
-            compound = self.build(key)
-            self._cache[self.name].put(key, compound)
-        return compound
+        try:
+            return self._compounds_cache[key]
+        except KeyError:
+            self._compounds_cache[key] = compound = self.build(key)
+            return compound
 
     def build(self, key, where=None):
         """
@@ -330,9 +327,17 @@ class Molecule(GeneProvider):
     # API methods
     def find_atoms(self, serial, only_one=False):
         if serial == '*':
-            return self.compound.atoms
+            return self.compound.mol.atoms
+        try:
+            return self._atomlookup_cache[(self.allele, serial)]
+        except KeyError:
+            atoms = self._find_atoms(serial, only_one)
+            self._atomlookup_cache[(self.allele, serial)] = atoms
+            return atoms
+
+    def _find_atoms(self, serial, only_one=False):
         if isinstance(serial, int):  # search by serial number
-                atoms = [a for a in self.compound.mol.atoms if a.serialNumber == serial]
+            atoms = [a for a in self.compound.mol.atoms if a.serialNumber == serial]
         elif isinstance(serial, basestring):  # search by name
             atoms = [a for a in self.compound.mol.atoms if a.name == serial]
         else:
@@ -340,6 +345,7 @@ class Molecule(GeneProvider):
         if atoms:
             if only_one and len(atoms) > 1:
                 raise TooManyAtoms("Found {} atoms for serial {} but expected 1.".format(len(atoms), serial))
+            self._cache[self.name + '_atom_lookup'][(self.allele, serial)] = atoms
             return atoms
         raise AtomsNotFound("Atom '{}' not found in {}".format(serial, self.name))
 
@@ -349,6 +355,14 @@ class Molecule(GeneProvider):
     def find_residues(self, position, only_one=False):
         if position == '*':
             return self.compound.mol.residues
+        try:
+            return self._residuelookup_cache[(self.allele, position)]
+        except KeyError:
+            residues = self._find_residues(position, only_one)
+            self._residuelookup_cache[(self.allele, position)] = residues
+            return residues
+
+    def _find_residues(self, position, only_one):
         residues = [r for r in self.compound.mol.residues if r.id.position == position]
         if residues:
             if only_one and len(residues) > 1:

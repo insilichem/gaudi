@@ -32,7 +32,7 @@ from AddH import simpleAddHydrogens, IdatmTypeInfo
 from Rotamers import getRotamers, useRotamer as replaceRotamer, NoResidueRotamersError
 import SwapRes
 # External dependencies
-from repoze.lru import LRUCache
+from boltons.cacheutils import LRU
 import deap.tools
 # GAUDI
 from gaudi import parse
@@ -106,14 +106,14 @@ class Mutamers(GeneProvider):
             self.rotamers = self._cache[self.name + '_rotamers']
         except KeyError:
             cache_size = len(residues) * (1 + 0.5 * len(mutations))
-            self.rotamers = self._cache[self.name + '_rotamers'] = LRUCache(int(cache_size))
+            self.rotamers = self._cache[self.name + '_rotamers'] = LRU(int(cache_size))
 
         if self.ligation:
             self.random_number = random.random()
         else:
             self.random_number = None
 
-        # Avoid unnecesary calls to expensive get_rotamers if residue is known
+        # Avoid unnecessary calls to expensive get_rotamers if residue is known
         # to not have any rotamers
         self._residues_without_rotamers = ['ALA', 'GLY']
     
@@ -226,8 +226,9 @@ class Mutamers(GeneProvider):
         """
         if restype in self._residues_without_rotamers:
             raise NoResidueRotamersError
-        rotamers = self.rotamers.get((mol, pos, restype))
-        if rotamers is None:
+        try:
+            rotamers = self.rotamers[(mol, pos, restype)]
+        except KeyError:
             try:
                 rotamers = getRotamers(self.residues[(mol, pos)], resType=restype,
                                        lib=self.library.title())[1]
@@ -239,7 +240,7 @@ class Mutamers(GeneProvider):
             else:
                 if self.hydrogens:
                     self.add_hydrogens_to_isolated_rotamer(rotamers)
-                self.rotamers.put((mol, pos, restype), rotamers)
+                self.rotamers[(mol, pos, restype)] = rotamers
         return rotamers
 
     @staticmethod
