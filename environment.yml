@@ -4,7 +4,6 @@ channels:
 - omnia
 dependencies:
 - python=2.7
-- pychimera
 - nomkl
 - openmm
 - openmoltools
@@ -13,6 +12,7 @@ dependencies:
 - scipy
 - git
 - pip:
+  - pychimera
   - munch
   - voluptuous
   - click
