@@ -5,11 +5,13 @@ channels:
 dependencies:
 - python=2.7
 - pychimera
+- nomkl
 - openmm
 - openmoltools
 - pdbfixer
 - cclib
 - scipy
+- git
 - pip:
   - munch
   - voluptuous
