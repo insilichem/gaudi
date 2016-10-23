@@ -55,10 +55,10 @@ class AxesOfInertia(ObjectiveProvider):
         """
         The reference molecule. Usually, the biggest in size
         """
-        return individual._molecules[self._reference].compound.mol
+        return individual.find_molecule(self._reference).compound.mol
 
     def targets(self, individual):
-        return [individual._molecules[name].compound.mol for name in self._targets]
+        return [individual.find_molecule(name).compound.mol for name in self._targets]
 
     def evaluate(self, individual):
         reference = self.reference(individual)

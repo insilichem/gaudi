@@ -92,18 +92,9 @@ class Rotamers(GeneProvider):
         It parses the requested residues strings to actual residues.
         """
         for molname, pos in self._residues:
-            try:
-                mol = self.parent._molecules[molname].compound.mol
-            except KeyError:
-                available_molnames = self.parent._molecules.keys()
-                raise KeyError('Molecule {} was not found!'
-                               'Try with one of {}'.format(molname, available_molnames))
-            if pos == '*':
-                residues = mol.residues
-            else:
-                residues = [r for r in mol.residues if r.id.position == pos]
-                if len(residues) > 1:
-                    logger.warn('Found one more than residue for %s/%s', molname, pos)
+            residues = self.parent.find_molecule(molname).find_residues(pos)
+            if len(residues) > 1 and pos != '*':
+                logger.warn('Found one more than residue for %s/%s', molname, pos)
             for r in residues:
                 self.patch_residue(r)
                 self.residues[(molname, r.id.position)] = r

@@ -109,6 +109,9 @@ class GeneProvider(object):
         schema.update(cls._validate)
         return parse.validate(schema, data)
 
+    @classmethod
+    def with_validation(cls, **kwargs):
+        cls.__init__(**cls.validate(kwargs))
 
     def write(self, path, name, *args, **kwargs):
         """

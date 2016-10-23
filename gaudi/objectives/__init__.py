@@ -91,4 +91,8 @@ class ObjectiveProvider(object):
                   'zone': chimera.selection.ItemizedSelection}
         schema.update(cls._validate)
         return parse.validate(schema, data)
+
+    @classmethod
+    def with_validation(cls, **kwargs):
+        cls.__init__(**cls.validate(kwargs))
         

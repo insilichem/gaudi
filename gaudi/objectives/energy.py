@@ -123,7 +123,7 @@ class Energy(ObjectiveProvider):
         if self._targets is None:
             return [m.compound.mol for m in individual._molecules.values()]
         else:
-            return [individual._molecules[t].compound.mol for t in self._targets]
+            return [individual.find_molecule(t).compound.mol for t in self._targets]
 
     @property
     def simulation(self):

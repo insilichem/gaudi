@@ -100,7 +100,7 @@ class Contacts(ObjectiveProvider):
         return [m.compound.mol for m in ind._molecules.values()]
         
     def probes(self, ind):
-        return [ind.genes[p].compound.mol for p in self._probes]
+        return [ind.find_molecule(p).compound.mol for p in self._probes]
 
     def evaluate_clashes(self, ind):
         positive, negative = self.find_interactions(ind)
@@ -183,7 +183,7 @@ class Contacts(ObjectiveProvider):
     @staticmethod
     def _lennard_jones(a1, a2, overlap=None):
         """
-        VERY rough aproximation of a Lennard-Jones score (12-6).
+        VERY rough approximation of a Lennard-Jones score (12-6).
 
         Parameters
         ----------

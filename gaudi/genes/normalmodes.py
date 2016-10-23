@@ -29,6 +29,7 @@ import numpy
 import os
 # Chimera
 import chimera
+from _multiscale import get_atom_coordinates
 # 3rd party
 import prody
 from repoze.lru import LRUCache
@@ -489,7 +490,7 @@ def chimeracoords2numpy(molecule):
     -------
     numpy.array with molecule.atoms coordinates
     """
-    return numpy.array([tuple(atom.coord()) for atom in molecule.atoms], dtype=float)
+    return get_atom_coordinates(molecule.atoms, transformed=False)
 
 
 GROUPERS = {

@@ -80,7 +80,7 @@ class Volume(ObjectiveProvider):
         self.evaluate = self.evaluate_convexhull if self.cavities else self.evaluate_volume
 
     def target(self, ind):
-        return ind.genes[self._target].compound.mol
+        return ind.find_molecule(self._target).compound.mol
 
     def evaluate_volume(self, ind):
         molecule = self.target(ind)

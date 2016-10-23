@@ -139,7 +139,7 @@ class Torsion(GeneProvider):
     #####
     @property
     def molecule(self):
-        return self.parent.genes[self.target].compound.mol
+        return self.parent.find_molecule(self.target).compound.mol
 
     def random_angle(self):
         """
@@ -229,24 +229,25 @@ class Torsion(GeneProvider):
         if self._anchor is not None:
             mol, atom = self._anchor
             try:
-                molecule = self.parent._molecules[mol].compound.mol
-                anchor = next(a for a in molecule.atoms if a.serialNumber == atom)
+                molecule_gene = self.parent.find_molecule(mol)
+                molecule = molecule_gene.compound.mol
+                anchor = molecule_gene.find_atoms(atom)
             except StopIteration:
                 pass
             else:
                 self.molecule._rotation_anchor = anchor
                 return anchor
+        target_gene = self.parent.find_molecule(self.target)
         try:
-            search = next(g for g in self.parent.genes.values()
-                          if g.__class__.__name__ == 'Search'
-                          and g.target == self.target)
+            search_gene = next(g for g in self.parent.genes.values()
+                               if g.__class__.__name__ == 'Search'
+                               and g.target == self.target)
         except StopIteration:
-            anchor = self.parent.genes[self.target].compound.donor
+            anchor = target_gene.compound.donor
         else:
             try:
-                anchor = next(a for a in self.parent.genes[self.target].atoms
-                              if a.serialNumber == search.anchor)
+                anchor = target_gene.find_atoms(search_gene.anchor)
             except (StopIteration, AttributeError):
-                anchor = self.parent.genes[self.target].compound.donor
+                anchor = target_gene.compound.donor
         self.molecule._rotation_anchor = anchor
         return anchor

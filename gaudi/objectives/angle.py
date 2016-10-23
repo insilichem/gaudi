@@ -65,12 +65,7 @@ class Angle(ObjectiveProvider):
     def probes(self, ind):
         for probe in self._probes:
             mol, serial = probe
-            try:
-                atom = next(a for a in ind.genes[mol].compound.mol.atoms if serial == a.serialNumber)
-            except StopIteration:
-                logger.exception("No atoms matched for probe %s", probe)
-                raise
-            else:
+            for atom in self.ind.find_molecule(mol).find_atoms(serial):
                 yield atom
 
     def evaluate(self, ind):

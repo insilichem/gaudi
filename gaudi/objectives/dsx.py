@@ -113,7 +113,7 @@ class DSX(ObjectiveProvider):
         Get a molecule gene instance of individual by its name
         """
         for name in names:
-            yield ind._molecules[name]
+            yield ind.find_molecule(name)
 
     def evaluate(self, ind):
         """

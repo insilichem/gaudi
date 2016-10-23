@@ -80,14 +80,7 @@ class Distance(ObjectiveProvider):
     def atoms(self, ind, *targets):
         for target in targets:
             mol, serial = target
-            try:
-                atom = next(a for a in ind.genes[mol].compound.mol.atoms
-                            if serial == a.serialNumber)
-            except StopIteration:
-                logger.exception("No atoms matched for target %s", target)
-                raise
-            else:
-                yield atom
+            return ind.find_molecule(mol).find_atom(target)
 
     def evaluate_distances(self, ind):
         """

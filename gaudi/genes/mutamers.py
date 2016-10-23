@@ -136,17 +136,7 @@ class Mutamers(GeneProvider):
         It parses the requested residues strings to actual residues.
         """
         for molecule, resid in self._residues:
-            try:
-                if resid == '*':
-                    res = next(r for r in self.parent.genes[molecule].compound.mol.residues)
-                    resid = res.id.position
-                else:
-                    res = next(r for r in self.parent.genes[molecule].compound.mol.residues
-                               if r.id.position == resid)
-            # molecule or residue not found
-            except (KeyError, StopIteration):
-                raise
-            else:  # residue was found!
+            for res in self.parent.find_molecule(molecule).find_residues(resid):
                 self.residues[(molecule, resid)] = res
                 self.allele.append((self.choice(self.mutations + [res.type]),
                                     random.random()))

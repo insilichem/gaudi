@@ -41,6 +41,7 @@ except ImportError:
     from StringIO import StringIO
 # Chimera
 import chimera
+from _multiscale import get_atom_coordinates
 from chimera import UserError
 from chimera.molEdit import addAtom, addBond
 from AddH import simpleAddHydrogens
@@ -55,6 +56,8 @@ from simtk.openmm.app import PDBFile
 from gaudi import box, parse
 from gaudi.genes import GeneProvider
 from gaudi.genes import search
+from gaudi.exceptions import AtomsNotFound, ResiduesNotFound, TooManyAtoms, TooManyResidues
+
 
 ZERO = chimera.Point(0.0, 0.0, 0.0)
 logger = logging.getLogger(__name__)
@@ -117,14 +120,14 @@ class Molecule(GeneProvider):
     a cached `Molecule` or, if not available, builds it and stores it in the cache.
 
     """
-    
+
     _validate = {
         parse.Required('path'): parse.RelPathToInputFile(),
         'symmetry': [basestring],
         'hydrogens': parse.Boolean,
         'pdbfix': parse.Boolean,
         }
-    
+
     _CATALOG = {}
     SUPPORTED_FILETYPES = ('mol2', 'pdb')
 
@@ -145,7 +148,7 @@ class Molecule(GeneProvider):
 
         # An optimization for similarity methods: xform coords are
         # cached here after all genes have expressed. See Individual.express.
-        self._expressed_xformcoords = None
+        self._expressed_coordinates = None
 
     @property
     def compound(self):
@@ -323,6 +326,41 @@ class Molecule(GeneProvider):
         elif (self.path.split('.')[-1] in self.SUPPORTED_FILETYPES):
             container.add((self.path,))
         return container
+
+    # API methods
+    def find_atoms(self, serial, only_one=False):
+        if serial == '*':
+            return self.compound.atoms
+        if isinstance(serial, int):  # search by serial number
+                atoms = [a for a in self.compound.mol.atoms if a.serialNumber == serial]
+        elif isinstance(serial, basestring):  # search by name
+            atoms = [a for a in self.compound.mol.atoms if a.name == serial]
+        else:
+            raise ValueError('Serial {} not valid'.format(serial))
+        if atoms:
+            if only_one and len(atoms) > 1:
+                raise TooManyAtoms("Found {} atoms for serial {} but expected 1.".format(len(atoms), serial))
+            return atoms
+        raise AtomsNotFound("Atom '{}' not found in {}".format(serial, self.name))
+
+    def find_atom(self, serial):
+        return self.find_atoms(serial, only_one=True)[0]
+
+    def find_residues(self, position, only_one=False):
+        if position == '*':
+            return self.compound.mol.residues
+        residues = [r for r in self.compound.mol.residues if r.id.position == position]
+        if residues:
+            if only_one and len(residues) > 1:
+                raise TooManyResidues("Found {} residues for position {}")
+            return residues
+        raise ResiduesNotFound("Residue {} not found in {}".format(position, self.name))
+
+    def find_residue(self, position):
+        return self.find_residues(position, only_one=True)[0]
+
+    def xyz(self, transformed=True):
+        return get_atom_coordinates(self.compound.mol.atoms, transformed=transformed)
 
 
 class Compound(object):

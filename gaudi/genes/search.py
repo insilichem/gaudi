@@ -141,17 +141,17 @@ class Search(GeneProvider):
     @property
     def center(self):
         if self._center:
-            return parse_origin(self._center, self.parent.genes)
+            return parse_origin(self._center, self.parent)
         else:
             return self.origin
 
     @property
     def molecule(self):
-        return self.parent.genes[self.target.molecule].compound.mol
+        return self.parent.find_molecule(self.target.molecule).compound.mol
 
     @property
     def origin(self):
-        return parse_origin(self.target, self.parent.genes)
+        return parse_origin(self.target, self.parent)
 
     @property
     def to_zero(self):
@@ -299,7 +299,7 @@ def random_translation(center, r):
             (0.0, 0.0, 1.0, z))
 
 
-def parse_origin(origin, genes=None):
+def parse_origin(origin, individual=None):
     """
     The center of the sphere can be given as an Atom, or directly as
     a list of three floats (x,y,z). If it's an Atom, find it and return
@@ -317,18 +317,10 @@ def parse_origin(origin, genes=None):
     Tuple of float
         The x,y,z coordinates
     """
-    if isinstance(origin, tuple) and len(origin) == 2 and genes:
-        mol, serial = origin.molecule, origin.atom
-        try:
-            if isinstance(serial, int):
-                atom = next(a for a in genes[mol].compound.mol.atoms
-                            if serial == a.serialNumber)
-            else:
-                atom = next(a for a in genes[mol].compound.mol.atoms
-                            if serial == a.name)
-        except (KeyError, AttributeError, StopIteration):  # atom not found
-            raise
-        else:
-            return atom.coord().data()
+    if isinstance(origin, tuple) and len(origin) == 2 and individual:
+        mol, serial = origin
+        return individual.find_molecule(mol).find_atoms(serial).coord().data()
     elif isinstance(origin, list) and len(origin) == 3:
         return tuple(origin)
+    else:
+        raise ValueError('Origin {} cannot be parsed'.format(origin))

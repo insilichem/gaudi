@@ -35,6 +35,7 @@ import yaml
 # GAUDI
 import gaudi.plugin
 import gaudi.similarity
+from gaudi.exceptions import MoleculesNotFound
 
 pp = pprint.PrettyPrinter(4)
 logger = logging.getLogger(__name__)
@@ -274,7 +275,7 @@ class MolecularIndividual(BaseIndividual):
                 self._molecules[name] = gene
 
     def __deepcopy__(self, memo):
-        new = BaseIndividual.__deepcopy(self, memo)
+        new = MolecularIndividual.__deepcopy__(self, memo)
         for name, gene in new.genes.items():
             gene.parent = new
             if gene.__class__.__name__ == 'Molecule':
@@ -283,14 +284,19 @@ class MolecularIndividual(BaseIndividual):
 
     def post_express(self):
         for m in self._molecules.values():
-            m._expressed_xformcoords = get_atom_coordinates(m.compound.mol.atoms, 
-                                                            transformed=True)
+            m._expressed_coordinates = m.xyz()
 
+    def find_molecule(self, name):
+        try:
+            return self._molecules[name]
+        except KeyError:
+            raise MoleculesNotFound('Molecule {} not found. '
+                                    'Try with {}'.format(name, sorted(self._molecules.keys())))
     def xyz(self, gene=None):
         try:
-            return self._molecules[gene]._expressed_xformcoords
+            return self._molecules[gene]._expressed_coordinates
         except KeyError:
-            return {name: mol._expressed_xformcoords 
+            return {name: mol._expressed_coordinates
                     for name, mol in self._molecules.items()}
 
 

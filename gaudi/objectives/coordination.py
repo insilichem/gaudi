@@ -34,6 +34,7 @@ from chimera.match import matchPositions
 from MetalGeom.geomData import geometries as MG_geometries
 # GAUDI
 from gaudi.objectives import ObjectiveProvider
+from gaudi.exceptions import AtomsNotFound, ResiduesNotFound, MoleculesNotFound
 from gaudi import parse
 
 logger = logging.getLogger(__name__)
@@ -123,37 +124,12 @@ class SimpleCoordination(ObjectiveProvider):
 
     def probe(self, ind):
         mol, serial = self._probe
-        try:
-            if isinstance(serial, int):
-                atom = next(a for a in ind.genes[mol].compound.mol.atoms
-                            if serial == a.serialNumber)
-            else:
-                atom = next(a for a in ind.genes[mol].compound.mol.atoms
-                            if serial == a.name)
-        except KeyError:
-            logger.exception("Molecule %s not found", mol)
-            raise
-        except StopIteration:
-            logger.exception("No atoms matched for probe %s", self._probe)
-            raise
-        else:
-            return atom
+        return ind.find_molecule(mol).find_atom(serial)
 
     def residues(self, ind):
         for mol, pos in self._residues:
-            try:
-                if pos == '*':
-                    for r in ind.genes[mol].compound.mol.residues:
-                        yield r
-                else:
-                    yield next(r for r in ind.genes[mol].compound.mol.residues
-                               if pos == r.id.position)
-            except KeyError:
-                logger.exception("Molecule %s not found", mol)
-                raise
-            except StopIteration:
-                logger.exception("No residues matched for pos %s", pos)
-                raise
+            for residue in ind.find_molecule(mol).find_residues(pos):
+                yield residue
 
     def evaluate_simple(self, ind):
         """
@@ -172,21 +148,22 @@ class SimpleCoordination(ObjectiveProvider):
         """
         try:
             atoms_by_distance = self.coordination_sphere(ind)
-        except (NotEnoughAtomsError, SomeResiduesMissingError):
+        except (AtomsNotFound, ResiduesNotFound):
             return -1000 * self.weight
         else:
             distances, angles, dihedrals = [], [], []
+            probe = self.probe(ind)
             for d, a2 in atoms_by_distance:
                 # Get coords for needed atoms
                 distances.append(d)
                 if self.dihedral or self.angle:
-                    c1 = self._get_xform_coord(self.probe)  # the probe
-                    c2 = self._get_xform_coord(a2)  # the ligand is a2
+                    c1 = probe.xformCoord() # the probe
+                    c2 = a2.xformCoord()  # the ligand is a2
                     a3 = a2.neighbors[0]  # bonded atom to ligand
-                    c3 = self._get_xform_coord(a3)
+                    c3 = a3.xformCoord()
                     a4 = next(a for a in a3.neighbors  # neighbor of a3 that is not ligand
                               if a is not a3 and len(a.neighbors) > 1)
-                    c4 = self._get_xform_coord(a4)
+                    c4 = a4.xformCoord()
 
                     if self.angle:
                         angle = chimera.angle(c1, c2, c3)
@@ -210,7 +187,7 @@ class SimpleCoordination(ObjectiveProvider):
         """
         try:
             test_atoms = [a for d, a in self.coordination_sphere(ind)]
-        except (NotEnoughAtomsError, SomeResiduesMissingError):
+        except (AtomsNotFound, ResiduesNotFound):
             logger.warning("Not enough atoms or some residues missing")
             return -1000 * self.weight
         else:
@@ -234,7 +211,7 @@ class SimpleCoordination(ObjectiveProvider):
         """
         try:
             test_atoms = [a for d, a in self.coordination_sphere(ind)]
-        except SomeResiduesMissingError:
+        except ResiduesNotFound:
             logger.warning("Not enough atoms or some residues missing")
             return -1000 * self.weight
        
@@ -300,7 +277,7 @@ class SimpleCoordination(ObjectiveProvider):
 
         if self.enforce_all_residues and found_residues != residues:
             logger.warning("Some atoms found, but some residues are missing")
-            raise SomeResiduesMissingError
+            raise ResiduesNotFound
 
         return atoms_by_distance
 
@@ -316,21 +293,6 @@ class SimpleCoordination(ObjectiveProvider):
                         chimera.specifier.zone(
                             self.zone, 'atom', None, self.radius, self.molecules(ind)))
         return self.zone
-
-    @staticmethod
-    def _get_xform_coord(a):
-        """
-        Return transformed coordinates from atom `a`
-        """
-        return a.molecule.openState.xform.apply(a.coord())
-
-
-class NotEnoughAtomsError(Exception):
-    pass
-
-
-class SomeResiduesMissingError(Exception):
-    pass
 
 
 def geomDistEval_patched(geom, metal_coord, ligands_coords, min_ligands=2):

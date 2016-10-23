@@ -74,7 +74,7 @@ class Solvation(ObjectiveProvider):
             self.evaluate = self.evaluate_volume
 
     def targets(self, ind):
-        return [ind.genes[target].compound.mol for target in self._targets]
+        return [ind.find_molecule(target).compound.mol for target in self._targets]
 
     def molecules(self, ind):
         return tuple(m.compound.mol for m in ind._molecules.values())
