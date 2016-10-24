@@ -160,7 +160,7 @@ def ea_mu_plus_lambda(population, toolbox, mu, lambda_, cxpb, mutpb, ngen, cfg,
             # Save a copy of an fully evaluated population, in case the 
             # simulation is stopped in next generation.
             population_ = population[:]
-            if halloffame and not gen % cfg.output.check_every:
+            if halloffame and cfg.output.check_every and not gen % cfg.output.check_every:
                 try:
                     dump_population(halloffame, cfg, subdir='check{}'.format(gen))
                 except Exception:
