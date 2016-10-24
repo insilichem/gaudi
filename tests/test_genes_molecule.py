@@ -16,6 +16,7 @@ def test_molecule(individual, path, atoms):
     absolute_path = os.path.abspath(datapath(path))
     individual.genes['Molecule'] = Molecule(parent=individual, path=absolute_path)
     individual.__ready__()
+    individual.__expression_hooks__()
     assert individual.genes['Molecule'].compound.mol.numAtoms == atoms
     assert individual.genes['Molecule'].compound.mol.openedAs[0] == absolute_path
     with expressed(individual):
@@ -29,5 +30,6 @@ def test_two_molecules(individual, protein, ligand):
     individual.genes['Ligand'] = Molecule(parent=individual, path=datapath(ligand))
     individual.genes['Protein'] = Molecule(parent=individual, path=datapath(protein))
     individual.__ready__()
+    individual.__expression_hooks__()
     with expressed(individual):
         assert individual.expressed is True
