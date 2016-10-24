@@ -213,7 +213,7 @@ class BaseIndividual(object):
                                 *self.cfg.similarity.args,
                                 **self.cfg.similarity.kwargs)
 
-    def write(self, i):
+    def write(self, i, path=None):
         """
         Export the individual to a mol2 file
 
@@ -230,7 +230,7 @@ class BaseIndividual(object):
             >>>     cPickle.dump(self, f, 0)
             >>> return filename
         """
-        path = self.cfg.output.path
+        path = path if path is not None else self.cfg.output.path
         name = self.cfg.output.name
         COMPRESS = ZIP_DEFLATED if self.cfg.output.compress else ZIP_STORED
         self.express()
