@@ -275,7 +275,7 @@ class MolecularIndividual(BaseIndividual):
                 self._molecules[name] = gene
 
     def __deepcopy__(self, memo):
-        new = MolecularIndividual.__deepcopy__(self, memo)
+        new = self.__class__(cfg=self.cfg)
         for name, gene in new.genes.items():
             gene.parent = new
             if gene.__class__.__name__ == 'Molecule':
@@ -301,12 +301,14 @@ class MolecularIndividual(BaseIndividual):
 
 
 @contextmanager
-def expressed(individual):
+def expressed(*individuals):
     try:
-        individual.express()
-        yield individual
+        for individual in individuals:
+            individual.express()
+        yield individuals
     finally:
-        individual.unexpress()
+        for individual in individuals:
+            individual.unexpress()
 
 
 class Environment(object):
