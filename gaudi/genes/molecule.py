@@ -130,6 +130,7 @@ class Molecule(GeneProvider):
     SUPPORTED_FILETYPES = ('mol2', 'pdb')
 
     def __init__(self, path=None, symmetry=None, hydrogens=False, pdbfix=False, **kwargs):
+        self._kwargs = kwargs.copy()
         GeneProvider.__init__(self, **kwargs)
         self._kwargs = kwargs
         self.path = path
@@ -148,6 +149,13 @@ class Molecule(GeneProvider):
         # An optimization for similarity methods: xform coords are
         # cached here after all genes have expressed. See Individual.express.
         self._expressed_coordinates = None
+
+    def __deepcopy__(self, memo):
+        new = self.__class__(path=self.path, symmetry=self.symmetry, hydrogens=self.hydrogens,
+                             pdbfix=self.pdbfix, **self._kwargs)
+        new.allele = self.allele + ()
+        new._expressed_coordinates = self._expressed_coordinates
+        return new
 
     @property
     def compound(self):

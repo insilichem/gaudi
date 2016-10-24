@@ -244,10 +244,7 @@ class BaseIndividual(object):
                     z.write(filename, os.path.basename(filename))
                     os.remove(filename)
                     output[name] = os.path.basename(filename)
-            try:
-                output['score'] = list(self.fitness.values)
-            except AttributeError:  # fitness not in individual :/
-                raise
+            output['score'] = list(self.fitness.values)
             z.writestr('{}_{:03d}.gaudi'.format(name, i),
                        yaml.dump(output, default_flow_style=False))
         self.unexpress()
@@ -276,6 +273,10 @@ class MolecularIndividual(BaseIndividual):
 
     def __deepcopy__(self, memo):
         new = self.__class__(cfg=self.cfg)
+        new.genes = deepcopy(self.genes, memo)
+        new.fitness = deepcopy(self.fitness, memo)
+        new._similarity = self._similarity
+        new.expressed = self.expressed
         for name, gene in new.genes.items():
             gene.parent = new
             if gene.__class__.__name__ == 'Molecule':
