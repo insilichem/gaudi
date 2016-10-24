@@ -15,6 +15,7 @@ output:
     history: 0
     pareto: 0
     verbose: True
+    check_every: 10
 
 ga:
     population: 200
