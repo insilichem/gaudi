@@ -87,7 +87,7 @@ class Solvation(ObjectiveProvider):
         return surface_area(*self.surface(ind))
 
     def evaluate_volume(self, ind):
-        return enclosed_volume(*self.surface(ind))
+        return enclosed_volume(*self.surface(ind))[0]
 
     def zone_atoms(self, probes, molecules):
         self.zone.clear()
