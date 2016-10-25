@@ -37,6 +37,10 @@ from gaudi.objectives import ObjectiveProvider
 logger = logging.getLogger(__name__)
 _openmm_builtin_forcefields = os.listdir(os.path.join(openmm_app.__path__[0], 'data'))
 
+import warnings
+warnings.filterwarnings("ignore", category=DeprecationWarning)
+
+
 def enable(**kwargs):
     kwargs = Energy.validate(kwargs)
     return Energy(**kwargs)
