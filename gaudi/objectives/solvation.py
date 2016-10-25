@@ -84,10 +84,10 @@ class Solvation(ObjectiveProvider):
         return grid_sas_surface(atoms)
         
     def evaluate_area(self, ind):
-        return surface_area(*self.surface(ind))
+        return abs(surface_area(*self.surface(ind)) - self.threshold)
 
     def evaluate_volume(self, ind):
-        return enclosed_volume(*self.surface(ind))[0]
+        return abs(enclosed_volume(*self.surface(ind))[0] - self.threshold)
 
     def zone_atoms(self, probes, molecules):
         self.zone.clear()
