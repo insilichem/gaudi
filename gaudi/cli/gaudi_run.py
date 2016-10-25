@@ -57,7 +57,6 @@ import deap.creator
 import deap.tools
 import deap.base
 import deap.algorithms
-import yaml
 # from multiprocess import Pool
 # GAUDI
 import gaudi.algorithms
