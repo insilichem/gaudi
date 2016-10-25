@@ -353,7 +353,6 @@ class Molecule(GeneProvider):
         if atoms:
             if only_one and len(atoms) > 1:
                 raise TooManyAtoms("Found {} atoms for serial {} but expected 1.".format(len(atoms), serial))
-            self._cache[self.name + '_atom_lookup'][(self.allele, serial)] = atoms
             return atoms
         raise AtomsNotFound("Atom '{}' not found in {}".format(serial, self.name))
 

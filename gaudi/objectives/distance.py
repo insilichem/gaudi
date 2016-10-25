@@ -80,14 +80,15 @@ class Distance(ObjectiveProvider):
     def atoms(self, ind, *targets):
         for target in targets:
             mol, serial = target
-            return ind.find_molecule(mol).find_atom(target)
+            for atom in ind.find_molecule(mol).find_atoms(serial):
+                yield atom
 
     def evaluate_distances(self, ind):
         """
         Measure the distance
         """
         distances = []
-        target = next(self.atoms(ind, self._target))
+        target = ind.find_molecule(self._target.molecule).find_atom(self._target.atom)
         for a in self.atoms(ind, *self._probes):
             d = self._distance(a, target)
             if self.threshold == 'covalent':
@@ -103,7 +104,7 @@ class Distance(ObjectiveProvider):
         return numpy.mean(numpy.absolute(distances))
 
     def evaluate_center_of_mass(self, ind):
-        target = next(self.atoms(ind, self._target))
+        target = ind.find_molecule(self._target.molecule).find_atom(self._target.atom)
         probes = list(self.atoms(ind, *self._probes))
         center_of_mass = self._center(*probes)
         

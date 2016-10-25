@@ -317,9 +317,9 @@ def parse_origin(origin, individual=None):
     Tuple of float
         The x,y,z coordinates
     """
-    if isinstance(origin, tuple) and len(origin) == 2 and individual:
+    if individual and isinstance(origin, tuple) and len(origin) == 2:
         mol, serial = origin
-        return individual.find_molecule(mol).find_atoms(serial).coord().data()
+        return individual.find_molecule(mol).find_atom(serial).coord().data()
     elif isinstance(origin, list) and len(origin) == 3:
         return tuple(origin)
     else:
