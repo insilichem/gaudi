@@ -45,8 +45,6 @@ class Angle(ObjectiveProvider):
     ----------
     threshold : float
         Optimum angle
-    tolerance :
-        Allowed difference
     probes : list of str
         Atoms that make the angle, expressed as a series of 
         <molecule_name>/<serial_number> strings
@@ -65,12 +63,11 @@ class Angle(ObjectiveProvider):
     def probes(self, ind):
         for probe in self._probes:
             mol, serial = probe
-            for atom in self.ind.find_molecule(mol).find_atoms(serial):
+            for atom in ind.find_molecule(mol).find_atoms(serial):
                 yield atom
 
     def evaluate(self, ind):
         atoms_coords = [a.xformCoord() for a in self.probes(ind)]
-        delta = 180.0
         try:
             angle = chimera.angle(*atoms_coords)
         except TypeError:  # four atoms, means dihedral
