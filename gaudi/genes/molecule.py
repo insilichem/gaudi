@@ -121,7 +121,7 @@ class Molecule(GeneProvider):
 
     _validate = {
         parse.Required('path'): parse.RelPathToInputFile(),
-        'symmetry': [basestring],
+        'symmetry': [[basestring]],
         'hydrogens': parse.Boolean,
         'pdbfix': parse.Boolean,
         }
@@ -322,7 +322,7 @@ class Molecule(GeneProvider):
                         if all(os.path.basename(entry[folders_last_level.index(s1)]) ==
                                 os.path.basename(entry[folders_last_level.index(s2)])
                                 for (s1, s2) in self.symmetry):
-                            self.catalog.append(entry)
+                            container.add(entry)
                 else:
                     container.update(tuple(catalog))
             else:
