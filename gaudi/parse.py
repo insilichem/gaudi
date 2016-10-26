@@ -93,14 +93,14 @@ def Named_spec(*names):
             name, i = str(v).split('/')
             name.strip()
             if Molecule_name(name):
-                if i == '*':
+                if i in ('*', 'last', 'first', 'donor', 'acceptor'):
                     pass
                 elif int(i) > 0:
                     i = int(i)
                 return namedtuples[(names)](name, i)
             raise ValueError
         except (ValueError, AttributeError):
-            raise Invalid("Expected <Molecule name>/<residue or atom number> but got {}".format(v))
+            raise Invalid("Expected <Molecule name>/<number, *, first or last> but got {}".format(v))
     return fn
 
 

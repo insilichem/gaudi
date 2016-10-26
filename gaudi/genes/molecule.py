@@ -347,7 +347,10 @@ class Molecule(GeneProvider):
         if isinstance(serial, int):  # search by serial number
             atoms = [a for a in self.compound.mol.atoms if a.serialNumber == serial]
         elif isinstance(serial, basestring):  # search by name
-            atoms = [a for a in self.compound.mol.atoms if a.name == serial]
+            try:
+                atoms = [getattr(self.compound, serial)]
+            except AttributeError:
+                atoms = [a for a in self.compound.mol.atoms if a.name == serial]
         else:
             raise ValueError('Serial {} not valid'.format(serial))
         if atoms:
