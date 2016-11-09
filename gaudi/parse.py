@@ -93,7 +93,7 @@ def Named_spec(*names):
             name, i = str(v).split('/')
             name.strip()
             if Molecule_name(name):
-                if i in ('*', 'last', 'first', 'donor', 'acceptor'):
+                if i in ('*', 'last', 'first', 'donor', 'acceptor', 'flagged'):
                     pass
                 elif int(i) > 0:
                     i = int(i)

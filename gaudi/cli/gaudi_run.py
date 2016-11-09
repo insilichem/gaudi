@@ -243,5 +243,6 @@ def main(cfg, debug=False):
                      'Check traceback in logfile %s', e, log_path)
         logger.log(15, "An exception occurred", exc_info=True)
         sys.exit(1)
+
     gaudi.algorithms.dump_population(best, cfg)
 

@@ -493,6 +493,7 @@ class Compound(object):
                             flat_attr[k] = self.mol.atoms
 
             self.__dict__.update(flat_attr)
+            f.close()
 
     def update_attr(self, d):
         for k, v in self.__dict__.items():
@@ -602,6 +603,8 @@ class Compound(object):
         self.update_attr(updated_atoms)  # update existant atoms
         self.acceptor = updated_atoms[molecule.acceptor]  # change acceptor
         self.axis_end = updated_atoms[molecule.axis_end]
+        if hasattr(molecule, 'flagged'):
+            self.flagged = updated_atoms[molecule.flagged]
         if hasattr(molecule, 'nonrotatable'):
             nonrot_atoms = [updated_atoms[a] for a in molecule.nonrotatable]
             if hasattr(self, 'nonrotatable'):
