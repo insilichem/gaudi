@@ -49,8 +49,8 @@ class Hbonds(ObjectiveProvider):
 
     Parameters
     ----------
-    probe : str
-        Name of molecule being object of analysis
+    probes : list of str
+        Names of molecules being object of analysis
     radius : float
         Maximum distance from any point of probe that is searched
         for a possible interaction
@@ -62,15 +62,15 @@ class Hbonds(ObjectiveProvider):
     """
 
     _validate = {
-        parse.Required('probe'): parse.Molecule_name,
+        parse.Required('probes'): [parse.Molecule_name],
         'radius': parse.All(parse.Coerce(float), parse.Range(min=0)),
         'distance_tolerance': float,
         'angle_tolerance': float
         }
-    def __init__(self, probe=None, radius=5.0, distance_tolerance=0.4, angle_tolerance=20.0,
+    def __init__(self, probes=None, radius=5.0, distance_tolerance=0.4, angle_tolerance=20.0,
                  *args, **kwargs):
         ObjectiveProvider.__init__(self, **kwargs)
-        self._probe = probe
+        self._probes = probes
         self.distance_tolerance = distance_tolerance
         self.angle_tolerance = angle_tolerance
         self.radius = radius
@@ -78,17 +78,17 @@ class Hbonds(ObjectiveProvider):
     def molecules(self, ind):
         return [m.compound.mol for m in ind._molecules.values()]
 
-    def probe(self, ind):
+    def probes(self, ind):
         return [ind.find_molecule(p).compound.mol for p in self._probe]
 
     def evaluate(self, ind):
         """
-        Find H bonds within self.radius angstroms from self.probe, and return
+        Find H bonds within self.radius angstroms from self.probes, and return
         only those that interact with probe. Ie, discard those hbonds in that search
         space whose none of their atoms involved are not part of self.probe.
         """
         molecules = self.molecules(ind)
-        probe_atoms = [a for m in self.probe(ind) for a in m.atoms]
+        probe_atoms = [a for m in self.probes(ind) for a in m.atoms]
         test_atoms = self._surrounding_atoms(probe_atoms, molecules)
         hbonds = findHBonds(molecules, cacheDA=self._cache,
                                       donors=test_atoms, acceptors=test_atoms,
