@@ -79,7 +79,7 @@ class Hbonds(ObjectiveProvider):
         return [m.compound.mol for m in ind._molecules.values()]
 
     def probes(self, ind):
-        return [ind.find_molecule(p).compound.mol for p in self._probe]
+        return [ind.find_molecule(p).compound.mol for p in self._probes]
 
     def evaluate(self, ind):
         """
