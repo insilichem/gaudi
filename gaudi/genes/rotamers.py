@@ -132,7 +132,7 @@ class Rotamers(GeneProvider):
     @staticmethod
     def update_rotamer(residue, chis):
         for bondrot, chi in zip(residue._rotamer_torsions, chis):
-            bondrot.adjustAngle(chi - bondrot.chi, bondrot.anchor)
+            bondrot.adjustAngle(chi - bondrot.chi, bondrot.biggerSide())
 
     @staticmethod
     def patch_residue(residue):
