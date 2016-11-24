@@ -25,6 +25,7 @@ requirements:
     - pdbfixer
     - cclib
     - scipy
+    - imp
 
 test:
  
