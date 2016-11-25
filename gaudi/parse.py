@@ -159,7 +159,7 @@ class Settings(Munch):
         'output': {
             'path': '.',
             'name': ''.join(choice(ascii_letters) for _ in range(5)),
-            'precision': None,
+            'precision': 3,
             'compress': True,
             'history': False,
             'pareto': True,
