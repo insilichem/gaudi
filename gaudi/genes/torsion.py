@@ -230,13 +230,13 @@ class Torsion(GeneProvider):
             mol, atom = self._anchor
             try:
                 molecule_gene = self.parent.find_molecule(mol)
-                molecule = molecule_gene.compound.mol
-                anchor = molecule_gene.find_atoms(atom)
+                anchor = molecule_gene.find_atom(atom)
             except StopIteration:
                 pass
             else:
                 self.molecule._rotation_anchor = anchor
                 return anchor
+                
         target_gene = self.parent.find_molecule(self.target)
         try:
             search_gene = next(g for g in self.parent.genes.values()
@@ -246,7 +246,7 @@ class Torsion(GeneProvider):
             anchor = target_gene.compound.donor
         else:
             try:
-                anchor = target_gene.find_atoms(search_gene.anchor)
+                anchor = target_gene.find_atom(search_gene.anchor)
             except (StopIteration, AttributeError):
                 anchor = target_gene.compound.donor
         self.molecule._rotation_anchor = anchor
