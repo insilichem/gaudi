@@ -828,10 +828,10 @@ def _apply_pdbfix(molecule, pH=7.0, add_hydrogens=False):
     memfile = StringIO()
     PDBFile.writeFile(fixer.topology, fixer.positions, memfile)
     memfile.seek(0)
-    molecule = chimera.openModels.open(memfile, type="PDB", identifyAs=molecule.name)[0]
-    chimera.openModels.remove([molecule])
+    molecule = chimera.openModels.open(memfile, type="PDB", identifyAs=molecule.name)
+    chimera.openModels.remove(molecule)
     memfile.close()
-    return molecule
+    return molecule[0]
 
 
 def _dummy_mol(name='dummy'):
