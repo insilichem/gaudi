@@ -27,6 +27,7 @@ import math
 import logging
 import numpy
 from math import acos, degrees
+from operator import itemgetter
 # Chimera
 import chimera
 from chimera import cross, Xform, Plane, angle, Point, Vector
@@ -381,7 +382,7 @@ def geomDistEval_patched(geom, metal_coord, ligands_coords, min_ligands=2):
                     continue
                 for lv in lvecs[2:]:
                     diffs.append((angle(xfnv, lv), lv, i))
-            diffs.sort()
+            diffs.sort(key=itemgetter(0))
             while len(used) < len(ligands_coords):
                 ang, lv, i = diffs.pop(0)
                 if i in used or lv in correspondences:
