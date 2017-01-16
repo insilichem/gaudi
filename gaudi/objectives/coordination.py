@@ -41,14 +41,14 @@ logger = logging.getLogger(__name__)
 
 
 def enable(**kwargs):
-    kwargs = SimpleCoordination.validate(kwargs)
-    return SimpleCoordination(**kwargs)
+    kwargs = Coordination.validate(kwargs)
+    return Coordination(**kwargs)
 
 
-class SimpleCoordination(ObjectiveProvider):
+class Coordination(ObjectiveProvider):
 
     """
-    SimpleCoordination class
+    Coordination class
 
     Parameters
     ----------
