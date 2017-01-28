@@ -51,7 +51,7 @@ def AssertList(*validators, **kwargs):
 
 
 def Coordinates(v):
-    return All([float], Length(min=3, max=3))(v)
+    return All([Coerce(float)], Length(min=3, max=3))(v)
 
 
 def Importable(v):
