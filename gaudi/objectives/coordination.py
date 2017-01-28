@@ -25,21 +25,31 @@ Good planarity is assured by a dihedral check.
 from __future__ import print_function, division
 import math
 import logging
-import numpy
-from math import acos, degrees
-from operator import itemgetter
+import numpy as np
 # Chimera
 import chimera
-from chimera import cross, Xform, Plane, angle, Point, Vector
-from chimera.match import matchPositions
-from MetalGeom.geomData import geometries as MG_geometries
 # GAUDI
 from gaudi.objectives import ObjectiveProvider
 from gaudi.exceptions import AtomsNotFound, ResiduesNotFound, MoleculesNotFound
 from gaudi import parse
+from gaudi._cpdrift import coherent_point_drift
+
 
 logger = logging.getLogger(__name__)
 
+
+GEOMETRIES = {
+    'cube': np.array([(1.0, 1.0, 1.0), (1.0, 1.0, -1.0), (1.0, -1.0, 1.0), (1.0, -1.0, -1.0), (-1.0, 1.0, 1.0), (-1.0, 1.0, -1.0), (-1.0, -1.0, 1.0), (-1.0, -1.0, -1.0), (0.0, 0.0, 0.0)]),
+    'hexagonal bipyramid': np.array([(0.0, 1.0, 0.0), (0.0, -1.0, 0.0), (0.0, 0.0, 1.0), (0.0, 0.0, -1.0), (0.8660, 0.0, 0.5), (0.8660, 0.0, -0.5), (-0.8660, 0.0, 0.5), (-0.8660, 0.0, -0.5), (0.0, 0.0, 0.0)]),
+    'linear': np.array([(0.0, 1.0, 0.0), (0.0, -1.0, 0.0), (0.0, 0.0, 0.0)]),
+    'octahedron': np.array([(1.0, 0.0, 0.0), (-1.0, 0.0, 0.0), (0.0, 1.0, 0.0), (0.0, -1.0, 0.0), (0.0, 0.0, 1.0), (0.0, 0.0, -1.0), (0.0, 0.0, 0.0)]),
+    'pentagonal bipyramid': np.array([(0.0, 1.0, 0.0), (0.0, -1.0, 0.0), (0.0, 0.0, 1.0), (0.9511, 0.0, 0.30901), (0.5878, 0.0, -0.8090), (-0.5878, 0.0, -0.8090), (-0.9511, 0.0, 0.3090), (0.0, 0.0, 0.0)]),
+    'square planar': np.array([(1.0, 0.0, 0.0), (-1.0, 0.0, 0.0), (0.0, 1.0, 0.0), (0.0, -1.0, 0.0), (0.0, 0.0, 0.0)]),
+    'square pyramid': np.array([(0.0, 1.0, 0.0), (-0.6123, -0.5, 0.6123), (0.6123, -0.5, 0.6123), (-0.6123, -0.5, -0.6123), (0.6123, -0.5, -0.6123), (0.0, 0.0, 0.0)]),
+    'tetrahedral': np.array([(1.0, 1.0, 1.0), (-1.0, -1.0, 1.0), (-1.0, 1.0, -1.0), (1.0, -1.0, -1.0), (0.0, 0.0, 0.0)]),
+    'trigonal planar': np.array([(1.0, 0.0, 0.0), (-0.5, 0.0, 0.8660), (-0.5, 0.0,-0.8660), (0.0, 0.0, 0.0)]),
+    'trigonal bipyramid': np.array([(0.0, 1.0, 0.0), (0.0, -1.0, 0.0), (1.0, 0.0, 0.0), (-0.5, 0.0, 0.8660), (-0.5, 0.0, -0.8660), (0.0, 0.0, 0.0)]),
+    'trigonal prism': np.array([(-0.6547, 0.6547, 0.3779), (0.6547, 0.6547, 0.3779), (0.0, 0.6547, -0.7559), (-0.6547, -0.6547, 0.3779), (0.6547, -0.6547, 0.3779), (0.0, -0.6547, -0.7559), (0.0, 0.0, 0.0)])}
 
 def enable(**kwargs):
     kwargs = Coordination.validate(kwargs)
@@ -78,11 +88,11 @@ class Coordination(ObjectiveProvider):
         'distance': parse.All(parse.Coerce(float), parse.Range(min=0)),
         'angle': parse.Coerce(float),
         'min_atoms': parse.All(parse.Coerce(int), parse.Range(min=2)),
-        'geometry': parse.In(MG_geometries.keys()),
+        'geometry': parse.Any(parse.In(GEOMETRIES.keys()), [parse.Coordinates]),
         'enforce_all_residues': parse.Coerce(bool),
         'only_one_ligand_per_residue': parse.Coerce(bool),
         'prevent_intruders': parse.Coerce(bool),
-        'method': parse.In(['simple', 'metalgeom', 'metalgeom_directional'])
+        'method': parse.In(['simple', 'metalgeom', 'metalgeom_directional', 'cpd'])
         }
     
     def __init__(self, method='metalgeom_directional', probe=None, radius=None, atom_types=(),
@@ -105,20 +115,15 @@ class Coordination(ObjectiveProvider):
         self.only_one_ligand_per_residue = only_one_ligand_per_residue
         self.enforce_all_residues = enforce_all_residues
         self.prevent_intruders = prevent_intruders
-        if self.method == 'metalgeom':
-            self.evaluate = self.evaluate_MetalGeom
-            self.geometry = MG_geometries[geometry]
-            self.n_vertices = len(self.geometry.normVecs)
-        elif self.method == 'metalgeom_directional':
-            self.evaluate = self.evaluate_MetalGeom_directional
-            self.geometry = MG_geometries[geometry]
-            self.n_vertices = len(self.geometry.normVecs)
-            if self.n_vertices < self.min_atoms:
-                self.min_ligands = self.n_vertices
-                logger.warn('# Vertices in selected geometry < min_ligands! Overriding '
-                            'min_ligands with {}'.format(self.n_vertices))
+        if isinstance(geometry, basestring):
+            self.geometry = np.copy(GEOMETRIES[geometry])
         else:
-            self.evaluate = self.evaluate_simple
+            self.geometry = np.array(geometry)
+        self.n_vertices = self.geometry.shape[0] - 1
+        if self.n_vertices < self.min_atoms:
+            self.min_ligands = self.n_vertices
+            logger.warn('# Vertices in selected geometry < min_ligands! Overriding '
+                        'min_ligands with {}'.format(self.n_vertices))
 
     def molecules(self, ind):
         return [m.compound.mol for m in ind._molecules.values()]
@@ -132,78 +137,7 @@ class Coordination(ObjectiveProvider):
             for residue in ind.find_molecule(mol).find_residues(pos):
                 yield residue
 
-    def evaluate_simple(self, ind):
-        """
-        1. For every atom within the search radius that matches the criteria, get:
-            - Coordinates for `self.probe`, atom, its immediate neighbor, and next neighbor
-              not being terminal
-            - Angle formed by probe, atom, and neighbor
-            - Dihedral formed by probe, atom, neighbor, and next neighbor
-        2. The score returned is the sum of averages of:
-            - Absolute difference between `self.distance` and found atoms. That way,
-              atoms that are within requested distance, get scores near zero.
-            - Absolute difference of sines of `self.angle` and formed angles. Good matches
-              tend to zero.
-            - Absolute sine of dihedrals. If they are coplanar, this should be zero.
-        3. As a result, lower scores are better.
-        """
-        try:
-            atoms_by_distance = self.coordination_sphere(ind)
-        except (AtomsNotFound, ResiduesNotFound):
-            return -1000 * self.weight
-        else:
-            distances, angles, dihedrals = [], [], []
-            probe = self.probe(ind)
-            for d, a2 in atoms_by_distance:
-                # Get coords for needed atoms
-                distances.append(d)
-                if self.dihedral or self.angle:
-                    c1 = probe.xformCoord() # the probe
-                    c2 = a2.xformCoord()  # the ligand is a2
-                    a3 = a2.neighbors[0]  # bonded atom to ligand
-                    c3 = a3.xformCoord()
-                    a4 = next(a for a in a3.neighbors  # neighbor of a3 that is not ligand
-                              if a is not a3 and len(a.neighbors) > 1)
-                    c4 = a4.xformCoord()
-
-                    if self.angle:
-                        angle = chimera.angle(c1, c2, c3)
-                        delta = abs(math.cos(math.radians(self.angle))
-                                    - math.cos(math.radians(angle)))
-                        angles.append(delta)
-
-                    if self.dihedral:
-                        dihedral = chimera.dihedral(c1, c2, c3, c4)
-                        planarity = abs(math.sin(math.radians(dihedral)))
-                        dihedrals.append(planarity)
-
-            return sum(numpy.average(x) for x in (distances, angles, dihedrals) if x)
-
-    def evaluate_MetalGeom(self, ind):
-        """
-        1. Get requested atoms sorted by distance
-        2. If they meet the minimum quantity, return the rmsd for
-           that geometry
-        3. If that's not possible of they are not enough, return penalty
-        """
-        try:
-            test_atoms = [a for d, a in self.coordination_sphere(ind)]
-        except (AtomsNotFound, ResiduesNotFound):
-            logger.warning("Not enough atoms or some residues missing")
-            return -1000 * self.weight
-        else:
-            try:
-                rmsd = geomDistEval_patched(
-                    self.geometry, self.probe(ind).xformCoord(),
-                    [a.xformCoord() for a in test_atoms[:self.n_vertices]],
-                    min_ligands=self.min_atoms)
-            except Exception as e:
-                logger.exception(e)  #
-                logger.warning("Geometry not feasible in current conditions")
-                rmsd = -1000 * self.weight
-            return rmsd
-
-    def evaluate_MetalGeom_directional(self, ind):
+    def evaluate(self, ind):
         """
         1. Get requested atoms sorted by distance
         2. If they meet the minimum quantity, return the rmsd for
@@ -222,15 +156,14 @@ class Coordination(ObjectiveProvider):
                            "{} missing".format(missing_atoms))
             return -100 * missing_atoms * self.weight
 
+        geometry = np.copy(self.geometry)
         ligands = test_atoms[:self.n_vertices]
-        ligand_coords = [a.xformCoord() for a in ligands]
         metal = self.probe(ind)
-        metal_coord = metal.xformCoord()
-
+        atom_points = np.array([a.xformCoord() for a in ligands + [metal]])
         # rmsd
         try:
-            rmsd = geomDistEval_patched(self.geometry, metal_coord, 
-                                        ligand_coords, min_ligands=self.min_atoms)
+            _, _, rmsd = coherent_point_drift(atom_points, geometry, method='rigid',
+                                              guess_steps=2, max_iterations=10)
         except Exception as e:
             logger.exception(e)  #
             logger.warning("Geometry not feasible in current conditions")
@@ -239,7 +172,6 @@ class Coordination(ObjectiveProvider):
         directionality = sum(ideal_bond_deviation(metal, ligand, ligands) for ligand in ligands)
         
         return rmsd + directionality
-
 
     def coordination_sphere(self, ind):
         """
@@ -282,7 +214,6 @@ class Coordination(ObjectiveProvider):
 
         return atoms_by_distance
 
-
     def _update_zone(self, ind):
         """
         Clear existing selection and add atoms within `self.radius` from
@@ -295,228 +226,6 @@ class Coordination(ObjectiveProvider):
                             self.zone, 'atom', None, self.radius, self.molecules(ind)))
         return self.zone
 
-
-def geomDistEval_patched(geom, metal_coord, ligands_coords, min_ligands=2):
-    """
-    Return RMSD of given geometry with best polyhedron built with metal_coord
-    as center and ligands_coords as possible vertices.
-
-    Parameters
-    ----------
-    geom : MetalGeom.Geometry.Geometry
-        Geometry of desired coordination. Get it from MetalGeom.geomData.geometries.
-    metal_coord : chimera.Point
-        Coordinates of metal ion
-    ligands_coords : list of chimera.Point
-        Coordinates of each of the potential ligand atoms
-    min_ligands : int, optional
-        Number of ligands that must be coordinating
-    Returns
-    -------
-    rmsd : float
-        RMSD value of ideal polyhedron alignment with given coordinates
-    """
-
-    if len(ligands_coords) == 1:
-        return 0.0
-    mc = metal_coord
-    lcoords = ligands_coords
-    lvecs = [lc - mc for lc in lcoords]
-
-    for lv in lvecs:
-        lv.normalize()
-    # (1), (2): pick primary, secondary
-    npv, nsv = lvecs[:2]
-    nsvpt = Point(*nsv.data())
-    origin = Point()
-    # (3) for each vector in the geometry
-    best_rmsd = [1000]
-    for i1, nv1 in enumerate(geom.normVecs):
-        # (3a) orient towards primary
-        rotAxis = cross(nv1, npv)
-        cos = nv1 * npv
-        ang = degrees(acos(cos))
-        if rotAxis.length > 0:
-            xf1 = Xform.rotation(rotAxis, ang)
-        elif cos > 0:
-            xf1 = Xform.identity()
-        else:
-            xf1 = Xform.rotation(1.0, 0.0, 0.0, 180.0)
-        plane1 = Plane(origin, cross(npv, nsv))
-        # (3b) for each other vector in the geometry
-        for i2, nv2 in enumerate(geom.normVecs):
-            if i1 == i2:
-                continue
-            # (3b1) orient towards secondary
-            xfnv2 = xf1.apply(nv2)
-            # Vectors have no rounding tolerance for equality tests
-            # if npv == xfnv2 or npv == -xfnv2:
-            ang = angle(npv, xfnv2)
-            if ang < 0.00001 or ang > 179.99999:
-                xf2 = Xform.identity()
-            else:
-                plane2 = Plane(origin, cross(npv, xfnv2))
-                ang = angle(plane1.normal, plane2.normal)
-                if plane1.distance(Point(*xfnv2.data())) > 0.0:
-                    angles = [0.0 - ang, 180.0 - ang]
-                else:
-                    angles = [ang, ang - 180.0]
-                bestD = None
-                for ang in angles:
-                    xf = Xform.rotation(npv, ang)
-                    d = nsvpt.sqdistance(Point(*xf.apply(xfnv2)))
-                    if bestD == None or d < bestD:
-                        bestD = d
-                        xf2 = xf
-            # (3b2) find correspondences between remaining
-            #   ligands and other vectors, closest first
-            xf = Xform.identity()
-            xf.multiply(xf2)
-            xf.multiply(xf1)
-            correspondences = {npv: nv1, nsv: nv2}
-            used = set([i1, i2])
-            xfnvs = [xf.apply(nv) for nv in geom.normVecs]
-            diffs = []
-            for i, xfnv in enumerate(xfnvs):
-                if i in used:
-                    continue
-                for lv in lvecs[2:]:
-                    diffs.append((angle(xfnv, lv), lv, i))
-            diffs.sort(key=itemgetter(0))
-            while len(used) < len(ligands_coords):
-                ang, lv, i = diffs.pop(0)
-                if i in used or lv in correspondences:
-                    continue
-                correspondences[lv] = geom.normVecs[i]
-                used.add(i)
-            if len(used) < min_ligands:
-                continue
-            # (3b3) get RMSD based on these pairings (incl. metal)
-            realPts = [mc] + lcoords
-            idealVecs = []
-            for lv, lc in zip(lvecs, lcoords):
-                nv = correspondences[lv]
-                idealVecs.append(xf.apply(nv) * (lc - mc).length)
-            idealPts = [origin] + [origin + iv for iv in idealVecs]
-            rmsdXf, rmsd = matchPositions(realPts, idealPts)
-            best_rmsd.append(rmsd)
-    return min(best_rmsd)
-
-def directional_evaluation(ligands_list):
-    """
-    Given a ligand get its bonding direction and compare it with the real one.
-
-    Parameters
-    ----------
-    ligands_list : list of Ligand objects
-        It contains the ligand candidates information.
-
-    Returns
-    -------
-    sin_sum/len(ligands_list): float
-        This value is taken as a scorer for the directional evaluation of the
-        metal coordination.
-    """
-    sin_sum = 0
-    for ligand in ligands_list:
-        direction = bond_direction(ligand)
-        if all(not v for v in direction):
-            continue
-        if ligand.bidentate:
-            metal_bond = ligand.bond_dir_origin - ligand.metal_center.xformCoord()
-            linearity = abs(math.sin(math.radians(angle(direction, metal_bond))))
-        else:
-            linearity = abs(math.sin(math.radians(angle(direction, ligand.vector))))
-        sin_sum += linearity
-    return sin_sum/(len(ligands_list))
-
-
-def bond_direction(ligand):
-    """
-    Obtains a preferential bonding direction. The directional evaluation is
-    calculated according to this direction.
-
-    Parameters
-    ----------
-    ligand : Ligand object
-        It is the ligand candidate whose bonding direction, if any, will be
-        obtained.
-
-    Returns
-    -------
-    vec : chimera.Vector
-        It is the vector whose direction matches with the ligand's bonding
-        direction.
-    """
-    p0 = ligand.coord
-    if ligand.terminal:
-        # For aspartic & glutamic acids (bidentates)
-        if ligand.bidentate:
-            p1 = ligand.bond_dir_origin
-            p2 = ligand.bidentate_mate.coord()
-            vec1 = Vector(*(p0-p1).data())
-            vec2 = Vector(*(p2-p1).data())
-            rot_axis = cross(vec1, vec2)
-            ang = angle(vec1, vec2)/2
-            rotation = Xform.rotation(rot_axis, ang)
-            vec = rotation.apply(vec1)
-            return vec
-
-    # For histidine & tryptophan
-    if len(ligand.neighbors) == 2:
-        p1 = ligand.neighbors[0].coord()
-        p2 = ligand.neighbors[1].coord()
-        vec1 = Vector(*(p1-p0).data())
-        vec2 = Vector(*(p2-p0).data())
-        rot_axis = cross(vec1, vec2)
-        ang = angle(vec1, vec2)/2 - 180
-        rotation = Xform.rotation(rot_axis, ang)
-        vec = rotation.apply(vec1)
-        return vec
-
-    return Vector(0, 0, 0)
-    # Add more cases...?
-
-    # else:
-    #     # Returns this null Vector to ensure that the sinus perfomed below gets
-    #     # equal to 0.0. This means that there is no preferential bonding
-    #     # direction for this ligand
-    #     return None
-
-class LigandHelper(object):
-    """
-    Class that defines useful information about the metal's surrounding
-    ligands.
-
-    ligand : chimera.Atom
-        Ligand being analyzed
-    ligands : list of chimera.Atom
-        All ligands in the surroundings, including `ligand`, 
-        needed to test if `ligand` is bidentate or not.
-    metal_center : chimera.Atom
-        The metal ion subject to geometry analysis.
-    """
-    def __init__(self, ligand, ligands, metal_center):
-        self.ligand = ligand
-        self.metal_center = metal_center
-        self.coord = self.bond_dir_origin = ligand.xformCoord()
-        self.vector = self.coord - metal_center.xformCoord()
-        self.neighbors = ligand.neighbors
-        self.terminal = len(self.neighbors) == 1
-        self.bidentate = False
-        self.bidentate_mate = None
-
-        for potential_mate in ligands:
-            conditions = (potential_mate is not ligand, 
-                          len(ligand.neighbors) == 1,
-                          len(potential_mate.neighbors) == 1, 
-                          ligand.neighbors[0] is potential_mate.neighbors[0])
-
-            if all(conditions):
-                self.bidentate = True
-                self.bond_dir_origin = self.neighbors[0].xformCoord()
-                self.bidentate_mate = potential_mate
-                break
 
 def ideal_bond_deviation(metal, ligand, other_ligands=()):
 
