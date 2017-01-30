@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 
 ##############
-# GAUDIasm: Genetic Algorithms for Universal
-# Design Inference and Atomic Scale Modeling
+# GaudiMM: Genetic Algorithms with Unrestricted 
+# Descriptors for Intuitive Molecular Modeling
 # Authors:  Jaime Rodriguez-Guerra Pedregal
 #            <jaime.rodriguezguerra@uab.cat>
 #           Jean-Didier Marechal
@@ -12,7 +12,7 @@
 ##############
 
 """
-This module parses and validatesYAML input files into convenient objects
+This module parses and validates YAML input files into convenient objects
 that allow per-attribute access to configuration parameters.
 """
 

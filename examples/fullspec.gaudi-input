@@ -1,11 +1,11 @@
 ##############
-# GAUDIasm: Genetic Algorithms for Universal
-# Design Inference and Atomic Scale Modeling
+# GaudiMM: Genetic Algorithms with Unrestricted
+# Descriptors for Intuitive Molecular Modeling
 # Authors:  Jaime Rodriguez-Guerra Pedregal
 #            <jaime.rodriguezguerra@uab.cat>
 #           Jean-Didier Maréchal
 #            <jeandidier.marechal@uab.cat>
-# Web: https://bitbucket.org/jrgp/gaudi
+# Web: https://bitbucket.org/insilichem/gaudi
 ##############
 output:
     path: /path/to/output

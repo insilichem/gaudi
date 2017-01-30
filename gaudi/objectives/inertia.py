@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 
 ##############
-# GAUDIasm: Genetic Algorithms for Universal
-# Design Inference and Atomic Scale Modeling
+# GaudiMM: Genetic Algorithms with Unrestricted
+# Descriptors for Intuitive Molecular Modeling
 # Authors:  Mireia Bertran
 #            <mireia.bertran.p@gmail.com>
 #           Jaime Rodriguez-Guerra Pedregal
