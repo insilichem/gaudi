@@ -280,7 +280,7 @@ def calculate_energy(filename, forcefields=None):
     Calculate energy from PDB file with desired forcefields. If not specified,
     amber99sbildn will be used. Returns potential energy in kJ/mol.
     """
-    if forcefields is None:
+    if not forcefields:
         forcefields = ['amber99sbildn.xml']
 
     mol = openmm_app.PDBFile(filename)
@@ -364,4 +364,4 @@ def _test_topology_equality(t1, t2):
 
 if __name__ == "__main__":
     import sys
-    print(calculate_energy(sys.argv[1]))
+    print(calculate_energy(sys.argv[1], forcefields=sys.argv[2:]))
