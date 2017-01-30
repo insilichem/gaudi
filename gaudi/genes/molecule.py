@@ -468,7 +468,8 @@ class Compound(object):
 
     def parse_attr(self):
         try:
-            f = open(self.mol.openedAs[0][:-4] + 'attr')
+            basepath, _ = os.path.splitext(self.mol.openedAs[0])
+            f = open(basepath + '.attr')
         except IOError:
             logger.warning("No attr file found for molecule %s",
                            self.mol.openedAs[0])
