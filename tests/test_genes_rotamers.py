@@ -16,15 +16,19 @@ def rotamers(individual, path, position, seed):
     rotamers.allele = [seed]
     return rotamers
 
+
 @pytest.mark.parametrize("path, position, seed, restype, original_chis, new_chis", [
     ('4c3w_protein.mol2', 5, 0, 'ARG', [179.734, 178.061, 60.608, 90.076], [-178.1, 179.9, -178.9, -171.1]),
 ])
 def test_rotamers(individual, path, position, seed, restype, original_chis, new_chis):
     rotamer = rotamers(individual, path, position, seed)
+    residue = rotamer.residues[('Molecule', position)]
+    alpha_carbon = next(a for a in residue.atoms if a.name == 'CA')
+    alpha_carbon_unexpressed_coord = alpha_carbon.xformCoord()
     with expressed(individual):
-        residue = rotamer.residues[('Molecule', position)]
         assert residue.id.position == position
         assert residue.type == restype
+        assert alpha_carbon.xformCoord() == alpha_carbon_unexpressed_coord
         for real, torsion in zip(original_chis, residue._rotamer_torsions):
             assert abs(real - torsion.chi) < 0.001
         for real, computed_modified in zip(new_chis, rotamer.all_chis(residue)):
@@ -32,6 +36,7 @@ def test_rotamers(individual, path, position, seed, restype, original_chis, new_
 
     for original, reverted in zip(original_chis, rotamer.all_chis(residue)):
         assert abs(original - reverted) < 0.001
+
 
 @pytest.mark.parametrize("path, position, seed", [
     ('4c3w_protein.mol2', 5, 0),

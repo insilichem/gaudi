@@ -35,7 +35,7 @@ from Rotamers import getRotamerParams, NoResidueRotamersError
 # External dependencies
 import deap.tools
 # GAUDI
-from gaudi import parse
+from gaudi import parse, box
 from gaudi.genes import GeneProvider
 
 logger = logging.getLogger(__name__)
@@ -132,27 +132,28 @@ class Rotamers(GeneProvider):
     @staticmethod
     def update_rotamer(residue, chis):
         for bondrot, chi in zip(residue._rotamer_torsions, chis):
-            bondrot.adjustAngle(chi - bondrot.chi, bondrot.biggerSide())
+            bondrot.adjustAngle(chi - bondrot.chi, bondrot.anchor)
 
     @staticmethod
     def patch_residue(residue):
         if getattr(residue, '_rotamer_torsions', None):
             return
         residue._rotamer_torsions = [] # BondRot objects cache
+        alpha_carbon = next((a for a in residue.atoms if a.name == 'CA'), residue.atoms[0])
         for chi in range(1, 5):
             try:
                 atoms = chiAtoms(residue, chi)
                 bond = atoms[1].bondsMap[atoms[2]]
                 br = BondRot(bond)
-                br.anchor = br.biggerSide()
+                br.anchor = box.find_nearest(alpha_carbon, bond.atoms)
                 br.chi = dihedral(*[a.coord() for a in atoms])
                 residue._rotamer_torsions.append(br)
             except AtomsMissingError:
                 break
             except (chimera.error, ValueError) as v:
-                    if "cycle" in str(v) or "already used" in str(v):
-                        continue  # discard bonds in cycles and used!
-                    break
+                if "cycle" in str(v) or "already used" in str(v):
+                    continue  # discard bonds in cycles and used!
+                break
     @staticmethod
     def all_chis(residue):
         chis = []
