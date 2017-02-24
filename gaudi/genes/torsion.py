@@ -77,13 +77,16 @@ class Torsion(GeneProvider):
         'rotatable_atom_types': [basestring],
         'rotatable_atom_names': [basestring],
         'rotatable_elements': [basestring],
+        'non_rotatable_bonds': [parse.All([parse.Named_spec("molecule", "atom")],
+                                          parse.Length(min=2, max=2))]
         }
 
     BONDS_ROTS = {}
 
     def __init__(self, target=None, flexibility=360.0, max_bonds=None, anchor=None,
                  rotatable_atom_types=('C3', 'N3', 'C2', 'N2', 'P'), 
-                 rotatable_atom_names=(), rotatable_elements=(), **kwargs):
+                 rotatable_atom_names=(), rotatable_elements=(),
+                 non_rotatable_bonds=(), **kwargs):
         GeneProvider.__init__(self, **kwargs)
         self._kwargs = kwargs
         self.target = target
@@ -92,9 +95,9 @@ class Torsion(GeneProvider):
         self.rotatable_atom_types = rotatable_atom_types
         self.rotatable_atom_names = rotatable_atom_names
         self.rotatable_elements = rotatable_elements
+        self.non_rotatable_bonds = non_rotatable_bonds
         self._anchor = anchor
         self.allele = [self.random_angle() for i in xrange(50)]
-        self.nonrotatable = ()
 
     def __expression_hooks__(self):
         if self.max_bonds is None:
@@ -178,30 +181,34 @@ class Torsion(GeneProvider):
             return self.molecule._rotatable_bonds
 
     def _compute_rotatable_bonds(self):
-        atoms = self.molecule.atoms
-        bonds = set(b for a in atoms for b in a.bonds if not a.element.isMetal)
-        bonds = sorted(bonds, key=lambda b: min(y.serialNumber for y in b.atoms))
+        bonds = sorted(self.molecule.bonds, 
+                       key=lambda b: min(y.serialNumber for y in b.atoms))
+
+        non_rotatable_bonds = []
+        for atom_a, atom_b in self.non_rotatable_bonds:
+            a = self.parent.find_molecule(atom_a.molecule).find_atom(atom_a.atom)
+            b = self.parent.find_molecule(atom_b.molecule).find_atom(atom_b.atom)
+            bond = a.findBond(b)
+            if bond:
+                non_rotatable_bonds.append(bond)
+            else:
+                logger.warning('Atoms {} and {} are not bonded!'.format(a, b))
 
         def conditions(*atoms):
-            # If any of the atoms is a dummy atom, we don't care: rotate that one
             for a in atoms:
+                if a.numBonds <= 1 or a.element.isMetal:
+                    return False
+                # Must be satisfied by at least one atom
                 if a.name == 'DUM':
                     return True
-
-            # Must be satisfied by all atoms
-            for a in atoms:
-                if a.numBonds <= 1:
-                    return False
-            
-            # Must be satisfied by at least one atom
-            for a in atoms:
-                if a not in self.nonrotatable and \
-                    (a.idatmType in self.rotatable_atom_types or
-                     a.name in self.rotatable_atom_names or
-                     a.element.name in self.rotatable_elements):
+                if a.idatmType in self.rotatable_atom_types or \
+                   a.name in self.rotatable_atom_names or \
+                   a.element.name in self.rotatable_elements:
                     return True
 
         for b in bonds:
+            if b in non_rotatable_bonds:
+                continue
             if conditions(*b.atoms):
                 try:
                     br = chimera.BondRot(b)
