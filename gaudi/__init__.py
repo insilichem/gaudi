@@ -40,9 +40,9 @@ except ImportError:
 logging.getLogger(__name__).addHandler(NullHandler())
 
 __author__ = 'Jaime Rodriguez-Guerra, and Jean-Didier Marechal'
-__copyright__ = '2016, InsiliChem'
+__copyright__ = '2017, InsiliChem'
 __url__ = 'https://bitbucket.org/insilichem/gaudi'
-__description__ = 'GAUDI: Genetic Algorithms for Universal Design Inference'
+__description__ = 'GaudiMM: Genetic Algorithms with Unrestricted Descriptors for Intuitive Molecular Modeling'
 
 from ._version import get_versions
 __version__ = get_versions()['version']

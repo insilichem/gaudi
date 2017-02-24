@@ -8,7 +8,7 @@ package:
 about:
   home: https://bitbucket.org/insilichem/gaudi
   license: Free For Educational Use
-  summary: "Genetic Algorithms for Universal Design Inference"
+  summary: Genetic Algorithms with Unrestricted Descriptors for Intuitive Molecular Modeling
 
 source:
   path: ../

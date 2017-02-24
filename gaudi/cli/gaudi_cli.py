@@ -35,6 +35,7 @@ import click
 import pychimera
 import gaudi
 
+
 # Helpers
 def test_import(command, module):
     try:
@@ -61,24 +62,26 @@ def timeit(func, *args, **kwargs):
 @click.version_option(version=gaudi.__version__)
 def cli(prog_name='gaudi'):
     """
-    GAUDI: Genetic Algorithms for Universal Design Inference
+    GaudiMM: Genetic Algorithms with Unrestricted
+    Descriptors for Intuitive Molecular Modeling
 
     \b
-    (C) 2016, InsiliChem
+    (C) 2017, InsiliChem
     https://bitbucket.org/insilichem/gaudi
     """
     pychimera.patch_environ()
     pychimera.enable_chimera()
     banner = dedent('''
-      .g8"""bgd       db   `7MMF'   `7MF'`7MM"""Yb. `7MMF'
-    .dP'     `M      ;MM:    MM       M    MM    `Yb. MM  
-    dM'       `     ,V^MM.   MM       M    MM     `Mb MM  
-    MM             ,M  `MM   MM       M    MM      MM MM  
-    MM.    `7MMF'  AbmmmqMA  MM       M    MM     ,MP MM  
-    `Mb.     MM   A'     VML YM.     ,M    MM    ,dP' MM  
-      `"bmmmdPY .AMA.   .AMMA.`bmmmmd"'  .JMMmmmdP' .JMML.''')
+      .g8"""bgd       db   `7MMF'   `7MF'`7MM"""Yb. `7MMF'                                    
+    .dP'     `M      ;MM:    MM       M    MM    `Yb. MM                                      
+    dM'       `     ,V^MM.   MM       M    MM     `Mb MM  `7MMpMMMb.pMMMb.  `7MMpMMMb.pMMMb.  
+    MM             ,M  `MM   MM       M    MM      MM MM    MM    MM    MM    MM    MM    MM  
+    MM.    `7MMF'  AbmmmqMA  MM       M    MM     ,MP MM    MM    MM    MM    MM    MM    MM  
+    `Mb.     MM   A'     VML YM.     ,M    MM    ,dP' MM    MM    MM    MM    MM    MM    MM  
+      `"bmmmdPY .AMA.   .AMMA.`bmmmmd"'  .JMMmmmdP' .JMML..JMML  JMML  JMML..JMML  JMML  JMML.''')
     click.echo("{}\n{}".format(banner, '-'*len(banner.splitlines()[1])))
-    click.echo('GAUDI: Genetic Algorithms for Unified Design Inference')
+    click.echo('GaudiMM: Genetic Algorithms with Unrestricted '
+               'Descriptors for Intuitive Molecular Modeling')
     click.echo('{} · v{}\n'.format(gaudi.__copyright__, gaudi.__version__))
 
 
