@@ -196,12 +196,12 @@ class Torsion(GeneProvider):
 
         def conditions(*atoms):
             for a in atoms:
-                if a.numBonds <= 1 or a.element.isMetal:
-                    return False
                 # Must be satisfied by at least one atom
-                if a.name == 'DUM':
-                    return True
-                if a.idatmType in self.rotatable_atom_types or \
+                if a.numBonds == 1 or a.element.isMetal:
+                    return False
+            for a in atoms:
+                if a.name == 'DUM' or \
+                   a.idatmType in self.rotatable_atom_types or \
                    a.name in self.rotatable_atom_names or \
                    a.element.name in self.rotatable_elements:
                     return True
