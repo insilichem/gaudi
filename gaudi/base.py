@@ -332,7 +332,8 @@ class Environment(object):
             self.weights = self.cfg.weights
             gaudi.plugin.load_plugins(self.cfg.objectives,
                                       container=self.objectives,
-                                      zone=self.zone, environment=self)
+                                      zone=self.zone, environment=self,
+                                      precision=self.cfg.output.precision)
 
     def evaluate(self, individual):
         """
@@ -342,6 +343,7 @@ class Environment(object):
         with expressed(individual):
             for name, obj in self.objectives.items():
                 score = obj.evaluate(individual)
+                score = round(score, obj.precision)
                 scores.append(score)
                 logger.debug("%s fitness is %s", name, score)
         return scores

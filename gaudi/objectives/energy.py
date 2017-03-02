@@ -81,6 +81,7 @@ class Energy(ObjectiveProvider):
 
     def __init__(self, targets=None, forcefields=('amber99sbildn.xml',), auto_parametrize=None,
                  parameters=None, platform=None, *args, **kwargs):
+        kwargs.setdefault('precision', 6)  # default precision (3 positions) is not enough here
         ObjectiveProvider.__init__(self, **kwargs)
         self.auto_parametrize = auto_parametrize
         self._targets = targets

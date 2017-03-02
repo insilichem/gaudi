@@ -63,11 +63,12 @@ class ObjectiveProvider(object):
     _validate = {}
 
     def __init__(self, environment=None, name=None, weight=None, zone=None,
-                 **kwargs):
+                 precision=3, **kwargs):
         self.environment = environment
         self.name = name if name is not None else str(uuid4())
         self.weight = weight
         self.zone = zone if zone is not None else chimera.selection.ItemizedSelection()
+        self.precision = precision
 
     def __ready__(self):
         pass
@@ -88,7 +89,8 @@ class ObjectiveProvider(object):
                   'module': parse.Importable,
                   'name': str,
                   'weight': parse.Coerce(float),
-                  'zone': chimera.selection.ItemizedSelection}
+                  'zone': chimera.selection.ItemizedSelection,
+                  'precision': parse.All(parse.Coerce(int), parse.Range(min=0, max=9))}
         schema.update(cls._validate)
         return parse.validate(schema, data)
 
