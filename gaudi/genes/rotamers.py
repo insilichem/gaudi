@@ -83,7 +83,10 @@ class Rotamers(GeneProvider):
         self.library = library
         self.allele = []
         # set caches
-        self.residues = self._cache.setdefault(self.name + '_residues', OrderedDict())
+        try:
+            self.residues = self._cache[self.name + '_residues']
+        except KeyError:
+            self.residues = self._cache[self.name + '_residues'] = OrderedDict()
 
     def __ready__(self):
         """
@@ -121,7 +124,7 @@ class Rotamers(GeneProvider):
     def unexpress(self):
         for res in self.residues.values():
             for torsion in res._rotamer_torsions:
-                torsion.reset()
+                torsion.adjustAngle(-torsion.angle, torsion.rotanchor)
 
     def mate(self, mate):
         self.allele, mate.allele = deap.tools.cxTwoPoint(self.allele, mate.allele)
@@ -132,7 +135,7 @@ class Rotamers(GeneProvider):
     @staticmethod
     def update_rotamer(residue, chis):
         for bondrot, chi in zip(residue._rotamer_torsions, chis):
-            bondrot.adjustAngle(chi - bondrot.chi, bondrot.anchor)
+            bondrot.adjustAngle(chi - bondrot.chi, bondrot.rotanchor)
 
     @staticmethod
     def patch_residue(residue):
@@ -145,7 +148,7 @@ class Rotamers(GeneProvider):
                 atoms = chiAtoms(residue, chi)
                 bond = atoms[1].bondsMap[atoms[2]]
                 br = BondRot(bond)
-                br.anchor = box.find_nearest(alpha_carbon, bond.atoms)
+                br.rotanchor = box.find_nearest(alpha_carbon, bond.atoms)
                 br.chi = dihedral(*[a.coord() for a in atoms])
                 residue._rotamer_torsions.append(br)
             except AtomsMissingError:
@@ -154,6 +157,7 @@ class Rotamers(GeneProvider):
                 if "cycle" in str(v) or "already used" in str(v):
                     continue  # discard bonds in cycles and used!
                 break
+
     @staticmethod
     def all_chis(residue):
         chis = []
