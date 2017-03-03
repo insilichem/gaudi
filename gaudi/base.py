@@ -28,7 +28,6 @@ import pprint
 import sys
 # Chimera
 import chimera
-from _multiscale import get_atom_coordinates
 # External dependencies
 import deap.base
 import yaml
