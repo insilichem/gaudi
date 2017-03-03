@@ -78,7 +78,8 @@ class Torsion(GeneProvider):
         'rotatable_atom_names': [basestring],
         'rotatable_elements': [basestring],
         'non_rotatable_bonds': [parse.All([parse.Named_spec("molecule", "atom")],
-                                          parse.Length(min=2, max=2))]
+                                          parse.Length(min=2, max=2))],
+        'precision': parse.All(parse.Coerce(int), parse.Range(min=0, max=3))
         }
 
     BONDS_ROTS = {}
@@ -86,7 +87,7 @@ class Torsion(GeneProvider):
     def __init__(self, target=None, flexibility=360.0, max_bonds=None, anchor=None,
                  rotatable_atom_types=('C3', 'N3', 'C2', 'N2', 'P'), 
                  rotatable_atom_names=(), rotatable_elements=(),
-                 non_rotatable_bonds=(), **kwargs):
+                 non_rotatable_bonds=(), precision=1, **kwargs):
         GeneProvider.__init__(self, **kwargs)
         self._kwargs = kwargs
         self.target = target
@@ -96,6 +97,7 @@ class Torsion(GeneProvider):
         self.rotatable_atom_names = rotatable_atom_names
         self.rotatable_elements = rotatable_elements
         self.non_rotatable_bonds = non_rotatable_bonds
+        self.precision = precision
         self._anchor = anchor
         self.allele = [self.random_angle() for i in xrange(50)]
 
@@ -125,15 +127,18 @@ class Torsion(GeneProvider):
             br.adjustAngle(-br.angle, br.rotanchor)
 
     def mate(self, mate):
-        self.allele[:], mate.allele[:] = cxSimulatedBinaryBounded(
+        self_allele, mate_allele = cxSimulatedBinaryBounded(
             self.allele, mate.allele, eta=self.cxeta,
             low=-0.5 * self.flexibility, up=0.5 * self.flexibility)
+        self.allele[:] = [round(n, self.precision) for n in self_allele]
+        mate.allele[:] = [round(n, self.precision) for n in mate_allele]
 
     def mutate(self, indpb):
-        self.allele, = mutPolynomialBounded(self.allele,
-                                            indpb=self.indpb, eta=self.mteta,
-                                            low=-0.5 * self.flexibility,
-                                            up=0.5 * self.flexibility)
+        allele, = mutPolynomialBounded(self.allele,
+                                       indpb=self.indpb, eta=self.mteta,
+                                       low=-0.5 * self.flexibility,
+                                       up=0.5 * self.flexibility)
+        self.allele[:] = [round(n, self.precision) for n in allele]
 
     def clear_cache(self):
         GeneProvider.clear_cache()
@@ -148,7 +153,8 @@ class Torsion(GeneProvider):
         """
         Returns a random angle within flexibility limits
         """
-        return random.uniform(-0.5 * self.flexibility, 0.5 * self.flexibility)
+        return round(random.uniform(-0.5 * self.flexibility, 0.5 * self.flexibility),
+                     self.precision)
 
     @property
     def rotatable_bonds(self):

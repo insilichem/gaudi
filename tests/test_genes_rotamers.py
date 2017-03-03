@@ -6,7 +6,6 @@ from conftest import datapath, expressed
 from gaudi.genes.molecule import Molecule
 from gaudi.genes.rotamers import Rotamers
 
-
 def rotamers(individual, path, position, seed):
     individual.genes['Molecule'] = Molecule(parent=individual, path=datapath(path))
     individual.genes['Rotamers'] = rotamers = Rotamers(parent=individual,
@@ -23,16 +22,28 @@ def rotamers(individual, path, position, seed):
 def test_rotamers(individual, path, position, seed, restype, original_chis, new_chis):
     rotamer = rotamers(individual, path, position, seed)
     residue = rotamer.residues[('Molecule', position)]
-    alpha_carbon = next(a for a in residue.atoms if a.name == 'CA')
-    alpha_carbon_unexpressed_coord = alpha_carbon.xformCoord()
+    # Cache initial coordinates for the residue and ALL the alpha carbons in the protein
+    alpha_carbons_coords = [a.xformCoord() for a in residue.molecule.atoms if a.name == 'CA']
+    residue_coords = [a.xformCoord() for a in residue.atoms]
+    
     with expressed(individual):
         assert residue.id.position == position
         assert residue.type == restype
-        assert alpha_carbon.xformCoord() == alpha_carbon_unexpressed_coord
+        assert [a.xformCoord() for a in residue.molecule.atoms if a.name == 'CA'] == alpha_carbons_coords
+        assert [a.xformCoord() for a in residue.atoms] != residue_coords
         for real, torsion in zip(original_chis, residue._rotamer_torsions):
             assert abs(real - torsion.chi) < 0.001
         for real, computed_modified in zip(new_chis, rotamer.all_chis(residue)):
             assert abs(real - computed_modified) < 0.001
+
+    # Check everything is back in place!
+    for original, reverted in zip([a.xformCoord() for a in residue.atoms], residue_coords):
+        for a, b in zip(original, reverted):
+            assert abs(a - b) < 0.001
+
+    for original, reverted in zip([a.xformCoord() for a in residue.molecule.atoms if a.name == 'CA'], alpha_carbons_coords):
+        for a, b in zip(original, reverted):
+            assert abs(a - b) < 0.001
 
     for original, reverted in zip(original_chis, rotamer.all_chis(residue)):
         assert abs(original - reverted) < 0.001
