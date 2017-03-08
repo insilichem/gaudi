@@ -4,11 +4,22 @@
 ##############
 # GaudiMM: Genetic Algorithms with Unrestricted
 # Descriptors for Intuitive Molecular Modeling
-# Authors:  Jaime Rodriguez-Guerra Pedregal
-#            <jaime.rodriguezguerra@uab.cat>
-#           Jean-Didier Marechal
-#            <jeandidier.marechal@uab.cat>
-# Web: https://bitbucket.org/insilichem/gaudi
+# 
+# http://bitbucket.org/insilichem/gaudi
+#
+# Copyright 2017 Jaime Rodriguez-Guerra, Jean-Didier Marechal
+# 
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# 
+#      http://www.apache.org/licenses/LICENSE-2.0
+# 
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 ##############
 
 """
@@ -81,7 +92,8 @@ class Energy(ObjectiveProvider):
 
     def __init__(self, targets=None, forcefields=('amber99sbildn.xml',), auto_parametrize=None,
                  parameters=None, platform=None, *args, **kwargs):
-        kwargs.setdefault('precision', 6)  # default precision (3 positions) is not enough here
+        if kwargs.get('precision', 6) < 6:
+            kwargs['precision'] = 6
         ObjectiveProvider.__init__(self, **kwargs)
         self.auto_parametrize = auto_parametrize
         self._targets = targets

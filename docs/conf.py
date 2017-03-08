@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# GAUDIasm documentation build configuration file, created by
+# GaudiMM documentation build configuration file, created by
 # sphinx-quickstart on Fri Nov 13 17:23:39 2015.
 #
 # This file is execfile()d with the current directory set to its

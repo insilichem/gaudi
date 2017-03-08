@@ -7,7 +7,7 @@ package:
 
 about:
   home: https://bitbucket.org/insilichem/gaudi
-  license: Free For Educational Use
+  license: Apache 2.0
   summary: Genetic Algorithms with Unrestricted Descriptors for Intuitive Molecular Modeling
 
 source:

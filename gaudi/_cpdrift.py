@@ -1,6 +1,27 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+##############
+# GaudiMM: Genetic Algorithms with Unrestricted
+# Descriptors for Intuitive Molecular Modeling
+# 
+# http://bitbucket.org/insilichem/gaudi
+#
+# Copyright 2017 Jaime Rodriguez-Guerra, Jean-Didier Marechal
+# 
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# 
+#      http://www.apache.org/licenses/LICENSE-2.0
+# 
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+##############
+
 """
 Coherent Point Drift (affine and rigid) Python2/3 implementation,
 adapted from https://github.com/kwohlfahrt/coherent-point-drift
@@ -20,8 +41,8 @@ from itertools import product, repeat, islice
 from functools import reduce
 
 
-def coherent_point_drift(X, Y, w=0.0, B=None, guess_steps=5, max_iterations=20, method='affine'):
-
+def coherent_point_drift(X, Y, w=0.0, B=None, guess_steps=5, max_iterations=20, 
+                         method='affine'):
     register, transform = {'affine': (affine_cpd, affine_xform),
                            'rigid':  (rigid_cpd, rigid_xform)}[method]
 
@@ -47,11 +68,13 @@ def rigid_cpd(X, Y, w=0.0, R=None):
     t = X.mean(axis=0) - rigid_xform(Y, R=R, s=s).mean(axis=0)
     sigma_sq = pairwise_sqdist(rigid_xform(Y, R, t, s), X).sum() / (D * M * N)
 
-    old_exceptions = np.seterr(divide='ignore', over='ignore', under='ignore', invalid='raise')
+    old_exceptions = np.seterr(divide='ignore', over='ignore', under='ignore', 
+                               invalid='raise')
     while True:
         try:
             transformed_Y = rigid_xform(Y, R, t, s)
-            P, N_p, mu_x, mu_y, X_hat, Y_hat = common_steps(X, Y, transformed_Y, w, sigma_sq)
+            P, N_p, mu_x, mu_y, X_hat, Y_hat = common_steps(X, Y, transformed_Y, 
+                                                            w, sigma_sq)
         except FloatingPointError:
             np.seterr(**old_exceptions)
             break
@@ -80,11 +103,13 @@ def affine_cpd(X, Y, w=0.0, B=None):
     t = X.mean(axis=0) - affine_xform(Y, B=B).mean(axis=0)
 
     sigma_sq = pairwise_sqdist(affine_xform(Y, B, t), X).sum() / (D * M * N)
-    old_exceptions = np.seterr(divide='ignore', over='ignore', under='ignore', invalid='raise')
+    old_exceptions = np.seterr(divide='ignore', over='ignore', under='ignore', 
+                               invalid='raise')
     while True:
         try:
             transformed_Y = affine_xform(Y, B, t)
-            P, N_p, mu_x, mu_y, X_hat, Y_hat = common_steps(X, Y, transformed_Y, w, sigma_sq)
+            P, N_p, mu_x, mu_y, X_hat, Y_hat = common_steps(X, Y, transformed_Y, w, 
+                                                            sigma_sq)
         except FloatingPointError:
             np.seterr(**old_exceptions)
             break
@@ -142,7 +167,8 @@ def affine_xform(X, B=np.array(1), t=0):
 def spaced_rotations(N):
     # Ken Shoemake
     # Graphics Gems III, pp 124-132
-    for x_theta in product(frange(0, 1, 1/N), *repeat(frange(0, 2*math.pi, 2*math.pi/N), 2)):
+    for x_theta in product(frange(0, 1, 1/N), 
+                           *repeat(frange(0, 2*math.pi, 2*math.pi/N), 2)):
         X, theta = x_theta[0], x_theta[1:]
         R0, R1 = math.sqrt(1-X), math.sqrt(X)
         yield Quaternion(math.sin(theta[0]) * R0, math.cos(theta[0]) * R0,
@@ -177,10 +203,12 @@ def plot(x, y, t):
     Parameters
     ----------
     x : ndarray
-        The static shape that y will be registered to. Expected array shape is [n_points_x, n_dims]
+        The static shape that y will be registered to. Expected array shape is 
+        [n_points_x, n_dims]
     y : ndarray
-        The moving shape. Expected array shape is [n_points_y, n_dims]. Note that n_dims should be equal for x and y,
-        but n_points does not need to match.
+        The moving shape. Expected array shape is [n_points_y, n_dims]. 
+        Note that n_dims should be equal for x and y, but n_points does 
+        not need to match.
     t : ndarray
         The transformed version of y. Output shape is [n_points_y, n_dims].
     """
@@ -256,7 +284,8 @@ class Quaternion(object):
                 self.s * other.j - self.i * other.k + self.j * other.s + self.k * other.i,
                 self.s * other.k + self.i * other.j - self.j * other.i + self.k * other.s)
         except AttributeError:
-            return Quaternion(other * self.s, other * self.i, other * self.j, other * self.k)
+            return Quaternion(other * self.s, other * self.i, 
+                              other * self.j, other * self.k)
 
     def __rmul__(self, other):
         return self.__mul__(other)

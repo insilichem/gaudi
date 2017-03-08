@@ -4,11 +4,22 @@
 ##############
 # GaudiMM: Genetic Algorithms with Unrestricted
 # Descriptors for Intuitive Molecular Modeling
-# Authors:  Jaime Rodriguez-Guerra Pedregal
-#            <jaime.rodriguezguerra@uab.cat>
-#           Jean-Didier Marechal
-#            <jeandidier.marechal@uab.cat>
-# Web: https://bitbucket.org/insilichem/gaudi
+# 
+# http://bitbucket.org/insilichem/gaudi
+#
+# Copyright 2017 Jaime Rodriguez-Guerra, Jean-Didier Marechal
+# 
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# 
+#      http://www.apache.org/licenses/LICENSE-2.0
+# 
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 ##############
 
 """
@@ -42,7 +53,8 @@ logging.getLogger(__name__).addHandler(NullHandler())
 __author__ = 'Jaime Rodriguez-Guerra, and Jean-Didier Marechal'
 __copyright__ = '2017, InsiliChem'
 __url__ = 'https://bitbucket.org/insilichem/gaudi'
-__description__ = 'GaudiMM: Genetic Algorithms with Unrestricted Descriptors for Intuitive Molecular Modeling'
+__description__ = ('GaudiMM: Genetic Algorithms with Unrestricted Descriptors '
+                   'for Intuitive Molecular Modeling')
 
 from ._version import get_versions
 __version__ = get_versions()['version']
