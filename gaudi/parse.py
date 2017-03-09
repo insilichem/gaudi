@@ -189,7 +189,7 @@ class Settings(Munch):
             'cx_pb': 0.5,
         },
         'similarity': {
-            'type': 'gaudi.similarity.rmsd',
+            'module': 'gaudi.similarity.rmsd',
             'args': [['Ligand'], 2.5],
             'kwargs': {}
         },
@@ -249,8 +249,11 @@ class Settings(Munch):
     def name_objectives(self):
         return [obj.name for obj in self.objectives]
 
-    def validate(self, data):
-        return validate(self.schema, data)
+    def validate(self, data=None):
+        if data is not None:
+            return validate(self.schema, data)
+        validated = deep_update(self, validate(self.schema, self))
+        self.update(munchify(validated))
 
 def deep_update(source, overrides):
     """Update a nested dictionary or similar mapping.
