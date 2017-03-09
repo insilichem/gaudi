@@ -34,25 +34,28 @@ from SplitMolecule.split import split_molecules
 from gaudi.cli.gaudi_run import main as gaudi_run
 from gaudi.parse import Settings
 
-def stdout_to_file():
-    sys.stdout = open(str(os.getpid()) + ".out", "w")
+
+def stdout_to_file(workspace):
+    path = os.path.join(workspace, 'log')
+    path = _incremental_existing_path(path, separator="__")
+    sys.stdout = open(path + '.stdout', "w")
+    sys.stderr = open(path + '.stderr', "w")
+
+def _incremental_existing_path(path, separator="__"):
+    keep_trying = 1
+    while os.path.exists(path):
+        base, ext = os.path.splitext(path)
+        base = base.rsplit(separator, 1)[0]
+        path = '{}{}{}{}'.format(base, separator, keep_trying, ext)
+        keep_trying += 1
+    return path
 
 def prepare_workspace(name, *molecules):
     basedir, filename = os.path.split(name)
     workspace_name, _ = os.path.splitext(filename)
     workspace_path = os.path.join(basedir, 'benchmark', workspace_name)
-    
-    keep_trying = 1
-    while keep_trying:
-        try:
-            os.makedirs(workspace_path)
-        except OSError:
-            if os.path.exists(workspace_path):
-                workspace_path = '{}___{}'.format(workspace_path.rsplit('___', 1)[0], keep_trying)
-                keep_trying += 1
-                continue
-        else:
-            keep_trying = 0
+    workspace_path = _incremental_existing_path(workspace_path)
+    os.makedirs(workspace_path)
 
     paths = []
     for i, molecule in enumerate(molecules):
@@ -63,10 +66,11 @@ def prepare_workspace(name, *molecules):
 
     return workspace_path, paths
 
+
 def split_metal_protein(molecule):
     """
-    Take a molecule file and extract the metals and protein
-    in separate files.
+    Take a molecule file and separate the metal ions from the
+    rest of the molecule to different files.
 
     Parameters
     ----------
@@ -80,7 +84,7 @@ def split_metal_protein(molecule):
     # Retrieve proteins and write them to single mol2 file
     metals = [a for a in molecule.atoms if a.element in chimera.elements.metals]
     split_molecules(molecules=[molecule], atoms=[metals])
-    return sorted(chimera.openModels.list(), key= lambda m: m.numAtoms)
+    return sorted(chimera.openModels.list(), key=lambda m: m.numAtoms)
 
 
 def list_molecules(path):
@@ -92,11 +96,13 @@ def list_molecules(path):
         if ext in ('.mol2', '.pdb') and os.path.isfile(name):
             yield os.path.join(path, name)
 
+
 def clean_canvas():
     chimera.runCommand('delete solvent')
     chimera.runCommand('delete @/element=CA')
     chimera.runCommand('delete @/element=CL')
     chimera.runCommand('delete @/element=NA')
+
 
 def benchmark(args):
     cfg, molfile = args
@@ -106,19 +112,20 @@ def benchmark(args):
     workspace, paths = prepare_workspace(molfile, protein, metals)
     prot_gene = next(g for g in cfg.genes if g.name == 'Protein')
     metal_gene = next(g for g in cfg.genes if g.name == 'Metal')
-    prot_gene.path = paths[0]
-    metal_gene.path = paths[1]
+    prot_gene.path, metal_gene.path = paths[0:2]
     cfg.output.path = os.path.join(workspace, 'output')
     cfg.output.name = os.path.splitext(molfile)[0]
     chimera.openModels.close(chimera.openModels.list())
-    cfg.validate(cfg)
+    stdout_to_file(workspace)
+    cfg.validate()
     try:
+        print("Running GAUDI for {}".format(cfg.output.name))
         gaudi_run(cfg)
     except KeyboardInterrupt:
         raise Exception('Ctrl+C!')
 
 def main(template, path):
-    pool = Pool(initializer=stdout_to_file)
+    pool = Pool()
     cfg = Settings(template, validation=False)
     try:
         pool.map(benchmark, [(deepcopy(cfg), molfile) for molfile in list_molecules(path)])
@@ -128,9 +135,9 @@ def main(template, path):
         print(e)
         pool.terminate()
 
-
 if __name__ == '__main__':
     try:
         main(sys.argv[1], sys.argv[2])
     except IndexError:
-        sys.exit('Usage: batch_run.py /path/to/template.yaml /path/to/benchmark/files')
+        sys.exit('Usage: pychimera batch_run.py '
+                 '/path/to/template.yaml /path/to/benchmark/files')

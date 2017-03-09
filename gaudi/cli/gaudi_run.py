@@ -256,4 +256,4 @@ def main(cfg, debug=False):
         sys.exit(1)
 
     gaudi.algorithms.dump_population(best, cfg)
-
+    logger.handlers = []

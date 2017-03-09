@@ -225,7 +225,8 @@ class Settings(Munch):
                 'kwargs': dict
             },
             Required('genes'): All(Length(min=1), [dict]),
-            Required('objectives'): All(Length(min=1), [dict])
+            Required('objectives'): All(Length(min=1), [dict]),
+            '_path': ExpandUserPathExists,
         }
 
     def __init__(self, path=None, validation=True):
