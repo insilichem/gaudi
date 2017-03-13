@@ -127,15 +127,20 @@ def benchmark(args):
 def main(template, path, n_processes=cpu_count()):
     if n_processes > cpu_count() or n_processes < 1:
         n_processes = cpu_count()
-    pool = Pool(processes=n_processes)
+    pool = Pool(processes=n_processes, maxtasksperchild=1)
     cfg = Settings(template, validation=False)
+    print("Running {} at {} with {} processes...".format(template, path, n_processes))
     try:
-        pool.map(benchmark, [(deepcopy(cfg), molfile) for molfile in list_molecules(path)])
+        args = [(deepcopy(cfg), molfile) for molfile in list_molecules(path)]
+        pool.map(benchmark, args, chunksize=1)
     except KeyboardInterrupt:
         pool.terminate()
     except Exception as e:
         print(e)
         pool.terminate()
+    finally:
+        pool.close()
+        pool.join()
 
 if __name__ == '__main__':
     try:
