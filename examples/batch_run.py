@@ -139,7 +139,7 @@ def main(template, path, n_processes=cpu_count()):
 
 if __name__ == '__main__':
     try:
-        main(sys.argv[1], sys.argv[2], *sys.argv[3:4])
+        main(sys.argv[1], sys.argv[2], *map(int, sys.argv[3:4]))
     except IndexError:
         sys.exit('Usage: pychimera batch_run.py '
                  '/path/to/template.yaml /path/to/benchmark/files [number of processes]')
