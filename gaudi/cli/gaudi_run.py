@@ -237,7 +237,8 @@ def main(cfg, debug=False):
     logger.log(100, 'Loaded input %s', cfg._path)
 
     # Place a copy of input inside output path
-    shutil.copy(cfg._path, os.path.join(cfg.output.path, os.path.basename(cfg._path)))
+    with open(os.path.join(cfg.output.path, os.path.basename(cfg._path)), 'w') as f:
+        f.write(cfg.toYAML())
 
     # Disable Chimera's auto ksdssp
     chimera.triggers.addHandler("Model", gaudi.box.suppress_ksdssp, None)
