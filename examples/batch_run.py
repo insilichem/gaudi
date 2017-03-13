@@ -26,7 +26,7 @@ from __future__ import print_function, absolute_import, division
 import os
 import sys
 from copy import deepcopy
-from multiprocessing import Pool
+from multiprocessing import Pool, cpu_count
 
 import chimera
 from WriteMol2 import writeMol2
@@ -124,8 +124,10 @@ def benchmark(args):
     except KeyboardInterrupt:
         raise Exception('Ctrl+C!')
 
-def main(template, path):
-    pool = Pool()
+def main(template, path, n_processes=cpu_count()):
+    if n_processes > cpu_count() or n_processes < 1:
+        n_processes = cpu_count()
+    pool = Pool(processes=n_processes)
     cfg = Settings(template, validation=False)
     try:
         pool.map(benchmark, [(deepcopy(cfg), molfile) for molfile in list_molecules(path)])
@@ -137,7 +139,7 @@ def main(template, path):
 
 if __name__ == '__main__':
     try:
-        main(sys.argv[1], sys.argv[2])
+        main(sys.argv[1], sys.argv[2], *sys.argv[3:4])
     except IndexError:
         sys.exit('Usage: pychimera batch_run.py '
-                 '/path/to/template.yaml /path/to/benchmark/files')
+                 '/path/to/template.yaml /path/to/benchmark/files [number of processes]')
