@@ -97,18 +97,25 @@ def list_molecules(path):
             yield os.path.join(path, name)
 
 
-def clean_canvas():
+def clean_canvas(molecule):
     chimera.runCommand('delete solvent')
-    chimera.runCommand('delete @/element=CA')
-    chimera.runCommand('delete @/element=CL')
+    for element in ('CA', 'NA'):
+        chimera.runCommand('sel @/element={}'.format(element))
+        if len(chimera.selection.currentAtoms()) > 1:
+            chimera.runCommand('del @/element={}'.format(element))
     chimera.runCommand('delete @/element=NA')
 
 
 def benchmark(args):
     cfg, molfile = args
     molecule = chimera.openModels.open(molfile)[0]
-    clean_canvas()
-    metals, protein = split_metal_protein(molecule)
+    clean_canvas(molecule)
+    splitted = split_metal_protein(molecule)
+    if len(splitted) != 2:
+        print("! File {} does not contain metals... Skipping!".format(molfile),
+              file=sys.stderr)
+        return
+    metals, protein = splitted
     workspace, paths = prepare_workspace(molfile, protein, metals)
     prot_gene = next(g for g in cfg.genes if g.name == 'Protein')
     metal_gene = next(g for g in cfg.genes if g.name == 'Metal')
