@@ -42,7 +42,7 @@ ga:
 
 
 similarity:
-    # type is the full Python path to similarity function
+    # module is the full Python path to similarity function
     module: gaudi.similarity.rmsd
     args: [[Ligand], 2.5]
     kwargs: {}
@@ -59,15 +59,18 @@ genes:
         module: gaudi.genes.molecule
         path: /path/to/ligand.mol2/or/block/containing/dir/
         symmetry: [[ dirA, dirB ]]
+        hydrogens: False
+        pdbfix: False
 
-    -   name: Rotamers
-        module: gaudi.genes.rotamers
+    -   name: Mutamers
+        module: gaudi.genes.mutamers
         residues: [ Protein/233, Protein/109]
         library: { dynameomics | dunbrack }
         mutations: []
         ligation: False
+        avoid_replacement: False
 
-    -   name: NormalModes #with prody
+    -   name: NormalModes # with prody
         module: gaudi.genes.normalmodes
         method: prody
         target: Protein
@@ -77,7 +80,7 @@ genes:
         n_samples: 100
         rmsd: 2.0
 
-    -   name: NormalModes #with gaussian
+    -   name: NormalModes # with gaussian
         module: gaudi.genes.normalmodes
         method: gaussian
         target: Ligand
@@ -86,50 +89,44 @@ genes:
         n_samples: 100
         rmsd: 0.7
 
+    -   name: Rotamers
+        module: gaudi.genes.rotamers
+        residues: [ Protein/233, Protein/109]
+        library: dynameomics # or dunbrack
+
+    -   name: Search
+        module: gaudi.genes.search
+        target: Ligand/43
+        center: [41.1868, 7.2388, 21.4937]
+        radius: 5.0
+        rotate: True
+        interpolation: 0.5
+        precision: 3
+
     -   name: Torsion
         module: gaudi.genes.torsion
         target: Ligand
         flexibility: 360
+        max_bonds: 30 # or None
+        anchor: Ligand/1
+        rotatable_atom_types: [C3, N3, C2, N2, P]
+        rotatable_atom_names: [C1, C4, O3]
+        rotatable_elements: [C, H, S]
+        non_rotatable_bonds: [[Ligand/1, Ligand/2], [Ligand/7, Ligand/8]]
+        precision: 1
 
-    -   name: Search
-        module: gaudi.genes.search
-        center: [41.1868, 7.2388, 21.4937]
-        radius: 5.0
-        precision: 3
-        rotate: True
-        target: Ligand/43
-        interpolation: 0.5
+    -   name: Trajectory
+        module: gaudi.genes.trajectory
+        target: Protein
+        path: /path/to/some/trajectory.dcd
+        max_frame: 1000
+        stride: 10
+        preload: False
 
 ###
 # OBJECTIVES
 ###
 objectives:
-    -   name: Hbonds
-        module: gaudi.objectives.hbonds
-        weight: 1.0
-        probes: [Ligand]
-        radius: 5.0
-        distance_tolerance: 0.4
-        angle_tolerance: 20.0
-
-    -   name: Clashes
-        module: gaudi.objectives.contacts
-        which: clashes #or hydrophobic
-        weight: -1.0
-        probes: [Ligand]
-        radius: 5.0
-        threshold: 0.6
-        threshold_h: 0.2
-        threshold_c: 0.6
-        cutoff: 100.0
-
-    -   name: DistanceAB
-        module: gaudi.objectives.distance
-        weight: -1.0
-        threshold: covalent #or <n>
-        tolerance: -0.1
-        target: Protein/929
-        probes: [last] # or serialNumber
 
     -   name: AngleABC
         module: gaudi.objectives.angle 
@@ -138,31 +135,42 @@ objectives:
         # serialnumbers, 3 for angle, 4 for dihedral
         # Careful, input order DOES matter
         probes: [ Protein/123, Protein/456, Ligand/10, Ligand/9]
-
-    -   name: Solvation
-        module: gaudi.objectives.solvation
+    
+    -   name: Clashes
+        module: gaudi.objectives.contacts
+        which: clashes #or hydrophobic
         weight: -1.0
-        method: grid # also: msms_ses, msms_sas
-        targets: [Ligand]
+        probes: [Ligand]
         radius: 5.0
+        hydrophobic_elements: 0.6
+        hydrophobic_threshold: 0.2
+        clash_threshold: 0.6
+        cutoff: 100.0
+        bond_separation: 4
 
     -   name: Coordination
         module: gaudi.objectives.coordination
         weight: -1.0
-        method: simple # or metalgeom, metalgeom_directional 
-        probes: Ligand/1
+        probe: Ligand/1
+        geometry: tetrahedral
         radius: 3.5
         atom_types: [ OE1, OE2, OD1, OD2, ND2 ]
-        residues: [Protein/14, Protein/41, Protein/68, Protein/23, Protein/50, Protein/77]
+        atom_names: [ ]
+        atom_elements: [ ]
+        residues: [Protein/14, Protein/41, Protein/68]
         min_atoms: 1
         enforce_all_residues: True
-        # params for 'simple'
-        distance: 2.5
-        angle: 90.0 # metal-ligand-neighbor
-        dihedral: 180 # metal-ligand-neighbor1-neighbor2
-        # params for 'metalgeom'
-        geometry: tetrahedral # choose from MetalGeom.geomData.geometries.keys()
-        threshold: 1.0 # max admitted RMSD
+        only_one_ligand_per_residue: False
+        prevent_intruders: True
+
+    -   name: DistanceAB
+        module: gaudi.objectives.distance
+        weight: -1.0
+        probes: [last] # or serialNumber
+        target: Protein/929
+        threshold: covalent #or <n>
+        tolerance: -0.1
+        center_of_mass: False
 
     -   name: DSX
         module: gaudi.objectives.dsx
@@ -180,19 +188,49 @@ objectives:
         with_metals: True
         with_covalent: False
 
-    -   name: ConvexHullVolume
-        module: gaudi.objectives.volume
-        weight: 1.0
-        threshold: 0.0
-        target: Protein
-        cavities: True
+    -   name: Energy
+        module: gaudi.objectives.energy
+        weight: -1.0
+        targets: [Protein, Ligand]
+        forcefields: [amber99sbildn.xml, custom.ffxml]
+        auto_parametrize: False
+        parameters: [[some.gaff.mol2, some.frcmod]]
+        platform: CPU # or CUDA, OpenCL
 
-    -   name: AxesOfInertia
+    -   name: Hbonds
+        module: gaudi.objectives.hbonds
+        weight: 1.0
+        probes: [Ligand]
+        radius: 5.0
+        distance_tolerance: 0.4
+        angle_tolerance: 20.0
+
+    -   name: Inertia
         module: gaudi.objectives.inertia
         weight: -1.0
         reference: Protein
         targets: [Ligand]
         threshold: 0.84
-        
+        only_primaries: False
 
+    -   name: LigScore
+        module: gaudi.objectives.ligscore
+        weight: -1.0
+        proteins: [Protein]
+        ligands: [Ligand]
+        method: pose # or rank
 
+    -   name: Solvation
+        module: gaudi.objectives.solvation
+        weight: -1.0
+        method: volume # or area
+        targets: [Ligand]
+        radius: 5.0
+        threshold: 0.0
+
+    -   name: Volume
+        module: gaudi.objectives.volume
+        weight: -1.0
+        targets: [Ligand]
+        threshold: 5.0
+        cavities: False # True for convexhull algorithm
