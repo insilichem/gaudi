@@ -91,28 +91,24 @@ class Coordination(ObjectiveProvider):
     """
     _validate = {
         parse.Required('probe'): parse.Named_spec("molecule", "atom"),
+        parse.Required('residues'): [parse.Named_spec("molecule", "residue")],
         'radius': parse.Coerce(float),
         'atom_types': [basestring],
         'atom_names': [basestring],
         'atom_elements': [basestring],
-        'residues': [parse.Named_spec("molecule", "residue")],
         'distance': parse.All(parse.Coerce(float), parse.Range(min=0)),
-        'angle': parse.Coerce(float),
         'min_atoms': parse.All(parse.Coerce(int), parse.Range(min=2)),
         'geometry': parse.Any(parse.In(GEOMETRIES.keys()), [parse.Coordinates]),
         'enforce_all_residues': parse.Coerce(bool),
         'only_one_ligand_per_residue': parse.Coerce(bool),
         'prevent_intruders': parse.Coerce(bool),
-        'method': parse.In(['simple', 'metalgeom', 'metalgeom_directional', 'cpd'])
         }
     
-    def __init__(self, method='metalgeom_directional', probe=None, radius=None, atom_types=(),
-                 atom_elements=(), atom_names=(), residues=(), geometry='tetrahedral',
-                 distance=0, angle=None, dihedral=None, min_atoms=1, prevent_intruders=True,
-                 enforce_all_residues=False, only_one_ligand_per_residue=False,
-                 *args, **kwargs):
+    def __init__(self, probe=None, radius=3.0, atom_types=(), atom_elements=(), 
+                 atom_names=(), residues=(), geometry='tetrahedral', distance=0, 
+                 min_atoms=1, prevent_intruders=True, enforce_all_residues=False, 
+                 only_one_ligand_per_residue=False, *args, **kwargs):
         ObjectiveProvider.__init__(self, **kwargs)
-        self.method = method
         self._probe = probe
         self._residues = residues
         self.radius = radius
@@ -120,8 +116,6 @@ class Coordination(ObjectiveProvider):
         self.atom_names = atom_names
         self.atom_elements = atom_elements
         self.distance = distance
-        self.angle = angle
-        self.dihedral = dihedral
         self.min_atoms = min_atoms
         self.only_one_ligand_per_residue = only_one_ligand_per_residue
         self.enforce_all_residues = enforce_all_residues
@@ -135,6 +129,9 @@ class Coordination(ObjectiveProvider):
             self.min_ligands = self.n_vertices
             logger.warn('# Vertices in selected geometry < min_ligands! Overriding '
                         'min_ligands with {}'.format(self.n_vertices))
+        if not sum(bool, [atom_types, atom_elements, atom_names]):
+            raise ValueError('At least one of atom_types, atom_elements, atom_names '
+                             'must be specified')
 
     def molecules(self, ind):
         return [m.compound.mol for m in ind._molecules.values()]
