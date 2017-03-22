@@ -23,15 +23,13 @@
 ##############
 
 """
-``gaudi.cli.gaudi_cli`` is the CLI entry point for all GAUDI scripts.
+``gaudi.cli.gaudi_cli`` is the CLI entry point for all GaudiMM scripts.
 
 Available commands:
 
     - run
     - view
     - prepare
-    - benchmark
-    - rmsd
 
 """
 # Python
@@ -131,42 +129,6 @@ def prepare(filename):
     # gaudinspect.cli.prepare_input(filename)
     click.echo("This argument is still unimplemented.")
 
-
-@cli.command()
-@click.argument('dataset')
-@click.argument('template')
-def benchmark(dataset, template):
-    """
-    Performs the same essay over a dataset.
-    """
-    gaudi_benchmark = test_import('benchmark', 'gaudi_benchmark')
-    ts = time.time()
-    gaudi_benchmark.main(dataset, template)
-    te = time.time()
-    click.echo('Finished after {:0>8}'.format(timedelta(seconds=int(te-ts))))
-
-
-@cli.command()
-@click.argument('dataset')
-@click.argument('outputfile')
-@click.option('--reference', '-r', help='Filename of the reference molecule',
-              default='reference.mol2')
-@click.option('--results', '-R', help='Subdirectory where results are generated',
-              default='results')
-@click.option('--great', '-G', help='RMSD threshold in A for a solution to be considered great',
-              type=float, default=1.5)
-@click.option('--good', '-g', help='RMSD threshold in A for a solution to be considered good',
-              type=float, default=2.5)
-def rmsd(dataset, outputfile, reference, results, great, good):
-    """
-    Calculate RMSD of results vs reference.
-    """
-    gaudi_rmsd = test_import('rmsd', 'gaudi_rmsd')
-    ts = time.time()
-    gaudi_rmsd.rmsd(dataset, outputfile, reference, results)
-    gaudi_rmsd.stats(dataset, great, good)
-    te = time.time()
-    click.echo('Finished after {:0>8}'.format(timedelta(seconds=(te-ts))))
 
 if "__main__" == __name__:
     cli(prog_name='gaudi')
