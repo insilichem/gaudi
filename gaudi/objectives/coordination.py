@@ -77,17 +77,36 @@ class Coordination(ObjectiveProvider):
     probe : tuple
         The atom that acts as the metal center, expressed as
         <molecule_name>/<atom serial>. This will be parsed later on.
-    radius : float
-        Distance from `probe` where ligating atoms must be found
-    atom_types : list of str
-        Types of atoms that are considered ligands to `probe`
     residues : list of str
-        Type of residues that must coordinate to `probe`, expressed as
-        <molecule_name>/<residue position>
-    distance : float
-        Target distance from `probe` to ligating atoms
-    angle : float
-        Target angle `probe`, ligand and neighbor should form ideally
+        Residues that must coordinate to `probe`, expressed as
+        <molecule_name>/<residue position>. Position can be `*`.
+    radius : float, optional, default=3.0
+        Distance from `probe` where ligating atoms must be found
+    atom_types : list of str, optional
+        Types of atoms that are considered ligands to `probe`
+    atom_names : list of str, optional
+        Names of atoms that are considered ligands to `probe`
+    atom_elements : list of str, optional
+        Elements of atoms that are considered ligands to `probe`        
+    distance : float, optional
+        Perfect distance a ligand atom should be from target.
+    geometry : str or list of 3-tuple floats, optional
+        Which geometry should be fitted. Choose from `GEOMETRIES` dict or
+        specify a set of vectors.
+    enforce_all_residues: bool, optional
+        Whether to force or not if all specified residues should coordinate.
+    only_one_ligand_per_residue : bool, optional
+        Enforce that only one ligand for each residue should coordinate.
+    prevent_intruders : bool, optional
+        Don't let non-ligand atoms to be closer to the target than the 
+        selected ligand atoms.
+
+    Returns
+    -------
+    score : float
+        Sum of RMSD of vertices from ideal RMSD and average cosine of
+        angle deviation from ideal orientation of ligand neighbors.
+        A perfect match should report 0.0.
     """
     _validate = {
         parse.Required('probe'): parse.Named_spec("molecule", "atom"),

@@ -59,10 +59,20 @@ class Solvation(ObjectiveProvider):
     ----------
     targets : [str]
         Names of the molecule genes being analyzed
-    threshold : float
+    threshold : float, optional, default=0
         Optimize the difference to this value
-    radius : float
+    radius : float, optional, default=5.0
         Max distance to search for neighbor atoms from targets.
+    method : str, optional, default=area
+        Which method should be used. Both methods compute the surface
+        of the solvated molecule. `area` returns the surface area of such
+        surface, while `volume` returns the volume occuppied by the model.
+
+    Returns
+    -------
+    score : float
+        Surface area of solvated shell, in A² (if method=area), or volume
+        of solvated shell, in A³ (if method=volume).
     """
 
     _validate = {

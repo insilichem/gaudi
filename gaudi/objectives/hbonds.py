@@ -69,7 +69,11 @@ class Hbonds(ObjectiveProvider):
         Allowed deviation from ideal distance to consider a valid H bond.
     angle_tolerance : float, optional
         Allowed deviation from ideal angle to consider a valid H bond.
-
+    
+    Returns
+    -------
+    n_hbonds : int
+        Number of detected Hydrogen bonds.
     """
 
     _validate = {

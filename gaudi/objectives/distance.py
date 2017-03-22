@@ -65,7 +65,11 @@ class Distance(ObjectiveProvider):
         expressed as <molecule name>/<atom serial>. If more than one
         is provided, the average of all of them is returned
     center_of_mass : bool
-
+    
+    Returns
+    -------
+    score : float
+        (Mean of) absolute deviation from threshold distance, in A.
     """
     _validate = {
         parse.Required('probes'): parse.AssertList(parse.Named_spec("molecule", "atom")),

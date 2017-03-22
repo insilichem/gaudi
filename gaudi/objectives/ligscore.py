@@ -23,9 +23,8 @@
 ##############
 
 """
-This objective is a wrapper around the binaries provided by
-Neudert and Klebe at http://pc1664.pharmazie.uni-marburg.de/drugscore/
-and calculates the score of the current pose.
+This objective is a wrapper around the scoring fuction provided by
+IMP's ligand_score <https://github.com/salilab/imp>. 
 
 The lower, the better, so usually you will use a -1.0 weight.
 
@@ -58,14 +57,19 @@ class LigScore(ObjectiveProvider):
 
     Parameters
     ----------
-    protein : list of str
+    proteins : list of str
         The name of molecules that are acting as proteins
-    ligand : list of str
+    ligands : list of str
         The name of molecules that are acting as ligands
     binary : str, optional
         Path to ligand_score executable
     library : str, optional
         Path to LigScore lib file
+
+    Returns
+    -------
+    score : float
+        Interaction energy as reported by IMP's ligand_score.
     """
     _validate = {
         parse.Required('proteins'): [parse.Molecule_name],

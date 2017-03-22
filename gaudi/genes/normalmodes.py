@@ -95,6 +95,8 @@ class NormalModes(GeneProvider):
 
     Attributes
     ----------
+    allele : slice of prody.ensemble
+        Randomly picked coordinates from NORMAL_MODE_SAMPLES
     NORMAL_MODES : prody.modes
         normal modes calculated for the molecule or readed
         from the gaussian frequencies output file stored

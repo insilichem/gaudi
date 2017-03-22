@@ -69,14 +69,20 @@ class Torsion(GeneProvider):
     rotatable_atom_names : list of str
         Which type of atom names (as in chimera.Atom.name) should rotate.
         Defaults to ().
+    
+    Attributes
+    ----------
+    allele : tuple of float
+        For i rotatable bonds in molecule, it contains i floats which correspond
+        to each torsion angle. As such, each falls within [-180.0, 180.0).
 
     Notes
     -----
 
     .. todo ::
 
-        `max_bonds` should be automatically computed, based on ligand
-        expected composition (careful with block-built ligands...)
+        `max_bonds` is now automatically computed, but probably won't deal
+        nicely with block-built ligands.
 
     """
 

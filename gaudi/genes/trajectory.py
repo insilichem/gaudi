@@ -65,8 +65,10 @@ class Trajectory(GeneProvider):
 
     Attributes
     ----------
-    allele : The index of a frame in the MD trajectory.
-    _traj : Alias to the frames cache
+    allele : int
+        The index of a frame in the MD trajectory.
+    _traj : dict
+        Alias to the frames cache
     """
 
     _validate = {

@@ -84,6 +84,8 @@ class Search(GeneProvider):
 
     Attributes
     ----------
+    allele : 3-tuple of 4-tuple of floats
+        A 4x3 matrix of float, as explained in Notes.
     origin : 3-tuple of float
         The initial position of the requested target molecule. If we don't take this
         into account, we can't move the molecule around was not originally in the

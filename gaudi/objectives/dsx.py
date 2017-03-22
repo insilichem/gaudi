@@ -85,6 +85,11 @@ class DSX(ObjectiveProvider):
         Whether to deal with covalently bonded atoms as normal atoms (False) or not (True)
     with_metals : bool, defaults to True
         Whether to deal with metal atoms as normal atoms (False) or not (True)
+
+    Returns
+    -------
+    score : float
+        Interaction energy as reported by DSX output logs.
     """
     _validate = {
         parse.Required('binary'): parse.ExpandUserPathExists,

@@ -43,6 +43,24 @@ class AxesOfInertia(ObjectiveProvider):
     """
     Calculates the axes of inertia of given molecules and returns
     their alignment deviation.
+
+    Parameters
+    ----------
+    reference : str
+        Molecule name `targets` should align to.
+    targets : list of str
+        Names of molecules to be aligned to `reference`
+    threshold : float
+        Target average of cosine of angle of alignment 
+        between targets and reference.
+    only_primaries : bool
+        Consider only the largest inertia vectors.
+
+    Returns
+    -------
+    score : float
+        Mean absolute difference of threshold alignment and mean of all the
+        cosines involved for each axis.
     """
     _validate = {
         parse.Required('reference'): parse.Molecule_name,

@@ -78,6 +78,14 @@ class Contacts(ObjectiveProvider):
     cutoff : float, optional
         If the overlap volume is greater than this, a penalty is applied. 
         Useful to filter bad solutions.
+    bond_separation : int, optional
+        Ignore clashes or contacts between atoms within n bonds.
+
+    Returns
+    -------
+    score : float
+        Lennard-Jones-like energy when `which`=`hydrophobic`,
+        and volumetric overlap of VdW spheres in A³ if `which`=`clashes`.
     """
     _validate = {
         parse.Required('probes'): [parse.Molecule_name],

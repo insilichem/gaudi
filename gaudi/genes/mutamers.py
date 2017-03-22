@@ -86,6 +86,13 @@ class Mutamers(GeneProvider):
 
     hydrogens : bool, optional
         If True, add hydrogens to replacing residues (buggy)
+
+    Attributes
+    ----------
+    allele : list of 2-tuple (str, float)
+        For i residues, it contains i tuples with two values each:
+        residue type and a float within [0, 1), which will be used
+        to pick one of the rotamers for that residue type.
     """
     _validate = {
         parse.Required('residues'): [parse.Named_spec("molecule", "residue")],

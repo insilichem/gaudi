@@ -59,6 +59,11 @@ class Angle(ObjectiveProvider):
     probes : list of str
         Atoms that make the angle, expressed as a series of 
         <molecule_name>/<serial_number> strings
+
+    Returns
+    -------
+    delta : float
+        Deviation from threshold angle, in degrees
     """
 
     _validate = {

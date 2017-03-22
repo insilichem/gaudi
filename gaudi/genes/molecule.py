@@ -103,6 +103,11 @@ class Molecule(GeneProvider):
 
     Attributes
     ----------
+    allele : tuple of str
+        Paths to every fragment that composes a given Compound. It will consist
+        of a single value tuple if there's no dynamic building involved; ie,
+        a mol2 or pdb file as is.
+
     _CATALOG : dict
         Class attribute (shared among all `Molecule` instances) that holds
         all the possible molecules GAUDI can build given current `path`. 
@@ -123,10 +128,9 @@ class Molecule(GeneProvider):
 
     .. todo ::
 
-        The LRU cache size should be proportional to essay size, depending on
+        The LRU cache size should be proportional to job size, depending on
         the population size and number of generations, but also taking available
         memory into account (?).
-
 
     """
 

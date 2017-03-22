@@ -77,6 +77,12 @@ class Rotamers(GeneProvider):
 
     library : {'Dunbrack', 'Dynameomics'}
         The rotamer library to use.
+
+    Attributes
+    ----------
+    allele : list of float
+        For i residues, it contains i floats within [0, 1), that will point
+        to the selected rotamer torsions for each residue.
     """
     _validate = {
         parse.Required('residues'): [parse.Named_spec("molecule", "residue")],
