@@ -83,7 +83,7 @@ class Contacts(ObjectiveProvider):
 
     Returns
     -------
-    score : float
+    float
         Lennard-Jones-like energy when `which`=`hydrophobic`,
         and volumetric overlap of VdW spheres in A³ if `which`=`clashes`.
     """

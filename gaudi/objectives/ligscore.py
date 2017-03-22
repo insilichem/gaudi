@@ -24,7 +24,8 @@
 
 """
 This objective is a wrapper around the scoring fuction provided by
-IMP's ligand_score <https://github.com/salilab/imp>. 
+`IMP's ligand_score <https://github.com/salilab/imp>`_. 
+
 
 The lower, the better, so usually you will use a -1.0 weight.
 
@@ -68,7 +69,7 @@ class LigScore(ObjectiveProvider):
 
     Returns
     -------
-    score : float
+    float
         Interaction energy as reported by IMP's ligand_score.
     """
     _validate = {

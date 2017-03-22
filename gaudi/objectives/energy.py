@@ -77,7 +77,7 @@ class Energy(ObjectiveProvider):
 
     Returns
     -------
-    energy : float
+    float
         The estimated potential energy, in kJ/mol
 
     """

@@ -39,17 +39,18 @@ def rmsd(ind1, ind2, subjects, threshold, *args, **kwargs):
 
     Parameters
     ----------
-    ind1, ind2 : gaudi.base.Individual
+    ind1 : gaudi.base.Individual
+    ind2 : gaudi.base.Individual
     subjects : list of str
         Name of gaudi.genes.molecule instances to measure
     threshold : float
         Maximum RMSD value to consider two individuals as similar.
-        If rmsd > threshold, they are considered different.
+        If ``rmsd > threshold``, they are considered different.
 
     Returns
     -------
     bool
-        True if rmsd is within threshold, False otherwise
+        True if ``rmsd`` is within threshold, False otherwise
 
     """
     molecules1 = [ind1.find_molecule(s) for s in subjects]

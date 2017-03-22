@@ -62,7 +62,7 @@ class Angle(ObjectiveProvider):
 
     Returns
     -------
-    delta : float
+    float
         Deviation from threshold angle, in degrees
     """
 

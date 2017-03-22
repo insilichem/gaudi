@@ -24,11 +24,12 @@
 
 """
 Coherent Point Drift (affine and rigid) Python2/3 implementation,
-adapted from https://github.com/kwohlfahrt/coherent-point-drift
+adapted from `kwohlfahrt's <https://github.com/kwohlfahrt/coherent-point-drift>`_.
 
 Only 3D points are supported in this version.
 
 Depends on:
+
 - Python 2.7, 3.4+
 - Numpy
 - Matplotlib (plotting only)
@@ -200,6 +201,7 @@ def RMSD(X, Y):
 def plot(x, y, t):
     """
     Plot the initial datasets and registration results.
+
     Parameters
     ----------
     x : ndarray

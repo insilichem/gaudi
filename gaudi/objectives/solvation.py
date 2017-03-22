@@ -70,7 +70,7 @@ class Solvation(ObjectiveProvider):
 
     Returns
     -------
-    score : float
+    float
         Surface area of solvated shell, in A² (if method=area), or volume
         of solvated shell, in A³ (if method=volume).
     """

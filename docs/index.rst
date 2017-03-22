@@ -17,15 +17,15 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 
-======================================================================================
-GAUDIasm: Genetic Algorithms for Universal Design Inference and Atomic Scale Modeling
-======================================================================================
+==========================================================================================
+GaudiMM: Genetic Algorithms with Unrestricted Descriptors for Intuitive Molecular Modeling
+==========================================================================================
 
-GAUDI helps to sketch new molecular designs that require complex interactions.
+GaudiMM helps to sketch new molecular designs that require complex interactions.
 
 .. todo::
 
-    * Better introduction to GAUDI possibilities and features
+    * Better introduction to GaudiMM possibilities and features
 
 User guide
 ==========
@@ -43,6 +43,7 @@ For developers
 ==============
 
 .. toctree::
+    :maxdepth: 1
     
     developers.rst
     api/gaudi.rst

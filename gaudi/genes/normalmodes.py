@@ -61,37 +61,36 @@ def enable(**kwargs):
 class NormalModes(GeneProvider):
 
     """
+    NormalModes class
+
     Parameters
     ----------
     method : str
-        Expected
-            prody : calculate normal modes using prody algorithms
-            gaussian : read normal modes from a gaussian output file
+        Either: 
+        - prody : calculate normal modes using prody algorithms
+        - gaussian : read normal modes from a gaussian output file
     target : str
         Name of the Gene containing the actual molecule
     modes : list, optional, default=range(12)
         Modes to be used to move the molecule
-    group_by : string, optional, default=None
-        group_by_* algorithm name
-        group_by_* : callable, optional, default=None
-            coarseGrain(prm) wich make mol.select().setBetas(i) where i
-            is the index Coarse Grain group
-            Where prm is prody AtomGroup
-    group_lambda : dictionary, optional
-        Expected
-        residues_number : int, optional, default=7
-            number of residues per group
-        mass_division : int, optional, default=100
-            number of groups
+    group_by : str or callable, optional, default=None
+        group_by_*: algorithm name or callable
+        coarseGrain(prm) which makes ``mol.select().setBetas(i)``,
+        where ``i`` is the index Coarse Grain group,
+        and ``prm`` is ``prody.AtomGroup``
+    group_lambda : int, optional
+        Either: number of residues per group (default=7), or
+        total mass per group (default=100)
     path : str
-        Gaussian or prody modes output path
-        Obligatory if method=gaussian
-    write_modes: boolean, optional
-        write a molecule_modes.nmd file with the pordy modes
+        Gaussian or prody modes output path. Required if ``method`` is
+        ``gaussian``.
+    write_modes: bool, optional
+        write a ``molecule_modes.nmd`` file with the ProDy modes
     n_samples : int, optional, default=10000
         number of conformations to generate
     rmsd : float, optional, default=1.0
-        average RMSD that the conformations will have with respect to the initial conformation
+        average RMSD that the conformations will have with respect 
+        to the initial conformation
 
     Attributes
     ----------
@@ -191,11 +190,13 @@ class NormalModes(GeneProvider):
 
     def mate(self, mate):
         """
-        Combine coords between two samples in NORMAL_MODES_SAMPLES?
-                            Or two samples between diferent NORMAL_MODES_SAMPLES?
-        Or combine samples between two NORMAL_MODES_SAMPLES?
+        .. todo::
+        
+            Combine coords between two samples in NORMAL_MODES_SAMPLES?
+            Or two samples between diferent NORMAL_MODES_SAMPLES?
+            Or combine samples between two NORMAL_MODES_SAMPLES?
 
-        For now : pass
+            For now : pass
         """
         pass
 

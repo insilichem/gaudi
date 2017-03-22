@@ -33,6 +33,23 @@ Molecule gene
     :undoc-members:
     :show-inheritance:
 
+Mutamers gene
+-------------
+
+.. automodule:: gaudi.genes.mutamers
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+NormalModes gene
+----------------
+
+.. automodule:: gaudi.genes.normalmodes
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 Rotamers gene
 -------------
 
@@ -53,6 +70,14 @@ Torsions gene
 -------------
 
 .. automodule:: gaudi.genes.torsion
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+Trajectory gene
+---------------
+
+.. automodule:: gaudi.genes.trajectory
     :members:
     :undoc-members:
     :show-inheritance:

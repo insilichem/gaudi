@@ -88,7 +88,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = gaudi.__project_name__
+project = gaudi.__title__
 copyright = gaudi.__copyright__
 author = gaudi.__author__
 
@@ -243,7 +243,7 @@ html_static_path = ['_static']
 #html_search_scorer = 'scorer.js'
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'GAUDIasmdoc'
+htmlhelp_basename = 'GaudiMMdoc'
 
 # -- Options for LaTeX output ---------------------------------------------
 
@@ -265,7 +265,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'GAUDIasm.tex', u'GAUDIasm Documentation',
+    (master_doc, 'GaudiMM.tex', u'GaudiMM Documentation',
      u'Jaime Rodríguez-Guerra, Jean-Didier Maréchal', 'manual'),
 ]
 
@@ -295,7 +295,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'gaudiasm', u'GAUDIasm Documentation',
+    (master_doc, 'gaudimm', u'GaudiMM Documentation',
      [author], 1)
 ]
 
@@ -309,8 +309,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'GAUDIasm', u'GAUDIasm Documentation',
-     author, 'GAUDIasm', 'One line description of project.',
+    (master_doc, 'GaudiMM', u'GaudiMM Documentation',
+     author, 'GaudiMM', 'One line description of project.',
      'Miscellaneous'),
 ]
 

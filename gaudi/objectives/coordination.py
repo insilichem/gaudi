@@ -26,7 +26,7 @@
 This objective performs rough estimations
 of good orientations of ligating residues in a protein to
 coordinate a given metal or small molecule. The geometry is approximated
-by computing average distances from ligating atoms the metal centre (`self.probe`)
+by computing average distances from ligating atoms the metal centre (``self.probe``)
 as well as the angles formed by the probe, the ligating atom and its immediate neighbor.
 Good planarity is assured by a dihedral check.
 
@@ -103,7 +103,7 @@ class Coordination(ObjectiveProvider):
 
     Returns
     -------
-    score : float
+    float
         Sum of RMSD of vertices from ideal RMSD and average cosine of
         angle deviation from ideal orientation of ligand neighbors.
         A perfect match should report 0.0.
@@ -202,11 +202,13 @@ class Coordination(ObjectiveProvider):
 
     def coordination_sphere(self, ind):
         """
-        1. Get atoms and residues found within `self.radius` angstroms from `self.probe`
-        1.1. Found residues MUST include self.residues. Otherwise, apply penalty
-        2. Sort atoms by absolute difference of `self.distance` and distance to `self.probe`.
-           That way, nearest atoms are computed first.
-        2.1. If found atoms do not include some of the requested types, apply penalty.
+        1. Get atoms and residues found within ``self.radius`` 
+        angstroms from ``self.probe``. Found residues MUST 
+        include ``self.residues``. Otherwise, apply penalty.
+
+        2. Sort atoms by absolute difference of ``self.distance``
+        and distance to ``self.probe``. That way, nearest atoms are computed first.
+        If found atoms do not include some of the requested types, apply penalty.
         """
         # Helpers
         def abs_distance(a):

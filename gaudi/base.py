@@ -65,7 +65,6 @@ class BaseIndividual(object):
 
     Parameters
     ----------
-
     cfg : gaudi.parse.Settings
         The full parsed object from the configuration YAML file.
     cache : dict or dict-like
@@ -74,12 +73,13 @@ class BaseIndividual(object):
         If True, create an uninitialized Individual, only containing the
         cfg attribute. If false, call `__ready__` and complete initialization.
 
-    Atttributes
-    -----------
+    Attributes
+    ----------
     __CACHE : dict
         Class attribute that caches gene data across instances
     __CACHE_OBJ : dict
-        Class attribute taht caches objectives data across instances
+        Class attribute that caches objectives data across instances
+
 
     .. todo::
 
@@ -104,7 +104,7 @@ class BaseIndividual(object):
     def __ready__(self):
         """
         A *post-init* method used to avoid initialization problems with
-        `__deepcopy__`. It's just the second part of a two-stage
+        `__deepcopy__`. It's just the second part of a three-stage
         `__init__`.
         """
         if self.cfg is not None:
@@ -119,6 +119,11 @@ class BaseIndividual(object):
             self._similarity = getattr(sys.modules[mod], fn)
 
     def __expression_hooks__(self):
+        """
+        Third part of initialization. This method is run after expression
+        of almost-built individuals to retrieve information that would
+        only be available at expression time.
+        """
         with expressed(self):
             for name, gene in self.genes.items():
                 gene.__expression_hooks__()

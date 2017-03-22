@@ -3,7 +3,7 @@
 
 # You can set these variables from the command line.
 SPHINXOPTS    =
-SPHINXBUILD   = `chimera --root`/bin/sphinx-build
+SPHINXBUILD   = $(shell which sphinx-build)
 PAPER         =
 BUILDDIR      = _build
 
@@ -52,7 +52,7 @@ clean:
 	rm -rf $(BUILDDIR)/*
 
 html:
-	chimera --nogui --debug --script "$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html"
+	pychimera $(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
 	@echo
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."
 

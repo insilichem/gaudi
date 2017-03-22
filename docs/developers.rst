@@ -23,7 +23,7 @@ Developers guide
 Introduction to Genetic Algorithms
 ----------------------------------
 
-The GA in GAUDI stands for Genetic Algorithm, a search heuristic inspired by natural selection that is used for optimization processes. 
+The GA in GaudiMM stands for Genetic Algorithm, a search heuristic inspired by natural selection that is used for optimization processes. 
 
 Genetic Algorithms use a biologicist terminology. Each candidate solution to the problem is considered an **individual**, which is part of the so-called **population** (the set of all candidate solutions). 
 
@@ -125,11 +125,11 @@ If you want to know more about Deap and Genetic Algorithms, go check their `docu
 Our implementation
 ------------------
 
-GAUDI is built as an extensible and highly modular Python platform. Although the main focus is Chemistry and molecular design, you can use your own genes and objectives. You can think of GAUDI as a new API for `deap <https://github.com/deap/deap>`_ that provides an object-oriented interface to easily create new individuals and objectives.
+GaudiMM is built as an extensible and highly modular Python platform. Although the main focus is Chemistry and molecular design, you can use your own genes and objectives. You can think of GaudiMM as a new API for `deap <https://github.com/deap/deap>`_ that provides an object-oriented interface to easily create new individuals and objectives.
 
 In ``deap`` an individual can be any Python object (check their `overview <https://deap.readthedocs.org/en/master/overview.html>`_ and `GA examples <https://deap.readthedocs.org/en/master/examples/ga_onemax.html>`_), which is a very versatile approach, but it tends to be very limited when your individual gets complex. For example, if an individual needs to be defined by several genes with different mutation strategies.
 
-In GAUDI, each **individual** is a :class:`gaudi.base.Individual`, which is a very (bio)fancy name for a set of ``genes``. To create a ``gene``, you just subclass :class:`gaudi.genes.GeneProvider` and define the needed methods: ``express``, ``unexpress``, ``mutate``, and ``mate``. The :class:`gaudi.base.Individual` class then provides some wrapper methods that call the respective counterparts in each ``gene``.
+In GaudiMM, each **individual** is a :class:`gaudi.base.Individual`, which is a very (bio)fancy name for a list of ``genes``. To create a ``gene``, you just subclass :class:`gaudi.genes.GeneProvider` and define the needed methods: ``express``, ``unexpress``, ``mutate``, and ``mate``. The :class:`gaudi.base.Individual` class then provides some wrapper methods that call the respective counterparts in each ``gene``.
 
 To evaluate the fitness of an individual, you must first define the set of evaluation functions. Each function is called ``objective``, and you keep them inside a :class:`gaudi.base.Environment`.
 

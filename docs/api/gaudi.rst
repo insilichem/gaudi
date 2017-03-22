@@ -50,6 +50,14 @@ gaudi.box
     :undoc-members:
     :show-inheritance:
 
+gaudi.exceptions
+----------------
+
+.. automodule:: gaudi.exceptions
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 gaudi.parse
 -----------
 
@@ -74,8 +82,7 @@ gaudi.similarity
     :undoc-members:
     :show-inheritance:
 
-
-Genes, objectives and CLI
+Genes, Objectives and CLI
 -------------------------
 
 .. toctree::
@@ -83,3 +90,15 @@ Genes, objectives and CLI
     gaudi.genes
     gaudi.objectives
     gaudi.cli
+
+
+Private modules
+---------------
+
+gaudi._cpdrift
+~~~~~~~~~~~~~~
+
+.. automodule:: gaudi._cpdrift
+    :members:
+    :undoc-members:
+    :show-inheritance:

@@ -23,8 +23,8 @@
 ##############
 
 """
-This objective is a wrapper around the binaries provided by
-Neudert and Klebe at http://pc1664.pharmazie.uni-marburg.de/drugscore/
+This objective is a wrapper around the binaries `provided by
+Neudert and Klebe <http://pc1664.pharmazie.uni-marburg.de/drugscore/>`_
 and calculates the score of the current pose.
 
 The lower, the better, so usually you will use a -1.0 weight.
@@ -88,7 +88,7 @@ class DSX(ObjectiveProvider):
 
     Returns
     -------
-    score : float
+    float
         Interaction energy as reported by DSX output logs.
     """
     _validate = {

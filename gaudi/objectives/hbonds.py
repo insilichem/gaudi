@@ -72,7 +72,7 @@ class Hbonds(ObjectiveProvider):
     
     Returns
     -------
-    n_hbonds : int
+    int
         Number of detected Hydrogen bonds.
     """
 

@@ -58,7 +58,7 @@ class AxesOfInertia(ObjectiveProvider):
 
     Returns
     -------
-    score : float
+    float
         Mean absolute difference of threshold alignment and mean of all the
         cosines involved for each axis.
     """

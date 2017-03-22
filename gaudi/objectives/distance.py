@@ -68,7 +68,7 @@ class Distance(ObjectiveProvider):
     
     Returns
     -------
-    score : float
+    float
         (Mean of) absolute deviation from threshold distance, in A.
     """
     _validate = {

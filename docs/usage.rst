@@ -32,6 +32,6 @@ After the job is completed, you can check the results with :mod:`gaudi.cli.gaudi
 
     gaudi view /path/to/some_file.gaudi-output
 
-You can choose between two molecular visualization tools: Chimera itself (using `GaudiView <https://bitbucket.org/jrgp/gaudinspect>`_ extension), or our in-house GUI, `GAUDInspect <https://bitbucket.org/jrgp/gaudiview>`_.
+You can choose between two molecular visualization tools: Chimera itself (using `GaudiView <https://bitbucket.org/insilichem/gaudiview>`_ extension), or our in-house GUI, `GAUDInspect <https://bitbucket.org/insilichem/gaudinspect>`_.
 
 Both tools support lazy-load, filtering and sorting, so choose whichever you prefer.

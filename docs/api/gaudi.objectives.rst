@@ -40,8 +40,8 @@ Contacts objective
     :undoc-members:
     :show-inheritance:
 
-Simple Coordination objective
------------------------------
+Coordination objective
+----------------------
 
 .. automodule:: gaudi.objectives.coordination
     :members:
@@ -64,6 +64,14 @@ DrugScoreX objective
     :undoc-members:
     :show-inheritance:
 
+Energy objective
+----------------
+
+.. automodule:: gaudi.objectives.energy
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 Hydrogen bonds objective
 ------------------------
 
@@ -72,10 +80,34 @@ Hydrogen bonds objective
     :undoc-members:
     :show-inheritance:
 
-Solvation terms objective
--------------------------
+Inertia objective
+------------------------
+
+.. automodule:: gaudi.objectives.inertia
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+LigScore objective
+------------------
+
+.. automodule:: gaudi.objectives.ligscore
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+Solvation objective
+-------------------
 
 .. automodule:: gaudi.objectives.solvation
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+Volume objective
+----------------
+
+.. automodule:: gaudi.objectives.volume
     :members:
     :undoc-members:
     :show-inheritance:

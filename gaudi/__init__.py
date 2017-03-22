@@ -53,6 +53,7 @@ logging.getLogger(__name__).addHandler(NullHandler())
 __author__ = 'Jaime Rodriguez-Guerra, and Jean-Didier Marechal'
 __copyright__ = '2017, InsiliChem'
 __url__ = 'https://bitbucket.org/insilichem/gaudi'
+__title__ = 'GaudiMM'
 __description__ = ('GaudiMM: Genetic Algorithms with Unrestricted Descriptors '
                    'for Intuitive Molecular Modeling')
 

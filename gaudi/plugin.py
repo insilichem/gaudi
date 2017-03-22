@@ -43,9 +43,9 @@ class PluginMount(type):
     """
     Base class for plugin mount points.
 
-    Metaclass trickery obtained from
-    [Marty Alchin's blog](http://martyalchin.com/2008/jan/10/simple-plugin-framework/)
-    Each mount point (ie,`genes` and `objectives`), MUST inherit this one.
+    Metaclass trickery obtained from `Marty Alchin's blog 
+    <http://martyalchin.com/2008/jan/10/simple-plugin-framework/>`_
+    Each mount point (ie, ``genes`` and ``objectives``), MUST inherit this one.
 
     """
 

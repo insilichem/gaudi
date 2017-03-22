@@ -72,7 +72,7 @@ class Volume(ObjectiveProvider):
 
     Returns
     -------
-    volume: float
+    float
         Calculated volume in A³
     """
 

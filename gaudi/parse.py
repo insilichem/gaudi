@@ -77,13 +77,15 @@ def Importable(v):
 def Molecule_name(v):
     """
     Ideal implementation:
-
-    def fn(v):
-        valid = [i['name'] for i in items if i['module'] == 'gaudi.genes.molecule']
-        if v not in valid:
-            raise Invalid("{} is not a valid Molecule name".format(v))
-        return v
-    return fn
+    
+    .. code-block:: python
+    
+        def fn(v):
+            valid = [i['name'] for i in items if i['module'] == 'gaudi.genes.molecule']
+            if v not in valid:
+                raise Invalid("{} is not a valid Molecule name".format(v))
+            return v
+        return fn
 
     However, I must figure a way to get the gene list beforehand
     """

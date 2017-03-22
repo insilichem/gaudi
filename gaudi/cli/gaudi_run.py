@@ -35,19 +35,6 @@ objectives. All in a loosely-coupled approach based on Python modules called on-
 
     gaudi run /path/to/job.gaudi-input
 
-If the previous does not work, try with the manual mode:
-
-.. code-block :: console
-
-    cd /path/to/gaudi/installation/directory/
-    /path/to/chimera/bin/chimera --nogui --script "gaudi_run.py /path/to/job.gaudi-input"
-
-
-.. todo::
-
-    DEAP default algorithm is nice, but we will be needing some custom features. For
-    example, handle KeyboardInterrupt not to lose the population, and so on.
-
 """
 
 # Python
@@ -55,14 +42,13 @@ from __future__ import print_function
 from importlib import import_module
 import logging
 import os
-import shutil
 import sys
 # External dependencies
 try:
     import chimera
 except ImportError:
-    print("Chimera not importable from this environment. Please, install "
-          "PyChimera and use it to run this file.")
+    sys.exit('Chimera not importable from this environment. Please, install '
+             'pychimera with `pip install pychimera`.')
 import numpy
 import deap.creator
 import deap.tools
@@ -78,9 +64,6 @@ import gaudi.objectives
 import gaudi.parse
 import gaudi.plugin
 import gaudi.similarity
-
-if sys.version_info.major == 3:
-    basestring = str
 
 
 def launch(cfg):
