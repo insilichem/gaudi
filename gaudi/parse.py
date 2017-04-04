@@ -177,7 +177,8 @@ class Settings(Munch):
             'history': False,
             'pareto': True,
             'verbose': True,
-            'check_every': 10
+            'check_every': 10,
+            'prompt_on_exception': True
         },
         'ga': {
             'population': 10,
@@ -209,6 +210,7 @@ class Settings(Munch):
                 'pareto': Coerce(bool),
                 'verbose': Coerce(bool),
                 'check_every': All(Coerce(int), Range(min=0)),
+                'prompt_on_exception': Coerce(bool)
             },
             'ga': {
                 'population': All(Coerce(int), Range(min=2)),

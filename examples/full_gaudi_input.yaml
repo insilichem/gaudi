@@ -28,6 +28,7 @@ output:
     pareto: 0
     verbose: True
     check_every: 10
+    prompt_on_exception: True
 
 ga:
     population: 200

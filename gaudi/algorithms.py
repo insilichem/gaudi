@@ -56,7 +56,8 @@ if sys.version_info.major == 3:
     raw_input = input
 
 def ea_mu_plus_lambda(population, toolbox, mu, lambda_, cxpb, mutpb, ngen, cfg,
-                      stats=None, halloffame=None, verbose=True):
+                      stats=None, halloffame=None, verbose=True, 
+                      prompt_on_exception=True):
     """This is the :math:`(\mu + \lambda)` evolutionary algorithm.
 
     :param population: A list of individuals.
@@ -158,9 +159,10 @@ def ea_mu_plus_lambda(population, toolbox, mu, lambda_, cxpb, mutpb, ngen, cfg,
                 logger.log(100, logbook.stream)
         except (Exception, KeyboardInterrupt) as e:
             logger.error(e)
-            answer = raw_input('\nInterruption detected. Write results so far? (y/N): ')
-            if answer.lower() not in ('y', 'yes'):
-                sys.exit('Ok, bye!')
+            if prompt_on_exception:
+                answer = raw_input('\nInterruption detected. Write results so far? (y/N): ')
+                if answer.lower() not in ('y', 'yes'):
+                    sys.exit('Ok, bye!')
             for individual in population:
                 try:
                     individual.unexpress()
@@ -177,6 +179,7 @@ def ea_mu_plus_lambda(population, toolbox, mu, lambda_, cxpb, mutpb, ngen, cfg,
                 except Exception:
                     logger.warn('Could not write checkpoing for gen #%s', gen)
     return population_, logbook
+
 
 def dump_population(population, cfg, subdir=None):
     logger.log(100, 'Writing %s results to disk', len(population))

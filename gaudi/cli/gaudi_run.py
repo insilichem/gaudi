@@ -128,7 +128,8 @@ def launch(cfg):
         population, toolbox, cfg=cfg, mu=mu, lambda_=lambda_,
         cxpb=cfg.ga.cx_pb, mutpb=cfg.ga.mut_pb, 
         ngen=cfg.ga.generations, halloffame=elite,
-        verbose=cfg.output.verbose, stats=stats)
+        verbose=cfg.output.verbose, stats=stats,
+        prompt_on_exception=cfg.output.prompt_on_exception)
 
     return population, log, elite
 
