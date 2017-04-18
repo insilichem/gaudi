@@ -21,7 +21,11 @@
 GaudiMM
 =======
 
-GaudiMM: Genetic Algorithms with Unrestricted Descriptors for Intuitive Molecular Modeling provides a novel method in design essays by combining several chemostructural criteria, along with energy-like optimization.
+.. image:: https://readthedocs.org/projects/gaudi/badge/?version=latest
+    :target: http://gaudi.readthedocs.io/en/latest/
+
+GaudiMM, for Genetic Algorithms with Unrestricted Descriptors for Intuitive Molecular Modeling,
+helps to sketch new molecular designs that require complex interactions.
 
 
 Features
@@ -50,7 +54,7 @@ If you need help with GaudiMM, please use the `issues page <https://github.com/i
 License
 -------
 
-GaudiMM is licensed under the Apache License, Version 2.0. Check the details in the ``LICENSE`` file.
+GaudiMM is licensed under the Apache License, Version 2.0. Check the details in the `LICENSE <https://raw.githubusercontent.com/insilichem/gaudi/master/LICENSE>`_ file.
 
 Citation
 --------
