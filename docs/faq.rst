@@ -64,4 +64,4 @@ What is the difference between ``atom_names`` and ``atom_types`` in some objecti
 
 .. tip::
    
-   Any further questions? Feel free to submit your inquiries to our issues page!
+   Any further questions? Feel free to submit your inquiries to our `issues page <https://github.com/insilichem/gaudi/issues>`_!

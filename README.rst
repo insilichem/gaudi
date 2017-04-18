@@ -43,7 +43,7 @@ Features
 Documentation and support
 -------------------------
 
-Documentation source is available in ``docs/`` subdirectory, and also compiled as HTML at `this webpage <http://gaudi.readthedocs.io/>`_
+Documentation source is available in ``docs/`` subdirectory, and also compiled as HTML at `this webpage <http://gaudi.readthedocs.io/>`_.
 
 If you need help with GaudiMM, please use the `issues page <https://github.com/insilichem/gaudi/issues>`_ of our `GitHub repo <https://github.com/insilichem/gaudi>`_. You can drop me a message at `jaime.rodriguezguerra@uab.cat <mailto:jaime.rodriguezguerra@uab.cat>`_ too.
 

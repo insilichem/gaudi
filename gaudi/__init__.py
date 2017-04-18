@@ -29,13 +29,13 @@ architecture to build an extensible platform of molecular design.
 The main module is :mod:`gaudi.base`, which defines the :class:`gaudi.base.Individual`,
 whose instances represent the potential solutions to the proposed problem. Two plugin
 packages allow easy customization of how individuals are defined (:mod:`gaudi.genes`) and
-how they are evaluated (:mod:`gaudi.objectives`).
+how they are evaluated (:mod:`gaudi.objectives`). Additionally:
 
-:mod:`gaudi.parse` contains parsing utilities to retrieve the configuration files.
-
-:mod:`gaudi.plugin` holds some magic to make the plugin system work.
-
-:mod:`gaudi.box` is a placeholder for several small functions that are used across GAUDI.
+- :mod:`gaudi.algorithms` is the place to look for the actual GA implementation
+- :mod:`gaudi.box` is a placeholder for several small functions that are used across GaudiMM.
+- :mod:`gaudi.parse` contains parsing utilities to retrieve the configuration files.
+- :mod:`gaudi.plugin` holds some magic to make the plugin system work.
+- :mod:`gaudi.similarity` defines the diversity enhancers.
 """
 
 # Logging
