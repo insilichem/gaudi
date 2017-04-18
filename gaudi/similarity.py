@@ -5,7 +5,7 @@
 # GaudiMM: Genetic Algorithms with Unrestricted
 # Descriptors for Intuitive Molecular Modeling
 # 
-# http://bitbucket.org/insilichem/gaudi
+# https://github.com/insilichem/gaudi
 #
 # Copyright 2017 Jaime Rodriguez-Guerra, Jean-Didier Marechal
 # 
@@ -50,7 +50,9 @@ def rmsd(ind1, ind2, subjects, threshold, *args, **kwargs):
     Returns
     -------
     bool
-        True if ``rmsd`` is within threshold, False otherwise
+        True if ``rmsd`` is within threshold, False otherwise.
+        It will always return False if number of atoms is not
+        equal in the two Individuals.
 
     """
     molecules1 = [ind1.find_molecule(s) for s in subjects]

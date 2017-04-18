@@ -5,7 +5,7 @@
 # GaudiMM: Genetic Algorithms with Unrestricted
 # Descriptors for Intuitive Molecular Modeling
 # 
-# http://bitbucket.org/insilichem/gaudi
+# https://github.com/insilichem/gaudi
 #
 # Copyright 2017 Jaime Rodriguez-Guerra, Jean-Didier Marechal
 # 
@@ -33,6 +33,7 @@ Available commands:
 
 """
 # Python
+import os
 import sys
 import time
 from datetime import timedelta
@@ -67,6 +68,27 @@ def timeit(func, *args, **kwargs):
     return wrapped
 
 
+def load_chimera(nogui=True):
+    pychimera.patch_environ(nogui=nogui)
+    pychimera.enable_chimera()
+
+
+def echo_banner():
+    logo = dedent('''
+      .g8"""bgd       db   `7MMF'   `7MF'`7MM"""Yb. `7MMF'                                    
+    .dP'     `M      ;MM:    MM       M    MM    `Yb. MM                                      
+    dM'       `     ,V^MM.   MM       M    MM     `Mb MM  `7MMpMMMb.pMMMb.  `7MMpMMMb.pMMMb.  
+    MM             ,M  `MM   MM       M    MM      MM MM    MM    MM    MM    MM    MM    MM  
+    MM.    `7MMF'  AbmmmqMA  MM       M    MM     ,MP MM    MM    MM    MM    MM    MM    MM  
+    `Mb.     MM   A'     VML YM.     ,M    MM    ,dP' MM    MM    MM    MM    MM    MM    MM  
+      `"bmmmdPY .AMA.   .AMMA.`bmmmmd"'  .JMMmmmdP' .JMML..JMML  JMML  JMML..JMML  JMML  JMML.''')
+    banner = ["{}\n{}".format(logo, '-'*len(logo.splitlines()[-1])),
+              'GaudiMM: Genetic Algorithms with Unrestricted '
+              'Descriptors for Intuitive Molecular Modeling',
+              '{} · v{}\n'.format(gaudi.__copyright__, gaudi.__version__)]
+    return '\n'.join(banner)
+
+
 @click.group(context_settings=dict(help_option_names=['-h', '--help']))
 @click.version_option(version=gaudi.__version__)
 def cli(prog_name='gaudi'):
@@ -76,22 +98,10 @@ def cli(prog_name='gaudi'):
 
     \b
     (C) 2017, InsiliChem
-    https://bitbucket.org/insilichem/gaudi
+    https://github.com/insilichem/gaudi
     """
-    pychimera.patch_environ()
-    pychimera.enable_chimera()
-    banner = dedent('''
-      .g8"""bgd       db   `7MMF'   `7MF'`7MM"""Yb. `7MMF'                                    
-    .dP'     `M      ;MM:    MM       M    MM    `Yb. MM                                      
-    dM'       `     ,V^MM.   MM       M    MM     `Mb MM  `7MMpMMMb.pMMMb.  `7MMpMMMb.pMMMb.  
-    MM             ,M  `MM   MM       M    MM      MM MM    MM    MM    MM    MM    MM    MM  
-    MM.    `7MMF'  AbmmmqMA  MM       M    MM     ,MP MM    MM    MM    MM    MM    MM    MM  
-    `Mb.     MM   A'     VML YM.     ,M    MM    ,dP' MM    MM    MM    MM    MM    MM    MM  
-      `"bmmmdPY .AMA.   .AMMA.`bmmmmd"'  .JMMmmmdP' .JMML..JMML  JMML  JMML..JMML  JMML  JMML.''')
-    click.echo("{}\n{}".format(banner, '-'*len(banner.splitlines()[1])))
-    click.echo('GaudiMM: Genetic Algorithms with Unrestricted '
-               'Descriptors for Intuitive Molecular Modeling')
-    click.echo('{} · v{}\n'.format(gaudi.__copyright__, gaudi.__version__))
+    if not os.environ.get('CHIMERA'):
+        click.echo(echo_banner())
 
 
 @cli.command()
@@ -101,6 +111,7 @@ def run(filename, debug):
     """
     Launch a GAUDI input file.
     """
+    load_chimera()
     gaudi_run = test_import('run', 'gaudi_run')
     ts = time.time()
     gaudi_run.main(filename, debug)
@@ -109,14 +120,15 @@ def run(filename, debug):
 
 
 @cli.command()
-@click.argument('filename', required=False, type=click.Path(exists=True))
-def view(filename):
+@click.option('--viewer', required=False, type=click.Choice(['gaudiview']))
+@click.argument('filename', required=True, type=click.Path(exists=True))
+def view(filename, viewer):
     """
     Analyze the results in a GAUDI output file.
     """
-    # gaudinspect = test_import('view', 'gaudinspect')
-    # gaudinspect.cli.open_file(filename)
-    click.echo("This argument is still unimplemented.")
+    load_chimera(nogui=False)
+    gaudi_view = test_import('view', 'gaudi_view')
+    gaudi_view.launch(filename, viewer=viewer)
 
 
 @cli.command()

@@ -1,7 +1,7 @@
 .. GaudiMM: Genetic Algorithms with Unrestricted
    Descriptors for Intuitive Molecular Modeling
    
-   http://bitbucket.org/insilichem/gaudi
+   https://github.com/insilichem/gaudi
   
    Copyright 2017 Jaime Rodriguez-Guerra, Jean-Didier Marechal
    
@@ -19,8 +19,9 @@
 
 .. _api.gaudi.objectives:
 
-Objectives 
-==========
+================
+gaudi.objectives
+================
 
 These are the built-in objectives in GAUDI. You can also build your own, but these are ready to use.
 

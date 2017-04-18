@@ -1,7 +1,7 @@
 .. GaudiMM: Genetic Algorithms with Unrestricted
    Descriptors for Intuitive Molecular Modeling
    
-   http://bitbucket.org/insilichem/gaudi
+   https://github.com/insilichem/gaudi
   
    Copyright 2017 Jaime Rodriguez-Guerra, Jean-Didier Marechal
    
@@ -17,65 +17,50 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 
+
 GaudiMM
 =======
 
 GaudiMM: Genetic Algorithms with Unrestricted Descriptors for Intuitive Molecular Modeling provides a novel method in design essays by combining several chemostructural criteria, along with energy-like optimization.
 
+
 Features
 --------
 
-**True multi-objective optimization**
+**Full multi-objective optimization**
 
-- Feel free to optimize H bonds, hydrophobic interactions, desolvation effects, distances between given sets of atoms, rotamers and more.
-
-**Force-field-less approach**
-
-- Metal complexes are more than welcome.
+- Feel free to optimize H bonds, hydrophobic interactions, desolvation effects, distances between given sets of atoms, rotamers and more, without compromises.
 
 **Unprecedented customizability**
 
-- Each objective can be switched off upon demand, and multi-instantiated.
+- Every gene and objective is a separate module, so they can be called on demand one or more times. This flexible approach allows very different calculations with the same mindset: exploration and evaluation.
+
+**Developer friendly**
+
+- If the provided genes and objectives are not enough, you can always code your own ones. Check out the `developer docs <http://gaudi.readthedocs.io/en/latest/developers.html>`_!
 
 
-Documentation
--------------
+Documentation and support
+-------------------------
 
-Quick installation:
+Documentation source is available in ``docs/`` subdirectory, and also compiled as HTML at `this webpage <http://gaudi.readthedocs.io/>`_
 
-1 - Download the `latest stable copy of UCSF Chimera <http://www.cgl.ucsf.edu/chimera/download.html>`_ and install it with:
+If you need help with GaudiMM, please use the `issues page <https://github.com/insilichem/gaudi/issues>`_ of our `GitHub repo <https://github.com/insilichem/gaudi>`_. You can drop me a message at `jaime.rodriguezguerra@uab.cat <mailto:jaime.rodriguezguerra@uab.cat>`_ too.
 
-::
+License
+-------
 
-  chmod +x chimera-*.bin && sudo ./chimera-*.bin
+GaudiMM is licensed under the Apache License, Version 2.0. Check the details in the ``LICENSE`` file.
 
-2 - Install `Miniconda Python 2.7 Distribution <http://conda.pydata.org/miniconda.html>`_ for your platform and install it with:
+Citation
+--------
 
-::
+GaudiMM is scientific software, funded by public research grants (Spanish MINECO's project ``CTQ2014-54071-P``, Generalitat de Catalunya's project ``2014SGR989`` and research grant ``2015FI_B00768``, COST Action ``CM1306``). If you make use of GaudiMM in scientific publications, please cite it. It will help measure the impact of our research and future funding!
 
-  bash Miniconda2*.sh
+.. code-block:: latex
 
-3 - Grab the `environment.yml <https://bitbucket.org/insilichem/gaudi/raw/HEAD/environment.yml>`_ file and create the GAUDI environment with:
-
-::
-
-  conda env create -f /path/to/downloaded/environment.yml
-
-4 - Activate the new environment as proposed:
-
-::
-
-  source activate gaudi
-
-5 - Run it!
-
-::
-
-  gaudi
-
-You can also check the (outdated) docs `here <docs/>`_.
-
-Bug reports and contact
------------------------
-
-Please, use the `issues page <https://bitbucket.org/jrgp/gaudi/issues>`_ of our `Bitbucket repo <https://bitbucket.org/jrgp/gaudi>`_. You can drop me a message at `jaime@klingon.uab.cat <mailto:jaime@klingon.uab.cat>`_ too.
+  @article{GaudiMM2017,
+      title = {GaudiMM: A Modular Multi-Objective Platform for Molecular Modeling},
+      author = {Rodr{\'i}guez-Guerra Pedregal, Jaime and Sciortino, Giuseppe and Guasp, Jordi and Municoy, Mart{\'i} and Mar{\'e}chal, Jean-Didier},
+      year = {2017},
+  }

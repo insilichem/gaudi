@@ -1,7 +1,7 @@
 .. GaudiMM: Genetic Algorithms with Unrestricted
    Descriptors for Intuitive Molecular Modeling
    
-   http://bitbucket.org/insilichem/gaudi
+   https://github.com/insilichem/gaudi
   
    Copyright 2017 Jaime Rodriguez-Guerra, Jean-Didier Marechal
    
@@ -17,34 +17,42 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 
-==========================================================================================
-GaudiMM: Genetic Algorithms with Unrestricted Descriptors for Intuitive Molecular Modeling
-==========================================================================================
+=======
+GaudiMM
+=======
+
+**Genetic Algorithms with Unrestricted Descriptors for Intuitive Molecular Modeling**
+
 
 GaudiMM helps to sketch new molecular designs that require complex interactions.
 
-.. todo::
-
-    * Better introduction to GaudiMM possibilities and features
-
-User guide
-==========
+.. image:: data/gaudimm-logo.jpg
+    :alt: GaudiMM logo
+    :scale: 70%
 
 .. toctree::
     :maxdepth: 1
+    :caption: User guide
 
     installation.rst
     usage.rst
     input.rst
     output.rst
-    
-
-For developers
-==============
+    faq.rst
 
 .. toctree::
     :maxdepth: 1
-    
+    :caption: For beginners
+
+    primer.rst
+    tutorial-firstrun.rst
+    tutorial-visualization.rst
+
+
+.. toctree::
+    :maxdepth: 1
+    :caption: For developers
+
     developers.rst
     api/gaudi.rst
 

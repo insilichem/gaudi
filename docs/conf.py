@@ -13,14 +13,11 @@
 # serve to show the default.
 
 import sys
-import os
-import shlex
 import sphinx_rtd_theme
 import gaudi
+from mock import MagicMock
 
-
-class Mock(object):
-
+class Mock(MagicMock):
     def __init__(self, *args, **kwargs):
         pass
 
@@ -29,29 +26,51 @@ class Mock(object):
 
     @classmethod
     def __getattr__(cls, name):
-        if name in ('QGLWidget', 'QMainWindow'):
-            return int
         if name in ('__file__', '__path__'):
-            return '/dev/null'
-        elif name[0] == name[0].upper():
-            mockType = type(name, (), {})
-            mockType.__module__ = __name__
-            return Mock()
+            return '.',
+        # elif name[0] == name[0].upper():
+        #     mockType = type(name, (), {})
+        #     mockType.__module__ = __name__
+        #     return mockType
         else:
             return Mock()
 
-    def __getitem__(self, index):
-        raise IndexError()
+MOCK_MODULES = [
+    'chimera', 'chimera.molEdit', 'chimera.phipsi',
+    '_contour',
+    '_gaussian',
+    '_multiscale',
+    '_surface',
+    'AddH',
+    'ChemGroup',
+    'DetectClash',
+    'FindHBond', 'FindHBond.base',
+    'FitMap', 'FitMap.search',
+    'Matrix',
+    'MeasureVolume',
+    'MetalGeom',
+    'Molecule',
+    'MoleculeSurface',
+    'Rotamers',
+    'SplitMolecule', 'SplitMolecule.split',
+    'Surface', 'Surface.gridsurf',
+    'SwapRes',
+    'WriteMol2',
+    'cclib', 'cclib.parser',
+    'rdkit',
+    'simtk', 'simtk.unit', 'simtk.openmm', 'simtk.openmm.app', 
+    'openmoltools', 'openmoltools.amber', 'openmoltools.utils',
+    'pdbfixer', 
+    'scipy', 'scipy.spatial', 
+    'numpy', 'numpy.linalg', 'numpy.core.multiarray',
+    'imp', 
+    'prody',
+    'mdtraj']
 
-    def __mul__(self, other):
-        return Mock()
+sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 
-MOCK_MODULES = ['rdkit', 'rdkit.Chem']
 
-for mod_name in MOCK_MODULES:
-    sys.modules[mod_name] = Mock()
-
-MOCK_NAMES = ['GL_FALSE']
+MOCK_NAMES = ['GL_FALSE', '_openmm_builtin_forcefields']
 
 for name in MOCK_NAMES:
     __builtins__[name] = Mock()

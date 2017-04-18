@@ -1,7 +1,7 @@
 .. GaudiMM: Genetic Algorithms with Unrestricted
    Descriptors for Intuitive Molecular Modeling
    
-   http://bitbucket.org/insilichem/gaudi
+   https://github.com/insilichem/gaudi
   
    Copyright 2017 Jaime Rodriguez-Guerra, Jean-Didier Marechal
    
@@ -17,6 +17,7 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 
+==============
 How to install
 ==============
 
@@ -34,7 +35,7 @@ Quick steps:
 
   bash Miniconda2*.sh
 
-3 - Grab the `environment.yml <https://bitbucket.org/insilichem/gaudi/raw/HEAD/environment.yml>`_ file and create the GAUDI environment with:
+3 - Grab the `environment.yml <https://raw.githubusercontent.com/insilichem/gaudi/master/environment.yml>`_ file and create the GAUDI environment with:
 
 ::
 
@@ -54,7 +55,7 @@ Quick steps:
 
 
 Check everything is OK
-----------------------
+======================
 
 If everything went OK, you will get the usage screen:
 
@@ -66,7 +67,7 @@ If everything went OK, you will get the usage screen:
       Molecular Modeling
 
       (C) 2017, InsiliChem
-      https://bitbucket.org/insilichem/gaudi
+      https://github.com/insilichem/gaudi
 
     Options:
       --version   Show the version and exit.

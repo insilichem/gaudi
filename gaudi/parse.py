@@ -5,7 +5,7 @@
 # GaudiMM: Genetic Algorithms with Unrestricted 
 # Descriptors for Intuitive Molecular Modeling
 # 
-# http://bitbucket.org/insilichem/gaudi
+# https://github.com/insilichem/gaudi
 #
 # Copyright 2017 Jaime Rodriguez-Guerra, Jean-Didier Marechal
 # 
@@ -160,12 +160,92 @@ class Settings(Munch):
 
     """
     Parses a YAML input file with PyYAML, validates it with voluptuous and builds a
-    attribute-accessible dict with Munch.
+    attribute-accessible dict with Munch. 
+
+    Hence, all the attributes in this class are generated automatically from the
+    default values, and the updated with the contents of the YAML file.
 
     Parameters
     ----------
     path : str
         Path to YAML file
+
+    Attributes
+    ----------
+    output : dict
+        Contains the parameters to determine how to write and report results.
+    output.path : str, optional, defaults to . (current dir)
+        Directory that will contain the result files. If it does not exist,
+        it will be created. If it does, the contents could be overwritten. 
+        Better change this between different attempts.
+    output.name : str, optional
+        A small identifier for your calculation. If not set, it will use
+        five random characters.
+    output.precision : int, optional, defaults to 3
+        How many decimals should be used along the simulation. This won't only
+        affect reports, but also the reported scores by the objectives during
+        the selection process. 
+    output.compress : bool, optional, defaults to True
+        Whether to apply compression to the individual ZIP files or not.
+    output.history : bool, optional, defaults to False
+        Whether to save all the genealogy of the individuals created along
+        the simulation or not. Only for advanced users.
+    output.pareto : bool, optional, defaults to True
+        If True, the elite population will be the Pareto front of the population.
+        If False, the elite population will be the best solutions, according to
+        the lexicographic sorting of the fitness values.
+    output.verbose : bool, optional, defaults to True
+        Whether to realtime report the progress of the simulation or not.
+    output.check_every : int, optional, defaults to 10
+        Dump the elite population every n generations. Switched off if set to 0.
+    output.prompt_on_exception : bool, optional, defaults to True
+        When an exception is raised, GaudiMM tries to dump the current population
+        to disk as an emergency rescue plan. This includes pressing Ctrl+C. If this
+        happens, it prompts the user whether to dump it or not. For interactive
+        sessions this is desirable, but no so much for unsupervised cluster jobs. 
+        If set to False, this behaviour will be disabled.
+    ga : dict
+        Contains the genetic algorithm parameters.
+    ga.population : int
+        Size of the starting population, in number of individuals.
+    ga.generations : float
+        Number of generations to simulate.
+    ga.mu : float, optional, defaults to 1.0
+        The number of children to select at each generation, expressed as a
+        multiplier of ``ga.population``.
+    ga.lambda_ : float, optional, defaults to 3.0
+        The number of children to produce at each generation, expressed as a
+        multiplier of ``ga.population``.
+    ga.mut_eta : float, optional, defaults to 5
+        Crowding degree of the mutation. A high eta will produce a mutant resembling 
+        its parent, while a small eta will produce a solution much more different.
+    ga.mut_pb : float, optional, defaults to 0.5
+        The probability that an offspring is produced by mutation.
+    ga.mut_indpb : float, optional, defaults to 0.75
+        Independent probability for each gene to be mutated.
+    ga.cx_eta : float, optional, defaults to 5
+        Crowding degree of the crossover. A high eta will produce children 
+        resembling to their parents, while a small eta will produce solutions 
+        much more different.
+    ga.cx_pb : float, optional, defaults to 0.5
+        The probability that an offspring is produced by crossover.
+    similarity : dict
+        Contains the parameters to the similarity operator, which, given two
+        individuals with the same fitness, whether they can be considered
+        the same solution or not.
+    similarity.module : str
+        The function to call when a fitness draw happens. It should be
+        expressed as Python importable path; ie, separated by dots:
+        ``gaudi.similarity.rmsd``.
+    similarity.args : list
+        Positional arguments to the similarity function.
+    similarity.kwargs : dict
+        Optional arguments to the similarity function.
+    genes : list of dict
+        Contains the list of genes that each Individual will have.
+    objectives : list of dict
+        Contains the list of objectives that will make the Environment
+        object to evaluate the Individuals.
     """
 
     default_values = {

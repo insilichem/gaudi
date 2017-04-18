@@ -17,17 +17,17 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 
-============
-Output files
-============
 
-GAUDI output files are also YAML-formatted, so you can just open the file and read it in your favourite editor. However, that's not probably what you expected to do.
+How to cite this software
+=========================
 
-For the time being, your best bet to understand how to analyze the results is to read the visualization tutorial:
+GaudiMM is scientific software, funded by public research grants. If you make use of GaudiMM in scientific publications, please cite it. It will help measure the impact of our research and future funding!
 
-- :ref:`tutorial-visualization`
-
-.. todo::
-
-    - Multi objective solutions: Pareto front vs lexicographically sorted elite
-
+.. code-block:: latex
+   
+   @preamble{ " \newcommand{\noop}[1]{} " }
+   @article{GaudiMM2017,
+      title = {GaudiMM: A Modular Multi-Objective Platform for Molecular Modeling},
+      author = {Rodr{\'i}guez-Guerra Pedregal, Jaime and Sciortino, Giuseppe and Guasp, Jordi and Municoy, Mart{\'i} and Mar{\'e}chal, Jean-Didier},
+      year = {\noop{2017}submitted},
+   }

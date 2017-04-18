@@ -1,7 +1,7 @@
 .. GaudiMM: Genetic Algorithms with Unrestricted
    Descriptors for Intuitive Molecular Modeling
    
-   http://bitbucket.org/insilichem/gaudi
+   https://github.com/insilichem/gaudi
   
    Copyright 2017 Jaime Rodriguez-Guerra, Jean-Didier Marechal
    
@@ -17,11 +17,14 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 
+.. _developers:
+
+================
 Developers guide
 ================
 
 Introduction to Genetic Algorithms
-----------------------------------
+==================================
 
 The GA in GaudiMM stands for Genetic Algorithm, a search heuristic inspired by natural selection that is used for optimization processes. 
 
@@ -123,7 +126,7 @@ And that's it! Deap does the rest! So, to sum up, you only need to worry about:
 If you want to know more about Deap and Genetic Algorithms, go check their `documentation <https://deap.readthedocs.org/en/master/index.html>`_. It's great!
 
 Our implementation
-------------------
+==================
 
 GaudiMM is built as an extensible and highly modular Python platform. Although the main focus is Chemistry and molecular design, you can use your own genes and objectives. You can think of GaudiMM as a new API for `deap <https://github.com/deap/deap>`_ that provides an object-oriented interface to easily create new individuals and objectives.
 

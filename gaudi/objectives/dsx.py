@@ -5,7 +5,7 @@
 # GaudiMM: Genetic Algorithms with Unrestricted
 # Descriptors for Intuitive Molecular Modeling
 # 
-# http://bitbucket.org/insilichem/gaudi
+# https://github.com/insilichem/gaudi
 #
 # Copyright 2017 Jaime Rodriguez-Guerra, Jean-Didier Marechal
 # 
@@ -37,7 +37,6 @@ import subprocess
 from tempfile import _get_default_tempdir as default_tempdir, _get_candidate_names as tempnames
 import logging
 # Chimera
-import chimera
 from SplitMolecule.split import molecule_from_atoms
 from WriteMol2 import writeMol2
 # GAUDI

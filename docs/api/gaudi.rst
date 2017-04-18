@@ -1,7 +1,7 @@
 .. GaudiMM: Genetic Algorithms with Unrestricted
    Descriptors for Intuitive Molecular Modeling
    
-   http://bitbucket.org/insilichem/gaudi
+   https://github.com/insilichem/gaudi
   
    Copyright 2017 Jaime Rodriguez-Guerra, Jean-Didier Marechal
    
@@ -17,6 +17,7 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 
+=================
 API documentation
 =================
 
@@ -25,9 +26,22 @@ API documentation
     :undoc-members:
     :show-inheritance:
 
+.. toctree::
+
+    gaudi.cli
+
+.. toctree::
+
+    gaudi.genes
+
+
+.. toctree::
+
+    gaudi.objectives
+
 
 gaudi.algorithms
-----------------
+================
 
 .. automodule:: gaudi.algorithms
     :members:
@@ -35,7 +49,7 @@ gaudi.algorithms
     :show-inheritance:
 
 gaudi.base
-----------
+==========
 
 .. automodule:: gaudi.base
     :members:
@@ -43,7 +57,7 @@ gaudi.base
     :show-inheritance:
 
 gaudi.box
----------
+=========
 
 .. automodule:: gaudi.box
     :members:
@@ -51,7 +65,7 @@ gaudi.box
     :show-inheritance:
 
 gaudi.exceptions
-----------------
+================
 
 .. automodule:: gaudi.exceptions
     :members:
@@ -59,7 +73,7 @@ gaudi.exceptions
     :show-inheritance:
 
 gaudi.parse
------------
+===========
 
 .. automodule:: gaudi.parse
     :members:
@@ -67,7 +81,7 @@ gaudi.parse
     :show-inheritance:
 
 gaudi.plugin
-------------
+============
 
 .. automodule:: gaudi.plugin
     :members:
@@ -75,28 +89,16 @@ gaudi.plugin
     :show-inheritance:
 
 gaudi.similarity
-----------------
+================
 
 .. automodule:: gaudi.similarity
     :members:
     :undoc-members:
     :show-inheritance:
 
-Genes, Objectives and CLI
--------------------------
-
-.. toctree::
-
-    gaudi.genes
-    gaudi.objectives
-    gaudi.cli
-
-
-Private modules
----------------
 
 gaudi._cpdrift
-~~~~~~~~~~~~~~
+==============
 
 .. automodule:: gaudi._cpdrift
     :members:

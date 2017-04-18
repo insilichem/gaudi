@@ -5,7 +5,7 @@
 # GaudiMM: Genetic Algorithms with Unrestricted
 # Descriptors for Intuitive Molecular Modeling
 # 
-# http://bitbucket.org/insilichem/gaudi
+# https://github.com/insilichem/gaudi
 #
 # Copyright 2017 Jaime Rodriguez-Guerra, Jean-Didier Marechal
 # 
@@ -26,13 +26,7 @@
 This module implements evolutionary algorithms as seen in DEAP,
 and extends their functionality to make use of GAUDI goodies.
 
-In its current state, it's just a copy of deap's ea_mu_plus_lambda.
-
 .. todo::
-
-    * Job progress
-
-    * Custom debug info
 
     * Genealogy
 

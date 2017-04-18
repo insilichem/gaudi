@@ -22,24 +22,34 @@
 # limitations under the License.
 ##############
 
-from gaudi.base import Individual, Environment
-from gaudi.parse import Settings
-import logging
-l = logging.getLogger()
-l.addHandler(logging.StreamHandler())
+"""
+:mod:`gaudi.cli.gaudi_view` is a wrapper around several GUI programs
+that can help visualize GaudiMM results.
 
-cfg = Settings(path="/path/to/some/test.gaudi-input")
+As of now, it implements:
 
-ind = Individual(cfg=cfg)
-ind.express()
-ind.unexpress()
+- GaudiView: An extension for UCSF Chimera.
 
-gene = ind.genes['SomeGeneName']
-gene.express()
-gene.unexpress()
+"""
 
-env = Environment(cfg)
-env.evaluate(ind)
+from __future__ import print_function
+import os
+import sys
+from subprocess import call
+from pychimera.pychimera import guess_chimera_path 
 
-obj = env.objectives['SomeObjectiveName']
-obj.evaluate(ind)
+
+def launch(filename, viewer=None):
+    if viewer in (None, 'gaudiview'):
+        visualize_with_gaudiview(filename)
+    else:
+        sys.exit("Viewer {} not supported".format(viewer))
+
+
+def visualize_with_gaudiview(filename):
+    chimera_path = 'chimera'
+    chimera_paths = guess_chimera_path(common_locations=True)
+    for path in chimera_paths:
+        if 'headless' not in path.lower():
+            chimera_path = os.path.join(path, 'bin', 'chimera')
+    call([chimera_path, filename])

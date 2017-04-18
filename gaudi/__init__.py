@@ -5,7 +5,7 @@
 # GaudiMM: Genetic Algorithms with Unrestricted
 # Descriptors for Intuitive Molecular Modeling
 # 
-# http://bitbucket.org/insilichem/gaudi
+# https://github.com/insilichem/gaudi
 #
 # Copyright 2017 Jaime Rodriguez-Guerra, Jean-Didier Marechal
 # 
@@ -52,7 +52,7 @@ logging.getLogger(__name__).addHandler(NullHandler())
 
 __author__ = 'Jaime Rodriguez-Guerra, and Jean-Didier Marechal'
 __copyright__ = '2017, InsiliChem'
-__url__ = 'https://bitbucket.org/insilichem/gaudi'
+__url__ = 'https://github.com/insilichem/gaudi'
 __title__ = 'GaudiMM'
 __description__ = ('GaudiMM: Genetic Algorithms with Unrestricted Descriptors '
                    'for Intuitive Molecular Modeling')

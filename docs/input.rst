@@ -1,7 +1,7 @@
 .. GaudiMM: Genetic Algorithms with Unrestricted
    Descriptors for Intuitive Molecular Modeling
    
-   http://bitbucket.org/insilichem/gaudi
+   https://github.com/insilichem/gaudi
   
    Copyright 2017 Jaime Rodriguez-Guerra, Jean-Didier Marechal
    
@@ -17,6 +17,9 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 
+.. _input:
+
+===========
 Input files
 ===========
 
@@ -31,12 +34,14 @@ GaudiMM uses YAML-formatted files for both input and output files. YAML is a hum
 You can check some sample input files in the ``examples`` directory.
 
 How to create GaudiMM input files
----------------------------------
+=================================
 
-If you don't mind installing `GAUDInspect <https://bitbucket.org/jrgp/gaudinspect>`_, it provides a full GUI to create GAUDI input files, step by step. Add genes and objectives, configure the paths, number of generations and population size, and run it. Simple and easy.
+If you don't mind installing `GAUDInspect <https://github.com/insilichem/gaudinspect>`_, it provides a full GUI to create GAUDI input files, step by step. Add genes and objectives, configure the paths, number of generations and population size, and run it. Simple and easy.
 
-However, you can also edit them manually, since they are just plain text files. Create a copy of one of the examples and edit them to your convenience. Check the API documentation of :ref:`api.gaudi.genes` and :ref:`api.gaudi.objectives` to find a list of available components.
+.. note::
 
-.. todo::
+  The development of GAUDInspect is currently *stalled*.  
 
-  * Tutorial: Creating a new input file from scratch
+However, you can also edit them manually, since they are just plain text files. Create a copy of one of the examples and edit them to your convenience. While you can check the API documentation of :ref:`api.gaudi.genes` and :ref:`api.gaudi.objectives` to find a list of available components, we really recommend checking the beginners tutorial:
+
+- :ref:`tutorial`.

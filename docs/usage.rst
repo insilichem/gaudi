@@ -1,7 +1,7 @@
 .. GaudiMM: Genetic Algorithms with Unrestricted
    Descriptors for Intuitive Molecular Modeling
    
-   http://bitbucket.org/insilichem/gaudi
+   https://github.com/insilichem/gaudi
   
    Copyright 2017 Jaime Rodriguez-Guerra, Jean-Didier Marechal
    
@@ -17,8 +17,9 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 
-Quick usage guide
-=================
+===========
+Quick usage
+===========
 
 Running GAUDI jobs is quite easy with :mod:`gaudi.cli.gaudi_run`:
 
@@ -26,12 +27,19 @@ Running GAUDI jobs is quite easy with :mod:`gaudi.cli.gaudi_run`:
 
     gaudi run /path/to/some_file.gaudi-input
 
+To learn how to create input files, go to :ref:`input`, and make sure to check the tutorials!
+
+- :ref:`primer`
+- :ref:`tutorial`
+
 After the job is completed, you can check the results with :mod:`gaudi.cli.gaudi_view`:
 
 .. code-block:: console
 
     gaudi view /path/to/some_file.gaudi-output
 
-You can choose between two molecular visualization tools: Chimera itself (using `GaudiView <https://bitbucket.org/insilichem/gaudiview>`_ extension), or our in-house GUI, `GAUDInspect <https://bitbucket.org/insilichem/gaudinspect>`_.
+You can choose between two molecular visualization tools: Chimera itself (using `GaudiView <https://github.com/insilichem/gaudiview>`_ extension), or our in-house GUI, `GAUDInspect <https://github.com/insilichem/gaudinspect>`_.
 
-Both tools support lazy-load, filtering and sorting, so choose whichever you prefer.
+Both tools support lazy-load, filtering and sorting, so choose whichever you prefer. A quick tutorial on GaudiView is available here:
+
+- :ref:`tutorial-visualization`

@@ -1,7 +1,7 @@
 .. GaudiMM: Genetic Algorithms with Unrestricted
    Descriptors for Intuitive Molecular Modeling
    
-   http://bitbucket.org/insilichem/gaudi
+   https://github.com/insilichem/gaudi
   
    Copyright 2017 Jaime Rodriguez-Guerra, Jean-Didier Marechal
    
@@ -17,10 +17,9 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 
-Command line interfaces
-=======================
-
-Located in ``gaudi.cli``.
+=========
+gaudi.cli
+=========
 
 .. automodule:: gaudi.cli
     :members:
