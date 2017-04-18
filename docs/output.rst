@@ -21,7 +21,7 @@
 Output files
 ============
 
-GAUDI output files are also YAML-formatted, so you can just open the file and read it in your favourite editor. However, that's not probably what you expected to do.
+GAUDI output files are also YAML-formatted, so you can just open the file and read it in your favourite editor. However, that's not probably what you were expecting to do.
 
 For the time being, your best bet to understand how to analyze the results is to read the visualization tutorial:
 
@@ -29,5 +29,5 @@ For the time being, your best bet to understand how to analyze the results is to
 
 .. todo::
 
-    - Multi objective solutions: Pareto front vs lexicographically sorted elite
+    - Multi-objective solutions: Pareto front vs lexicographically sorted elite
 

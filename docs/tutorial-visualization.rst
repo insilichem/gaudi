@@ -30,13 +30,13 @@ When a GaudiMM job finishes correctly, you will find the results in the director
 - ``*.gaudi-output``. A YAML file with the scores and paths of the solutions.
 - (Potentially lots of) ``*.zip``. As many as the elite population size. Each zip contains an Individual, which means that you will find molecule files (normally, mol2 files), as well as the allele metadata of the rest of the genes.
   
-To analyze the results, currently the best tool to use our extension for UCSF Chimera, GaudiView. After installing it, you can type the following:
+To analyze the results, currently the best tool is our own extension for UCSF Chimera, `GaudiView <https://github.com/insilichem/gaudiview>`_. After `installing it <https://github.com/insilichem/gaudiview/blob/master/README.md#installation>`_, you can type the following:
 
 .. code-block:: console
 
     gaudi view *.gaudi-output
 
-, and hopefully it will open Chimera and GaudiView to load the output file. If it doesn't work (please, if that's the case, report it in the issues page!), you can always UCSF Chimera, fire up GaudiView from ``Tools> InsiliChem> GaudiView`` and browse the file manually.
+, and hopefully it will open Chimera and GaudiView to load the output file. If it doesn't work (please, if that's the case, report it in the issues page!), you can always UCSF Chimera, fire up GaudiView from ``Tools> InsiliChem> GAUDIView`` and browse the file manually.
 
 .. image:: data/gaudiview-browse.png
     :alt: Browsing GaudiView output files
