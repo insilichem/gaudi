@@ -31,8 +31,7 @@ GaudiMM
 GaudiMM, for Genetic Algorithms with Unrestricted Descriptors for Intuitive Molecular Modeling,
 helps to sketch new molecular designs that require complex interactions.
 
-.. image:: docs/data/gaudimm-logo.jpg
-    :scale: 70%
+.. image:: docs/data/gaudimm-logo-whitebg.jpg
     :alt: GaudiMM logo
 
 Features
