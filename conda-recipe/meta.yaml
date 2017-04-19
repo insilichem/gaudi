@@ -1,9 +1,6 @@
 package:
   name: gaudi
-  version: {{ '{}{}{}'.format(environ['GIT_DESCRIBE_TAG'][1:], 
-                              (('+' + environ['GIT_DESCRIBE_NUMBER']) if environ['GIT_DESCRIBE_NUMBER'] else ''),
-                              (('.' + environ['GIT_DESCRIBE_HASH']) if environ['GIT_DESCRIBE_HASH'] else '')) 
-           }}
+  version: {{ environ.get('GIT_DESCRIBE_TAG', 'v')[1:] }}
 
 about:
   home: https://github.com/insilichem/gaudi
@@ -12,7 +9,7 @@ about:
 
 source:
   git_url: https://github.com/insilichem/gaudi.git
-  git_tag: {{ environ['GIT_DESCRIBE_TAG'] }}
+  git_tag: {{ environ.get('GIT_DESCRIBE_TAG', '') }}
 
 requirements:
   build:
@@ -22,6 +19,8 @@ requirements:
 
   run:
     - python 2.7*
+    - setuptools
+    - distribute
     - nomkl
     - openmm
     - openmoltools

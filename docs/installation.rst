@@ -35,17 +35,18 @@ Quick steps:
 
   bash Miniconda2*.sh
 
-3 - Grab the `environment.yml <https://raw.githubusercontent.com/insilichem/gaudi/master/environment.yml>`_ file and create the GAUDI environment with:
+3 - Install ``gaudi`` with ``conda`` in a new environment called ``insilichem`` (or whatever name you prefer after the ``-n`` flag), using these custom channels (``-c`` flags): 
 
 ::
 
-  conda env create -f /path/to/downloaded/environment.yml
+  conda create -n insilichem -c omnia -c salilab -c insilichem gaudi
+
 
 4 - Activate the new environment as proposed:
 
 ::
 
-  source activate gaudi
+  source activate insilichem
 
 5 - Run it!
 
