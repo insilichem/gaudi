@@ -100,6 +100,10 @@ class Coordination(ObjectiveProvider):
     prevent_intruders : bool, optional
         Don't let non-ligand atoms to be closer to the target than the 
         selected ligand atoms.
+    center_of_mass_correction : bool, optional
+        If True, calculate the distance between the metal center 
+        and the center of mass of the ligand atoms, and sum that
+        to the final score.
 
     Returns
     -------
@@ -121,12 +125,14 @@ class Coordination(ObjectiveProvider):
         'enforce_all_residues': parse.Coerce(bool),
         'only_one_ligand_per_residue': parse.Coerce(bool),
         'prevent_intruders': parse.Coerce(bool),
+        'center_of_mass_correction': parse.Coerce(bool)
         }
     
     def __init__(self, probe=None, radius=3.0, atom_types=(), atom_elements=(), 
                  atom_names=(), residues=(), geometry='tetrahedral', distance=0, 
                  min_atoms=1, prevent_intruders=True, enforce_all_residues=False, 
-                 only_one_ligand_per_residue=False, *args, **kwargs):
+                 only_one_ligand_per_residue=False, center_of_mass_correction=False,
+                 *args, **kwargs):
         ObjectiveProvider.__init__(self, **kwargs)
         self._probe = probe
         self._residues = residues
@@ -139,6 +145,7 @@ class Coordination(ObjectiveProvider):
         self.only_one_ligand_per_residue = only_one_ligand_per_residue
         self.enforce_all_residues = enforce_all_residues
         self.prevent_intruders = prevent_intruders
+        self.center_of_mass_correction = center_of_mass_correction
         if isinstance(geometry, basestring):
             self.geometry = np.copy(GEOMETRIES[geometry])
         else:
@@ -198,6 +205,11 @@ class Coordination(ObjectiveProvider):
         # directionality
         directionality = sum(ideal_bond_deviation(metal, ligand, ligands) for ligand in ligands)
         
+        if self.center_of_mass_correction:
+            ligands_com = np.average(atom_points[:-1], axis=0)
+            deviation = atom_points[-1].distance(chimera.Point(*ligands_com))
+            return rmsd + directionality + deviation
+
         return rmsd + directionality
 
     def coordination_sphere(self, ind):
