@@ -772,7 +772,7 @@ class Compound(object):
 
     def place_for_bonding(self, target, anchor=None):
         """
-        Translate `self.mol` to a colavent distance of `target` atom,
+        Translate `self.mol` to a covalent distance of `target` atom,
         with an adequate orientation.
 
         Parameters
