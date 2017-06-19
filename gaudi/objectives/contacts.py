@@ -95,12 +95,14 @@ class Contacts(ObjectiveProvider):
         'hydrophobic_threshold': parse.Coerce(float),
         'cutoff': parse.Coerce(float),
         'hydrophobic_elements': [basestring],
-        'bond_separation': parse.All(parse.Coerce(int), parse.Range(min=2))
+        'bond_separation': parse.All(parse.Coerce(int), parse.Range(min=2)),
+        'same_residue': parse.Coerce(bool),
         }
     
     def __init__(self, probes=None, radius=5.0, which='hydrophobic',
                  clash_threshold=0.6, hydrophobic_threshold=-0.4, cutoff=0.0,
-                 hydrophobic_elements=('C', 'S'), bond_separation=4, *args, **kwargs):
+                 hydrophobic_elements=('C', 'S'), bond_separation=4, 
+                 same_residue=True, *args, **kwargs):
         ObjectiveProvider.__init__(self, **kwargs)
         self.which = which
         self.radius = radius
@@ -109,6 +111,7 @@ class Contacts(ObjectiveProvider):
         self.cutoff = cutoff
         self.hydrophobic_elements = set(hydrophobic_elements)
         self.bond_separation = bond_separation
+        self.same_residue = same_residue
         self._probes = probes
         if which == 'hydrophobic':
             self.evaluate = self.evaluate_hydrophobic
@@ -136,7 +139,7 @@ class Contacts(ObjectiveProvider):
 
     def find_interactions(self, ind):
         atoms = self._surrounding_atoms(ind)
-        options = dict(test=atoms, intraRes=True, interSubmodel=True,
+        options = dict(test=atoms, intraRes=self.same_residue, interSubmodel=True,
                        clashThreshold=self.threshold, assumedMaxVdw=2.1,
                        hbondAllowance=0.2, bondSeparation=self.bond_separation)                                          
         clashes = DetectClash.detectClash(atoms, **options)
