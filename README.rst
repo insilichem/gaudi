@@ -69,8 +69,13 @@ GaudiMM is scientific software, funded by public research grants (Spanish MINECO
 
 .. code-block:: latex
 
-  @article{GaudiMM2017,
-      title = {GaudiMM: A Modular Multi-Objective Platform for Molecular Modeling},
-      author = {Rodr{\'i}guez-Guerra Pedregal, Jaime and Sciortino, Giuseppe and Guasp, Jordi and Municoy, Mart{\'i} and Mar{\'e}chal, Jean-Didier},
-      year = {2017},
+  @article {JCC:JCC24847,
+    author = {Rodríguez-Guerra Pedregal, Jaime and Sciortino, Giuseppe and Guasp, Jordi and Municoy, Martí and Maréchal, Jean-Didier},
+    title = {GaudiMM: A modular multi-objective platform for molecular modeling},
+    journal = {Journal of Computational Chemistry},
+    issn = {1096-987X},
+    url = {http://dx.doi.org/10.1002/jcc.24847},
+    doi = {10.1002/jcc.24847},
+    pages = {n/a--n/a},
+    keywords = {molecular modeling, protein-ligand docking, multi-objective optimization, genetic algorithms, metallopeptides},
   }
