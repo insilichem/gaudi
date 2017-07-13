@@ -279,6 +279,13 @@ def highest_atom_indices(r):
     return results
 
 
+@contextmanager
+def open_models_and_close(*args, **kwargs):
+    models = chimera.openModels.open(*args, **kwargs)
+    yield models
+    chimera.openModels.close(models)
+
+
 def pseudobond_to_bond(molecule, remove=False):
     """
     Transforms every pseudobond in `molecule` to a covalent bond
