@@ -40,9 +40,10 @@ from collections import OrderedDict
 import logging
 # Chimera
 import chimera
+import Midas
 from chimera import BondRot, dihedral
 from chimera.phipsi import chiAtoms, AtomsMissingError
-from Rotamers import getRotamerParams, NoResidueRotamersError
+from Rotamers import getRotamerParams, getRotamers, NoResidueRotamersError
 # External dependencies
 import deap.tools
 # GAUDI
@@ -104,7 +105,12 @@ class Rotamers(GeneProvider):
             self.residues = self._cache[self.name + '_residues']
         except KeyError:
             self.residues = self._cache[self.name + '_residues'] = OrderedDict()
+        try:
+            self.rotamers = self._cache[self.name + '_rotamers']
+        except KeyError:
+            self.rotamers = self._cache[self.name + '_rotamers'] = OrderedDict()
 
+        
     def __ready__(self):
         """
         Second stage of initialization.
@@ -130,7 +136,8 @@ class Rotamers(GeneProvider):
         for ((molname, pos), residue), i in zip(self.residues.items(), self.allele):
             if residue.type not in self._residues_without_rotamers:
                 try:
-                    rotamers = getRotamerParams(residue, lib=self.library.title())[2]
+                    rotamers = self.retrieve_rotamers(molname, pos, residue, 
+                                                      library=self.library.title())
                 except NoResidueRotamersError:  # ALA, GLY...
                     logger.warn('%s/%s (%s) has no rotamers', molname, pos, residue.type)
                     self._residues_without_rotamers.add(residue.type)
@@ -148,6 +155,23 @@ class Rotamers(GeneProvider):
 
     def mutate(self, indpb):
         self.allele = [random.random() if random.random() < indpb else i for i in self.allele]
+
+    def retrieve_rotamers(self, molecule, position, residue, library='Dunbrack'):
+        try:
+            rotamers = self.rotamers[(molecule, position)]
+        except KeyError:
+            def sort_by_rmsd(ref, query):
+                ref_atoms = [ref.atomsMap[a.name][0] for a in query.atoms]
+                return Midas.rmsd(ref_atoms, query.atoms)
+
+            chis = getRotamerParams(residue, lib=library)[2]
+            rotamers_mols = getRotamers(residue, lib=library)[1]
+            rotamers_and_chis = zip(rotamers_mols, chis)
+            rotamers_and_chis.sort(key=lambda rc: sort_by_rmsd(residue, rc[0]))
+            rotamers = self.rotamers[(molecule, position)] = zip(*rotamers_and_chis)[1]
+            for rot in rotamers_mols:
+                rot.destroy()
+        return rotamers
 
     @staticmethod
     def update_rotamer(residue, chis):
