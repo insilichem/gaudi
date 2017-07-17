@@ -142,8 +142,8 @@ class Rotamers(GeneProvider):
                     logger.warn('%s/%s (%s) has no rotamers', molname, pos, residue.type)
                     self._residues_without_rotamers.add(residue.type)
                 else:
-                    rotamer = rotamers[int(i * len(rotamers))]
-                    self.update_rotamer(residue, rotamer.chis)
+                    rotamer_chis = rotamers[int(i * len(rotamers))]
+                    self.update_rotamer(residue, rotamer_chis)
 
     def unexpress(self):
         for res in self.residues.values():
@@ -166,9 +166,11 @@ class Rotamers(GeneProvider):
 
             chis = getRotamerParams(residue, lib=library)[2]
             rotamers_mols = getRotamers(residue, lib=library)[1]
-            rotamers_and_chis = zip(rotamers_mols, chis)
+            rotamers_and_chis = zip(rotamers_mols, [c.chis for c in chis])
             rotamers_and_chis.sort(key=lambda rc: sort_by_rmsd(residue, rc[0]))
-            rotamers = self.rotamers[(molecule, position)] = zip(*rotamers_and_chis)[1]
+            rotamers = (self.all_chis(residue),) + zip(*rotamers_and_chis)[1]
+            print(len(rotamers))
+            self.rotamers[(molecule, position)] = rotamers
             for rot in rotamers_mols:
                 rot.destroy()
         return rotamers

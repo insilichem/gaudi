@@ -38,7 +38,10 @@ def rotamers(individual, path, position, seed):
 
 
 @pytest.mark.parametrize("path, position, seed, restype, original_chis, new_chis", [
-    ('4c3w_protein.mol2', 5, 0, 'ARG', [179.734, 178.061, 60.608, 90.076], [-174.7, -174.4, 69.2, 79.1]),
+    ('4c3w_protein.mol2', 5, 0, 'ARG', [179.734, 178.061, 60.608, 90.076], 
+                                       [179.734, 178.061, 60.608, 90.076]),
+    ('4c3w_protein.mol2', 5, 0.015, 'ARG', [179.734, 178.061, 60.608, 90.076], 
+                                           [-174.7, -174.4, 69.2, 79.1]),
 ])
 def test_rotamers(individual, path, position, seed, restype, original_chis, new_chis):
     rotamer = rotamers(individual, path, position, seed)
