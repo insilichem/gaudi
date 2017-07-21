@@ -55,12 +55,12 @@ coverage.xml
 # Sphinx documentation
 docs/_build/
 
-# Linux & Sublime
+# Linux & IDEs
 .directory
 *~
 *.sublime-workspace
-
-# PyCharm
+.vscode
+.vscode/*
 .idea
 .idea/*
 

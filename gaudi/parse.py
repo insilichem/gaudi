@@ -284,7 +284,7 @@ class Settings(Munch):
             Required('output'): {
                 'path': MakeDir(RelPathToInputFile()),
                 'name': All(basestring, Length(min=1, max=255)),
-                'precision': All(Coerce(int), Range(min=0, max=6)),
+                'precision': All(Coerce(int), Range(min=-3, max=6)),
                 'compress': Coerce(bool),
                 'history': Coerce(bool),
                 'pareto': Coerce(bool),

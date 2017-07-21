@@ -134,7 +134,7 @@ class Search(GeneProvider):
         'center': parse.Any(parse.Coordinates, parse.Named_spec("molecule", "atom")),
         'radius': parse.Coerce(float),
         'rotate': parse.Boolean,
-        'precision': parse.All(parse.Coerce(int), parse.Range(min=0, max=6)),
+        'precision': parse.All(parse.Coerce(int), parse.Range(min=-3, max=6)),
         'interpolation': parse.All(parse.Coerce(float), parse.Range(min=0, max=1.0))
         }
 
