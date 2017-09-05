@@ -27,6 +27,8 @@ GaudiMM
 .. image:: https://anaconda.org/insilichem/gaudi/badges/installer/conda.svg
     :target: https://conda.anaconda.org/insilichem/gaudi
 
+.. image:: https://img.shields.io/badge/doi-10.1002%2Fjcc.24847-blue.svg
+    :target: http://onlinelibrary.wiley.com/doi/10.1002/jcc.24847/full
 
 GaudiMM, for Genetic Algorithms with Unrestricted Descriptors for Intuitive Molecular Modeling,
 helps to sketch new molecular designs that require complex interactions.
@@ -65,17 +67,20 @@ GaudiMM is licensed under the Apache License, Version 2.0. Check the details in 
 Citation
 --------
 
-GaudiMM is scientific software, funded by public research grants (Spanish MINECO's project ``CTQ2014-54071-P``, Generalitat de Catalunya's project ``2014SGR989`` and research grant ``2015FI_B00768``, COST Action ``CM1306``). If you make use of GaudiMM in scientific publications, please cite it. It will help measure the impact of our research and future funding!
+GaudiMM is scientific software, funded by public research grants (Spanish MINECO's project ``CTQ2014-54071-P``, Generalitat de Catalunya's project ``2014SGR989`` and research grant ``2015FI_B00768``, COST Action ``CM1306``). If you make use of GaudiMM in scientific publications, please cite `our article in JCC <http://onlinelibrary.wiley.com/doi/10.1002/jcc.24847/full>`_. It will help measure the impact of our research and future funding!
 
 .. code-block:: latex
 
-  @article {JCC:JCC24847,
-    author = {Rodríguez-Guerra Pedregal, Jaime and Sciortino, Giuseppe and Guasp, Jordi and Municoy, Martí and Maréchal, Jean-Didier},
-    title = {GaudiMM: A modular multi-objective platform for molecular modeling},
-    journal = {Journal of Computational Chemistry},
-    issn = {1096-987X},
-    url = {http://dx.doi.org/10.1002/jcc.24847},
-    doi = {10.1002/jcc.24847},
-    pages = {n/a--n/a},
-    keywords = {molecular modeling, protein-ligand docking, multi-objective optimization, genetic algorithms, metallopeptides},
-  }
+    @article {JCC:JCC24847,
+        author = {Rodríguez-Guerra Pedregal, Jaime and Sciortino, Giuseppe and Guasp, Jordi and Municoy, Martí and Maréchal, Jean-Didier},
+        title = {GaudiMM: A modular multi-objective platform for molecular modeling},
+        journal = {Journal of Computational Chemistry},
+        volume = {38},
+        number = {24},
+        issn = {1096-987X},
+        url = {http://dx.doi.org/10.1002/jcc.24847},
+        doi = {10.1002/jcc.24847},
+        pages = {2118--2126},
+        keywords = {molecular modeling, protein-ligand docking, multi-objective optimization, genetic algorithms, metallopeptides},
+        year = {2017},
+    }

@@ -21,10 +21,34 @@
 GaudiMM
 =======
 
-**Genetic Algorithms with Unrestricted Descriptors for Intuitive Molecular Modeling**
+.. image:: https://readthedocs.org/projects/gaudi/badge/?version=latest
+    :target: http://gaudi.readthedocs.io/en/latest/
 
+.. image:: https://anaconda.org/insilichem/gaudi/badges/installer/conda.svg
+    :target: https://conda.anaconda.org/insilichem/gaudi
 
-GaudiMM helps to sketch new molecular designs that require complex interactions.
+.. image:: https://img.shields.io/badge/doi-10.1002%2Fjcc.24847-blue.svg
+    :target: http://onlinelibrary.wiley.com/doi/10.1002/jcc.24847/full
+
+GaudiMM, for Genetic Algorithms with Unrestricted Descriptors for Intuitive Molecular Modeling, helps to sketch new molecular designs that require complex interactions.
+
+.. image:: docs/data/gaudimm-logo-whitebg.jpg
+    :alt: GaudiMM logo
+
+Features
+--------
+
+**Full multi-objective optimization**
+
+- Feel free to optimize H bonds, hydrophobic interactions, desolvation effects, distances between given sets of atoms, rotamers and more, without compromises.
+
+**Unprecedented customizability**
+
+- Every gene and objective is a separate module, so they can be called on demand one or more times. This flexible approach allows very different calculations with the same mindset: exploration and evaluation.
+
+**Developer friendly**
+
+- If the provided genes and objectives are not enough, you can always code your own ones. Check out the `developer docs <http://gaudi.readthedocs.io/en/latest/developers.html>`_!
 
 .. image:: data/gaudimm-logo.jpg
     :alt: GaudiMM logo
