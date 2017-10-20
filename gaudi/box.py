@@ -395,6 +395,7 @@ def rmsd(a, b):
 
     return math.sqrt(sqdist / float(len(a)))
 
+
 @contextmanager
 def silent_stdout():
     _stdout = sys.stdout

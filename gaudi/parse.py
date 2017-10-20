@@ -135,6 +135,7 @@ def RelPathToInputFile(inputpath=None):
         return os.path.normpath(os.path.join(inputpath, os.path.expanduser(v)))
     return fn
 
+
 def ExpandUserPathExists(v):
     p = os.path.expanduser(v)
     if os.path.exists(p):
@@ -338,6 +339,7 @@ class Settings(Munch):
             return validate(self.schema, data)
         validated = deep_update(self, validate(self.schema, self))
         self.update(munchify(validated))
+
 
 def deep_update(source, overrides):
     """Update a nested dictionary or similar mapping.

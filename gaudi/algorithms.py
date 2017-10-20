@@ -49,6 +49,7 @@ if sys.version_info.major == 3:
     xrange = range
     raw_input = input
 
+
 def ea_mu_plus_lambda(population, toolbox, mu, lambda_, cxpb, mutpb, ngen, cfg,
                       stats=None, halloffame=None, verbose=True, 
                       prompt_on_exception=True):

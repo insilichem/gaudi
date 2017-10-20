@@ -27,17 +27,22 @@ This module collects more meaningful exceptions than builtins.
 
 """
 
+
 class AtomsNotFound(Exception):
     pass
+
 
 class ResiduesNotFound(Exception):
     pass
 
+
 class MoleculesNotFound(Exception):
     pass
 
+
 class TooManyAtoms(Exception):
     pass
+
 
 class TooManyResidues(Exception):
     pass

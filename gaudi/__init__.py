@@ -23,7 +23,7 @@
 ##############
 
 """
-The GAUDI package is comprised of several core modules that establish the base
+The GaudiMM package is comprised of several core modules that establish the base
 architecture to build an extensible platform of molecular design.
 
 The main module is :mod:`gaudi.base`, which defines the :class:`gaudi.base.Individual`,
