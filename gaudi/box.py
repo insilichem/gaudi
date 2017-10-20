@@ -279,6 +279,16 @@ def highest_atom_indices(r):
     return results
 
 
+def _incremental_existing_path(path, separator="__"):
+    keep_trying = 1
+    while os.path.exists(path):
+        base, ext = os.path.splitext(path)
+        base = base.rsplit(separator, 1)[0]
+        path = '{}{}{}{}'.format(base, separator, keep_trying, ext)
+        keep_trying += 1
+    return path
+
+
 @contextmanager
 def open_models_and_close(*args, **kwargs):
     models = chimera.openModels.open(*args, **kwargs)
@@ -402,6 +412,15 @@ def silent_stdout():
     with open(os.devnull, 'w') as sys.stdout:
         yield
     sys.stdout = _stdout
+
+
+def stdout_to_file(workspace, stderr=True):
+    path = os.path.join(workspace, 'log')
+    path = _incremental_existing_path(path)
+    sys.stdout = open(path + '.stdout', "w")
+    if stderr:
+        sys.stderr = open(path + '.stderr', "w")
+
 
 def _hex_to_rgb(hexa):
     return [int(hexa[i:i + 2], 16) for i in range(0, 6, 2)]
