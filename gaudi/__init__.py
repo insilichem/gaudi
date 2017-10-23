@@ -33,7 +33,9 @@ how they are evaluated (:mod:`gaudi.objectives`). Additionally:
 
 - :mod:`gaudi.algorithms` is the place to look for the actual GA implementation
 - :mod:`gaudi.box` is a placeholder for several small functions that are used across GaudiMM.
+- :mod:`gaudi.exceptions` defines custom exceptions.
 - :mod:`gaudi.parse` contains parsing utilities to retrieve the configuration files.
+- :mod:`gaudi.parallel` contains helpers to deal with parallel GaudiMM jobs.
 - :mod:`gaudi.plugin` holds some magic to make the plugin system work.
 - :mod:`gaudi.similarity` defines the diversity enhancers.
 """

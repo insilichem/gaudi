@@ -72,6 +72,14 @@ gaudi.exceptions
     :undoc-members:
     :show-inheritance:
 
+gaudi.parallel
+===========
+
+.. automodule:: gaudi.parallel
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 gaudi.parse
 ===========
 
