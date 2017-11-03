@@ -1,9 +1,3 @@
-GaudiMM: Genetic Algorithms with Unrestricted
-Descriptors for Intuitive Molecular Modeling
-
-http://bitbucket.org/insilichem/gaudi
-Copyright 2017 Jaime Rodriguez-Guerra, Jean-Didier Marechal
-
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
@@ -194,7 +188,14 @@ TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
 
 -----------------------------------------------------------------------
 
-GaudiMM uses other software that might be licensed under different 
+GaudiMM: Genetic Algorithms with Unrestricted
+Descriptors for Intuitive Molecular Modeling
+
+http://github.cp,/insilichem/gaudi
+Copyright 2017 Jaime Rodriguez-Guerra, Jean-Didier Marechal
+
+
+GaudiMM uses other software that might be licensed under different
 conditions, specified below in alphabetic order:
 
 - Boltons: BSD 3-Clause License
