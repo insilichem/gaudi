@@ -4,17 +4,17 @@
 ##############
 # GaudiMM: Genetic Algorithms with Unrestricted
 # Descriptors for Intuitive Molecular Modeling
-# 
+#
 # https://github.com/insilichem/gaudi
 #
 # Copyright 2017 Jaime Rodriguez-Guerra, Jean-Didier Marechal
-# 
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-# 
+#
 #      http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -191,7 +191,7 @@ def draw_interactions(interactions, startCol='FF0000', endCol='FFFF00',
     endCol : str, optional
         Hex code for the final color of the pseudobond.
         (closer to the second atom of the pair)
-    key : int, optional 
+    key : int, optional
         The index of an interaction tuple that represent the alpha
         channel in the color used to depict the interaction.
     name : str, optional
@@ -279,7 +279,7 @@ def highest_atom_indices(r):
     return results
 
 
-def _incremental_existing_path(path, separator="__"):
+def incremental_existing_path(path, separator="__"):
     keep_trying = 1
     while os.path.exists(path):
         base, ext = os.path.splitext(path)
@@ -287,6 +287,7 @@ def _incremental_existing_path(path, separator="__"):
         path = '{}{}{}{}'.format(base, separator, keep_trying, ext)
         keep_trying += 1
     return path
+_incremental_existing_path = incremental_existing_path
 
 
 @contextmanager
