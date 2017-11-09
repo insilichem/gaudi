@@ -91,9 +91,9 @@ install:
     git clone https://github.com/insilichem/pychimera.git;
     conda build -q pychimera/conda-recipes/ucsf-chimera-headless;
     conda install -y -c $HOME/miniconda/conda-bld ucsf-chimera-headless;
-    ln -s $CONDA_PREFIX/bin/chimera-headless $CONDA_PREFIX/bin/chimera;
+    ln -s $CONDA_PREFIX/bin/chimera-headless $CONDA_PREFIX/bin/chimera || true;
   fi
-- conda env create -f environment.yml
+- conda env create -f environment.yml || conda env update -n gaudi -f environment.yml
 - source activate gaudi
 - pip install -U https://github.com/insilichem/pychimera/archive/master.zip
 - conda install -q pytest
