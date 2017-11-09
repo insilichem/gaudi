@@ -96,11 +96,10 @@ install:
     ln -s $CONDA_PREFIX/bin/chimera-headless $CONDA_PREFIX/bin/chimera || true;
   fi
 - pip install -U https://github.com/insilichem/pychimera/archive/master.zip
-- conda install -q pytest
+- pip install pytest pytest-benchmark
 - python setup.py install
 # Show currently installed packages
 - conda list
 
 script:
-- cd tests
-- python run_test.py
+- cd tests && python run_test.py
