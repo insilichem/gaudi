@@ -81,7 +81,7 @@ install:
 
 # Configure conda and get a few essentials
 - conda config --set always_yes yes
-- conda install -q conda conda-build pytest
+- conda install -q conda conda-build
 # Show conda info for debugging
 - conda info -a
 
@@ -96,6 +96,7 @@ install:
 - conda env create -f environment.yml
 - source activate gaudi
 - pip install -U https://github.com/insilichem/pychimera/archive/master.zip
+- conda install -q pytest
 - python setup.py install
 # Show currently installed packages
 - conda list
