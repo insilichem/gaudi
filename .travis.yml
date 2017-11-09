@@ -94,7 +94,8 @@ install:
     conda install -y -c $HOME/miniconda/conda-bld ucsf-chimera-headless;
     ln -s $CONDA_PREFIX/bin/chimera-headless $CONDA_PREFIX/bin/chimera;
   fi
-- conda env update -n root -f environment.yaml
+- conda env create -f environment.yaml
+- source activate gaudi
 - pip install -U https://github.com/insilichem/pychimera/archive/master.zip
 - python setup.py install
 
