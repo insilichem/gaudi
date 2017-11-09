@@ -23,5 +23,4 @@ dependencies:
   - deap
   - pyyaml
   - prody
-  - gaudi
 
