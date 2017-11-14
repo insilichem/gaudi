@@ -102,17 +102,15 @@ install:
 - conda list
 
 script:
-- cd tests && python run_test.py
-- conda build conda-recipe && conda install --use-local gaudi
+- cd tests && python run_test.py; cd ..
 
-after_success:
-# Change permissions for Anaconda deployment script
+before_deploy:
+- conda build conda-recipe --no-test
 - conda install anaconda-client
 
 deploy:
- # Deploy to Anaconda.org
+  # Deploy to Anaconda.org
   - provider: script
-    script: anaconda -t $ANACONDA_TOKEN upload conda-bld/**/gaudi-*.tar.bz2
+    script: anaconda -t $ANACONDA_TOKEN upload -u insilichem $HOME/miniconda/conda-bld/**/gaudi-*.tar.bz2
     on:
       tags: true
-    skip_cleanup: true
