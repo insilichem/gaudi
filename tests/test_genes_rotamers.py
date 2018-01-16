@@ -4,17 +4,17 @@
 ##############
 # GaudiMM: Genetic Algorithms with Unrestricted
 # Descriptors for Intuitive Molecular Modeling
-# 
+#
 # https://github.com/insilichem/gaudi
 #
 # Copyright 2017 Jaime Rodriguez-Guerra, Jean-Didier Marechal
-# 
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-# 
+#
 #      http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -29,7 +29,7 @@ from gaudi.genes.rotamers import Rotamers
 
 def rotamers(individual, path, position, seed):
     individual.genes['Molecule'] = Molecule(parent=individual, path=datapath(path))
-    individual.genes['Rotamers'] = rotamers = Rotamers(parent=individual,
+    individual.genes['Rotamers'] = rotamers = Rotamers(parent=individual, with_original=True,
                                                        residues=[('Molecule', position)])
     individual.__ready__()
     individual.__expression_hooks__()
@@ -38,9 +38,9 @@ def rotamers(individual, path, position, seed):
 
 
 @pytest.mark.parametrize("path, position, seed, restype, original_chis, new_chis", [
-    ('4c3w_protein.mol2', 5, 0, 'ARG', [179.734, 178.061, 60.608, 90.076], 
+    ('4c3w_protein.mol2', 5, 0, 'ARG', [179.734, 178.061, 60.608, 90.076],
                                        [179.734, 178.061, 60.608, 90.076]),
-    ('4c3w_protein.mol2', 5, 0.015, 'ARG', [179.734, 178.061, 60.608, 90.076], 
+    ('4c3w_protein.mol2', 5, 0.015, 'ARG', [179.734, 178.061, 60.608, 90.076],
                                            [-174.7, -174.4, 69.2, 79.1]),
 ])
 def test_rotamers(individual, path, position, seed, restype, original_chis, new_chis):
@@ -49,7 +49,7 @@ def test_rotamers(individual, path, position, seed, restype, original_chis, new_
     # Cache initial coordinates for the residue and ALL the alpha carbons in the protein
     alpha_carbons_coords = [a.xformCoord() for a in residue.molecule.atoms if a.name == 'CA']
     residue_coords = [a.xformCoord() for a in residue.atoms]
-    
+
     with expressed(individual):
         assert residue.id.position == position
         assert residue.type == restype

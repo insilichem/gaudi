@@ -4,17 +4,17 @@
 ##############
 # GaudiMM: Genetic Algorithms with Unrestricted
 # Descriptors for Intuitive Molecular Modeling
-# 
+#
 # https://github.com/insilichem/gaudi
 #
 # Copyright 2017 Jaime Rodriguez-Guerra, Jean-Didier Marechal
-# 
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-# 
+#
 #      http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -79,6 +79,10 @@ class Rotamers(GeneProvider):
     library : {'Dunbrack', 'Dynameomics'}
         The rotamer library to use.
 
+    with_original: bool, defaults to True
+        Whether to include the original set of chi angles as part of the
+        rotamer library.
+
     Attributes
     ----------
     allele : list of float
@@ -94,11 +98,12 @@ class Rotamers(GeneProvider):
     # to not have any rotamers
     _residues_without_rotamers = set(('ALA', 'GLY'))
 
-    def __init__(self, residues=None, library='Dunbrack', **kwargs):
+    def __init__(self, residues=None, library='Dunbrack', with_original=True, **kwargs):
         GeneProvider.__init__(self, **kwargs)
         self._kwargs = kwargs
         self._residues = residues
         self.library = library
+        self.with_original = with_original
         self.allele = []
         # set caches
         try:
@@ -110,7 +115,7 @@ class Rotamers(GeneProvider):
         except KeyError:
             self.rotamers = self._cache[self.name + '_rotamers'] = OrderedDict()
 
-        
+
     def __ready__(self):
         """
         Second stage of initialization.
@@ -125,7 +130,7 @@ class Rotamers(GeneProvider):
                 self.patch_residue(r)
                 self.residues[(molname, r.id.position)] = r
                 self.allele.append(random.random())
-    
+
     def __deepcopy__(self, memo):
         new = self.__class__(residues=self._residues, library=self.library, **self._kwargs)
         new.residues = self.residues
@@ -136,7 +141,7 @@ class Rotamers(GeneProvider):
         for ((molname, pos), residue), i in zip(self.residues.items(), self.allele):
             if residue.type not in self._residues_without_rotamers:
                 try:
-                    rotamers = self.retrieve_rotamers(molname, pos, residue, 
+                    rotamers = self.retrieve_rotamers(molname, pos, residue,
                                                       library=self.library.title())
                 except NoResidueRotamersError:  # ALA, GLY...
                     logger.warn('%s/%s (%s) has no rotamers', molname, pos, residue.type)
@@ -166,10 +171,12 @@ class Rotamers(GeneProvider):
 
             chis = getRotamerParams(residue, lib=library)[2]
             rotamers_mols = getRotamers(residue, lib=library)[1]
+            reference = residue if self.with_original else rotamers_mols[0].residues[0]
             rotamers_and_chis = zip(rotamers_mols, [c.chis for c in chis])
-            rotamers_and_chis.sort(key=lambda rc: sort_by_rmsd(residue, rc[0]))
-            rotamers = (self.all_chis(residue),) + zip(*rotamers_and_chis)[1]
-            print(len(rotamers))
+            rotamers_and_chis.sort(key=lambda rc: sort_by_rmsd(reference, rc[0]))
+            rotamers = zip(*rotamers_and_chis)[1]
+            if self.with_original:
+                rotamers = (self.all_chis(residue),) + rotamers
             self.rotamers[(molecule, position)] = rotamers
             for rot in rotamers_mols:
                 rot.destroy()
