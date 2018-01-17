@@ -92,6 +92,7 @@ class Rotamers(GeneProvider):
     _validate = {
         parse.Required('residues'): [parse.Named_spec("molecule", "residue")],
         'library': parse.Any('Dunbrack', 'dunbrack', 'Dynameomics', 'dynameomics'),
+        'with_original': parse.Boolean,
        }
 
     # Avoid unnecesary calls to expensive get_rotamers if residue is known
