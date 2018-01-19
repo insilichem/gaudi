@@ -4,17 +4,17 @@
 ##############
 # GaudiMM: Genetic Algorithms with Unrestricted
 # Descriptors for Intuitive Molecular Modeling
-# 
+#
 # https://github.com/insilichem/gaudi
 #
 # Copyright 2017 Jaime Rodriguez-Guerra, Jean-Didier Marechal
-# 
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-# 
+#
 #      http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -120,7 +120,7 @@ class Search(GeneProvider):
 
     How do we get the needed matrices?
 
-    - ``to_zero``. Record the original position (`origin`) of the molecule and 
+    - ``to_zero``. Record the original position (`origin`) of the molecule and
       multiply it by -1. Done with method `to_zero()`.
 
     - ``rotation``. Obtained directly from ``FitMap.search.random_rotation``
@@ -169,8 +169,8 @@ class Search(GeneProvider):
     @property
     def to_zero(self):
         """
-        Return a translation matrix that takes the molecule from its 
-        original position to the origin of coordinates (0,0,0). 
+        Return a translation matrix that takes the molecule from its
+        original position to the origin of coordinates (0,0,0).
 
         Needed for rotations.
         """
@@ -302,14 +302,16 @@ def random_translation(center, r):
     -------
     A translation matrix to a random point in the search sphere, with no rotation.
     """
-    inside = True
-    while inside:
-        x, y, z = [random.uniform(a - r, a + r) for a in center]
-        if x * x + y * y + z * z > r:
-            inside = False
-    return ((1.0, 0.0, 0.0, x),
-            (0.0, 1.0, 0.0, y),
-            (0.0, 0.0, 1.0, z))
+    r2 = r*r
+    a, b, c = center
+    random_uniform = random.uniform
+    while True:
+        x, y, z = [random_uniform(-r, r) for m in center]
+        if x*x + y*y + z*z <= r2:
+            break
+    return ((1.0, 0.0, 0.0, a + x),
+            (0.0, 1.0, 0.0, b + y),
+            (0.0, 0.0, 1.0, c + z))
 
 
 def parse_origin(origin, individual=None):
