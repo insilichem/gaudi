@@ -101,21 +101,6 @@ class Vina(ObjectiveProvider):
         finally:
             self.clean()
 
-    def prepare_molecule(self, molecule, which='receptor'):
-        """ Write PDBQT for molecule """
-        if which == 'ligand':
-            script = [sys.executable, prepare_ligand4.__file__.replace('.pyc', '.py'), '-l']
-        else:
-            script = [sys.executable, prepare_receptor4.__file__.replace('.pyc', '.py'), '-r']
-        print(script)
-        path = '{}_{}.pdb'.format(self.tmpfile, which)
-        pathqt = path + 'qt'
-        pdb = molecule.write(absolute=path, filetype='pdb')
-        self._paths.append(path)
-        output = call(script + [path, '-o', pathqt])
-        self._paths.append(pathqt)
-        return pathqt
-
     def prepare_receptor(self, molecule):
         path = '{}_receptor.pdb'.format(self.tmpfile)
         pathqt = path + 'qt'
