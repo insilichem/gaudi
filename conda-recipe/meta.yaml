@@ -28,6 +28,8 @@ requirements:
     - cclib
     - scipy
     - imp
+    - autodock-vina
+    - autodocktools-prepare
 
 test:
   imports:
