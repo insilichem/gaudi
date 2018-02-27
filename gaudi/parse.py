@@ -2,19 +2,19 @@
 # -*- coding: utf-8 -*-
 
 ##############
-# GaudiMM: Genetic Algorithms with Unrestricted 
+# GaudiMM: Genetic Algorithms with Unrestricted
 # Descriptors for Intuitive Molecular Modeling
-# 
+#
 # https://github.com/insilichem/gaudi
 #
 # Copyright 2017 Jaime Rodriguez-Guerra, Jean-Didier Marechal
-# 
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-# 
+#
 #      http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -77,9 +77,9 @@ def Importable(v):
 def Molecule_name(v):
     """
     Ideal implementation:
-    
+
     .. code-block:: python
-    
+
         def fn(v):
             valid = [i['name'] for i in items if i['module'] == 'gaudi.genes.molecule']
             if v not in valid:
@@ -102,18 +102,20 @@ def Named_spec(*names):
     a valid name of a Molecule gene and 123 a positive int or *
     """
     def fn(v):
+        accepted_str = ('*', 'last', 'first', 'donor', 'acceptor', 'flagged', 'axis_start', 'axis_end')
         try:
             name, i = str(v).split('/')
             name.strip()
             if Molecule_name(name):
-                if i in ('*', 'last', 'first', 'donor', 'acceptor', 'flagged'):
+                if i in accepted_str:
                     pass
                 elif int(i) > 0:
                     i = int(i)
                 return namedtuples[(names)](name, i)
             raise ValueError
         except (ValueError, AttributeError):
-            raise Invalid("Expected <Molecule name>/<number, *, first or last> but got {}".format(v))
+            raise Invalid("Expected <Molecule name>/<number, {}> "
+                          "but got {}".format(', '.join(accepted_str), v))
     return fn
 
 
@@ -161,7 +163,7 @@ class Settings(Munch):
 
     """
     Parses a YAML input file with PyYAML, validates it with voluptuous and builds a
-    attribute-accessible dict with Munch. 
+    attribute-accessible dict with Munch.
 
     Hence, all the attributes in this class are generated automatically from the
     default values, and the updated with the contents of the YAML file.
@@ -177,7 +179,7 @@ class Settings(Munch):
         Contains the parameters to determine how to write and report results.
     output.path : str, optional, defaults to . (current dir)
         Directory that will contain the result files. If it does not exist,
-        it will be created. If it does, the contents could be overwritten. 
+        it will be created. If it does, the contents could be overwritten.
         Better change this between different attempts.
     output.name : str, optional
         A small identifier for your calculation. If not set, it will use
@@ -185,7 +187,7 @@ class Settings(Munch):
     output.precision : int, optional, defaults to 3
         How many decimals should be used along the simulation. This won't only
         affect reports, but also the reported scores by the objectives during
-        the selection process. 
+        the selection process.
     output.compress : bool, optional, defaults to True
         Whether to apply compression to the individual ZIP files or not.
     output.history : bool, optional, defaults to False
@@ -203,7 +205,7 @@ class Settings(Munch):
         When an exception is raised, GaudiMM tries to dump the current population
         to disk as an emergency rescue plan. This includes pressing Ctrl+C. If this
         happens, it prompts the user whether to dump it or not. For interactive
-        sessions this is desirable, but no so much for unsupervised cluster jobs. 
+        sessions this is desirable, but no so much for unsupervised cluster jobs.
         If set to False, this behaviour will be disabled.
     ga : dict
         Contains the genetic algorithm parameters.
@@ -218,15 +220,15 @@ class Settings(Munch):
         The number of children to produce at each generation, expressed as a
         multiplier of ``ga.population``.
     ga.mut_eta : float, optional, defaults to 5
-        Crowding degree of the mutation. A high eta will produce a mutant resembling 
+        Crowding degree of the mutation. A high eta will produce a mutant resembling
         its parent, while a small eta will produce a solution much more different.
     ga.mut_pb : float, optional, defaults to 0.5
         The probability that an offspring is produced by mutation.
     ga.mut_indpb : float, optional, defaults to 0.75
         Independent probability for each gene to be mutated.
     ga.cx_eta : float, optional, defaults to 5
-        Crowding degree of the crossover. A high eta will produce children 
-        resembling to their parents, while a small eta will produce solutions 
+        Crowding degree of the crossover. A high eta will produce children
+        resembling to their parents, while a small eta will produce solutions
         much more different.
     ga.cx_pb : float, optional, defaults to 0.5
         The probability that an offspring is produced by crossover.
@@ -349,7 +351,7 @@ def deep_update(source, overrides):
     for key, value in overrides.iteritems():
         if isinstance(value, Mapping) and value:
             returned = deep_update(source.get(key, {}), value)
-            source[key] = returned  
+            source[key] = returned
         else:
             source[key] = overrides[key]
     return source
