@@ -28,8 +28,7 @@ from conftest import datapath, expressed
 from gaudi.objectives.vina import Vina
 from gaudi.genes.molecule import Molecule
 
-@pytest.mark.skipif(sys.platform == 'darwin',
-    reason='autodocktools-prepare not available on macOS yet')
+
 @pytest.mark.parametrize("protein, ligand, affinity", [
     ('5er1_protein.mol2', '5er1_ligand.mol2', -5.75053),
 ])

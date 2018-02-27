@@ -29,8 +29,8 @@ requirements:
     - cclib
     - scipy
     - imp
-    - autodock-vina          # [linux]
-    - autodocktools-prepare  # [linux]
+    - autodock-vina
+    - autodocktools-prepare
 
 test:
   imports:
