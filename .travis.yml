@@ -31,8 +31,6 @@ matrix:
   #    https://github.com/travis-ci/travis-ci/issues/2778
   #    ...
   fast_finish: true
-  allow_failures:
-  - os: osx
 
 cache:
   directories:
@@ -41,13 +39,13 @@ cache:
 
 before_cache:
 - if ! [[ $TRAVIS_TAG ]]; then rm -rf $HOME/miniconda/conda-bld; fi
-- rm -rf $HOME/miniconda/locks $HOME/miniconda/pkgs $HOME/miniconda/var $HOME/miniconda/conda-meta/history
-- pip uninstall -y gaudi pychimera
+- rm -rf $HOME/pychimera $HOME/miniconda/locks $HOME/miniconda/pkgs $HOME/miniconda/var $HOME/miniconda/conda-meta/history
+- conda remove --force gaudi
 
 branches:
   only:
   - master
-  - /^[0-9]+\.[0-9]+(\.[0-9]+)?([ab][0-9]+)?$/  # release branches
+  - /^[0-9]+\.[0-9]+(\.[0-9]+)?([ab][0-9]*)?$/  # release branches
 
 before_install:
 # Get miniconda. Take the right version, so re-installing python is hopefully not needed.
@@ -58,46 +56,55 @@ before_install:
     rm -rf $HOME/miniconda;
     mkdir -p $HOME/download;
     if [[ -d $HOME/download/miniconda.sh ]]; then rm -rf $HOME/download/miniconda.sh; fi;
-    if [ "${MYCONDAPY}" = "2.7" ]; then
-      if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
-        wget https://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh -O $HOME/download/miniconda.sh;
-      else
-        wget https://repo.continuum.io/miniconda/Miniconda2-latest-MacOSX-x86_64.sh -O $HOME/download/miniconda.sh;
-      fi;
+    if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
+      wget https://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh -O $HOME/download/miniconda.sh;
     else
-      if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
-        wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O $HOME/download/miniconda.sh;
-      else
-        wget https://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -O $HOME/download/miniconda.sh;
-      fi;
+      wget https://repo.continuum.io/miniconda/Miniconda2-latest-MacOSX-x86_64.sh -O $HOME/download/miniconda.sh;
     fi;
     bash $HOME/download/miniconda.sh -b -p $HOME/miniconda;
   fi
-
-
-install:
+# Configure conda and get a few essentials
 - source $HOME/miniconda/bin/activate
 - hash -r
-
-# Configure conda and get a few essentials
 - conda config --set always_yes yes
 - conda install -q conda conda-build
 # Show conda info for debugging
 - conda info -a
-
-# Dependencies
-# Check if UCSF Chimera is present and install it if needed
-- conda env create -f environment.yml || conda env update -n gaudi -f environment.yml
-- source activate gaudi
-- if [[ ! -e $CONDA_PREFIX/bin/chimera ]]; then
-    git clone https://github.com/insilichem/pychimera.git;
-    conda build -q pychimera/conda-recipes/ucsf-chimera-headless;
-    conda install -y -c $HOME/miniconda/conda-bld ucsf-chimera-headless;
-    ln -s $CONDA_PREFIX/bin/chimera-headless $CONDA_PREFIX/bin/chimera || true;
+# Get Chimera
+- git clone https://github.com/insilichem/pychimera.git $HOME/pychimera;
+- if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
+    if [[ ! -e $HOME/miniconda/bin/chimera ]]; then
+      conda build -q $HOME/pychimera/conda-recipes/ucsf-chimera-headless;
+      conda install -y -c $HOME/miniconda/conda-bld ucsf-chimera-headless;
+      ln -s $HOME/miniconda/bin/chimera-headless $HOME/miniconda/bin/chimera || true;
+    fi;
+  else
+    if [[ ! -e $HOME/chimera/Chimera.app/Contents/Resources/bin/chimera ]]; then
+        set +x;
+        echo "IMPORTANT - By downloading you accept the UCSF Chimera Non-Commercial Software License Agreement!";
+        echo "IMPORTANT - The license agreement can be found at http://www.cgl.ucsf.edu/chimera/license.html";
+        echo "IMPORTANT - If you do not agree, please press Ctrl-C now.";
+        echo "IMPORTANT - Downloading in 10 seconds...'";
+        sleep 10;
+        set -x;
+        _file="chimera-1.12-mac64.dmg";
+        _filepath="mac64/${_file}";
+        _downloader="https://www.rbvi.ucsf.edu/chimera/cgi-bin/secure/chimera-get.py";
+        _download=`curl -s -F file="${_filepath}" -F choice=Accept "${_downloader}" | grep href | sed -E 's/.*href="(.*)">/\1/'`;
+        curl "https://www.rbvi.ucsf.edu""${_download}" -o "${_file}";
+        hdiutil convert "${_file}" -format UDRW -o chimerarw;
+        hdiutil attach -mountpoint "$HOME/chimera" chimerarw.dmg;
+        rm -rf $HOME/chimera/Chimera.app/Contents/Resources/lib/python2.7/site-packages/setuptools*;
+        pip install -U setuptools -t $HOME/chimera/Chimera.app/Contents/Resources/lib/python2.7/site-packages;
+    fi;
+    export CHIMERADIR="$HOME/chimera/Chimera.app/Contents/Resources";
   fi
-- pip install -U https://github.com/insilichem/pychimera/archive/master.zip
-- pip install pytest pytest-benchmark
-- python setup.py install
+
+
+install:
+# Dependencies
+- conda build -q conda-recipe
+- conda install -y -c $HOME/miniconda/conda-bld gaudi;
 # Show currently installed packages
 - conda list
 
@@ -105,12 +112,12 @@ script:
 - cd tests && python run_test.py; cd ..
 
 before_deploy:
-- conda build conda-recipe --no-test
 - conda install anaconda-client
 
 deploy:
   # Deploy to Anaconda.org
   - provider: script
     script: anaconda -t $ANACONDA_TOKEN upload -u insilichem $HOME/miniconda/conda-bld/**/gaudi-*.tar.bz2
+    skip_cleanup: true
     on:
       tags: true
