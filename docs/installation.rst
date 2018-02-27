@@ -1,16 +1,16 @@
 .. GaudiMM: Genetic Algorithms with Unrestricted
    Descriptors for Intuitive Molecular Modeling
-   
+
    https://github.com/insilichem/gaudi
-  
+
    Copyright 2017 Jaime Rodriguez-Guerra, Jean-Didier Marechal
-   
+
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
-   
+
         http://www.apache.org/licenses/LICENSE-2.0
-   
+
    Unless required by applicable law or agreed to in writing, software
    distributed under the License is distributed on an "AS IS" BASIS,
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -35,11 +35,11 @@ Quick steps:
 
   bash Miniconda2*.sh
 
-3 - Install ``gaudi`` with ``conda`` in a new environment called ``insilichem`` (or whatever name you prefer after the ``-n`` flag), using these custom channels (``-c`` flags): 
+3 - Install ``gaudi`` with ``conda`` in a new environment called ``insilichem`` (or whatever name you prefer after the ``-n`` flag), using these custom channels (``-c`` flags):
 
 ::
 
-  conda create -n insilichem -c omnia -c salilab -c insilichem gaudi
+  conda create -n insilichem -c omnia -c salilab -c insilichem -c bioconda gaudi
 
 
 4 - Activate the new environment as proposed:

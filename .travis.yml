@@ -103,7 +103,7 @@ before_install:
 
 install:
 # Dependencies
-- conda build -q conda-recipe
+- conda build -q -c insilichem -c omnia -c salilab -c bioconda conda-recipe
 - conda install -y -c $HOME/miniconda/conda-bld gaudi;
 # Show currently installed packages
 - conda list
