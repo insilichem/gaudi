@@ -17,19 +17,6 @@ dist: trusty
 sudo: false
 
 matrix:
-  # We only test on Linux with one specific Python version, unless we make a release. All
-  # other cases are allowed to fail and will exit early. With the fast_finish option,
-  # travis will send a status update to github as soon as the non-allowed-to-fail has
-  # finished. This speeds up testing in PRs.
-  #
-  # This is not ideal. It would be better to run just one item from the build matrix when
-  # not preparing a release. This is not possible on Travis. There are several tickets on
-  # travis-ci related to this limitation.
-  #
-  #    https://github.com/travis-ci/travis-ci/issues/7451
-  #    https://github.com/travis-ci/travis-ci/issues/7149
-  #    https://github.com/travis-ci/travis-ci/issues/2778
-  #    ...
   fast_finish: true
   allow_failures:
   - os: osx
@@ -69,6 +56,13 @@ before_install:
 - source $HOME/miniconda/bin/activate
 - hash -r
 - conda config --set always_yes yes
+- conda config --remove-key channels
+- conda config --add channels conda-forge
+- conda config --add channels bioconda
+- conda config --add channels salilab
+- conda config --add channels omnia
+- conda config --add channels insilichem
+- conda config --add channels defaults
 - conda install -q conda conda-build
 - pip install -U pytest pytest-benchmark
 # Show conda info for debugging
@@ -106,8 +100,8 @@ before_install:
 
 install:
 # Dependencies
-- conda build -q -c insilichem -c omnia -c salilab -c bioconda -c conda-forge --prefix-length 80 conda-recipe
-- conda install -y --use-local -c insilichem -c omnia -c salilab -c bioconda -c conda-forge gaudi
+- conda build -q --prefix-length 80 conda-recipe
+- conda install -y --use-local gaudi
 # Show currently installed packages
 - conda list
 
