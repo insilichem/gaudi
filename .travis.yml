@@ -30,6 +30,7 @@ before_cache:
 - if ! [[ $TRAVIS_TAG ]]; then rm -rf $HOME/miniconda/conda-bld; fi
 - rm -rf $HOME/pychimera $HOME/miniconda/locks $HOME/miniconda/pkgs $HOME/miniconda/var $HOME/miniconda/conda-meta/history
 - conda remove --force gaudi
+- rm $HOME/.nwchemrc || true
 
 branches:
   only:
@@ -102,6 +103,7 @@ install:
 # Dependencies
 - conda build -q --prefix-length 80 conda-recipe
 - conda install -y --use-local gaudi
+- cp $HOME/miniconda/etc/default.nwchemrc $HOME/.nwchemrc
 # Show currently installed packages
 - conda list
 
