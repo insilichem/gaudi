@@ -31,6 +31,8 @@ matrix:
   #    https://github.com/travis-ci/travis-ci/issues/2778
   #    ...
   fast_finish: true
+  allow_failures:
+  - osx
 
 cache:
   directories:
