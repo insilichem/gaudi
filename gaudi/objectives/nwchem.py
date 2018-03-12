@@ -99,10 +99,11 @@ class NWChem(ObjectiveProvider):
         parse.Required('targets'): [parse.Molecule_name],
         'template': basestring,
         'parser': parse.ExpandUserPathExists,
-        'processors': int
+        'processors': int,
+        'title': str
         }
 
-    def __init__(self, template=None, targets=('Ligand',), parser=None,
+    def __init__(self, template=None, targets=('Ligand',), parser=None, title=None,
                  executable=None, basis_library=None, processors=None,
                  *args, **kwargs):
         if kwargs.get('precision', 6) < 6:
@@ -112,7 +113,7 @@ class NWChem(ObjectiveProvider):
         self.executable = find_executable('nwchem') if executable is None else executable
         self._nprocessors = processors
         self._mpirun = find_executable('mpirun') if processors is not None else None
-
+        self._title = title if title is not None else self.environment.cfg.output.name
         if template is None:
             self.template = TEMPLATE
         elif os.path.isfile(template):
@@ -120,7 +121,7 @@ class NWChem(ObjectiveProvider):
                 self.template = f.read()
         else:
             self.template = template
-        self.template = self.template.replace('$TITLE', self.environment.cfg.output.name)
+        self.template = self.template.replace('$TITLE', self._title)
         if parser is not None:
             self.parse_output = imp.load_source('_nwchem_parser', parser).parse_output
         if basis_library is not None and os.path.isdir(basis_library):

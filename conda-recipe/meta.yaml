@@ -31,7 +31,7 @@ requirements:
     - imp
     - autodock-vina
     - autodocktools-prepare
-
+    - nwchem
 test:
   imports:
     - gaudi

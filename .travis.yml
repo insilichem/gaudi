@@ -106,8 +106,8 @@ before_install:
 
 install:
 # Dependencies
-- conda build -q -c insilichem -c omnia -c salilab -c bioconda conda-recipe
-- conda install -y --use-local -c insilichem -c omnia -c salilab -c bioconda gaudi
+- conda build -q -c insilichem -c omnia -c salilab -c bioconda -c conda-forge conda-recipe
+- conda install -y --use-local -c insilichem -c omnia -c salilab -c bioconda -c conda-forge gaudi
 # Show currently installed packages
 - conda list
 
