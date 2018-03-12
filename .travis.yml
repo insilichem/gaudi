@@ -56,7 +56,7 @@ before_install:
 - source $HOME/miniconda/bin/activate
 - hash -r
 - conda config --set always_yes yes
-- conda config --remove-key channels
+- conda config --remove-key channels || true
 - conda config --add channels conda-forge
 - conda config --add channels bioconda
 - conda config --add channels salilab
