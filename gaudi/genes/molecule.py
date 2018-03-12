@@ -4,17 +4,17 @@
 ##############
 # GaudiMM: Genetic Algorithms with Unrestricted
 # Descriptors for Intuitive Molecular Modeling
-# 
+#
 # https://github.com/insilichem/gaudi
 #
 # Copyright 2017 Jaime Rodriguez-Guerra, Jean-Didier Marechal
-# 
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-# 
+#
 #      http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -110,7 +110,7 @@ class Molecule(GeneProvider):
 
     _CATALOG : dict
         Class attribute (shared among all `Molecule` instances) that holds
-        all the possible molecules GAUDI can build given current `path`. 
+        all the possible molecules GAUDI can build given current `path`.
 
         If `path` is a single molecule file, that's the only possibility, but
         if it's set to a directory, the engine can potentially build all the
@@ -415,7 +415,7 @@ class Compound(object):
 
         'dummy' (for a empty molecule), or
 
-        The path to a mol2 file that will be parsed by Chimera to return 
+        The path to a mol2 file that will be parsed by Chimera to return
         a valid chimera.Molecule object.
 
     origin : 3-tuple of float, optional
@@ -563,7 +563,7 @@ class Compound(object):
 
     def append(self, molecule):
         """
-        Wrapper around `attach` to add a new molecule to `self`, 
+        Wrapper around `attach` to add a new molecule to `self`,
         using `self.acceptor` as bonding atom.
 
         Parameters
@@ -574,7 +574,7 @@ class Compound(object):
 
     def prepend(self, molecule):
         """
-        Wrapper around `attach` to add a new molecule to `self`, 
+        Wrapper around `attach` to add a new molecule to `self`,
         using `self.donor` as bonding atom.
 
         Parameters
@@ -600,9 +600,9 @@ class Compound(object):
         -----
         .. note ::
 
-            After joining the two molecules together, we have to update the 
+            After joining the two molecules together, we have to update the
             attributes of self to match the new molecular reality. For example,
-            the atom participating in the bond will not be available for new 
+            the atom participating in the bond will not be available for new
             bonds (we are forcing linear joining for now), so the new `donor`
             will be inherited from `molecule`, before deleting the object.
 
@@ -619,8 +619,9 @@ class Compound(object):
         self.update_attr(updated_atoms)  # update existant atoms
         self.acceptor = updated_atoms[molecule.acceptor]  # change acceptor
         self.axis_end = updated_atoms[molecule.axis_end]
-        if hasattr(molecule, 'flagged'):
-            self.flagged = updated_atoms[molecule.flagged]
+        for attr in ('acceptor', 'axis_end', 'flagged', 'last'):
+            if hasattr(molecule, attr):
+                setattr(self, attr, updated_atoms[getattr(molecule, attr)])
         if hasattr(molecule, 'nonrotatable'):
             nonrot_atoms = [updated_atoms[a] for a in molecule.nonrotatable]
             if hasattr(self, 'nonrotatable'):
@@ -632,7 +633,7 @@ class Compound(object):
 
     def join(self, molecule, acceptor, donor, newres=False):
         """
-        Take a molecule and bond it to `self.mol`, copying the atoms in the 
+        Take a molecule and bond it to `self.mol`, copying the atoms in the
         process so they're contained in the same `chimera.Molecule` object.
 
         Parameters
@@ -658,7 +659,7 @@ class Compound(object):
         .. note ::
 
             Chimera does not allow bonds between different chimera.Molecule
-            objects, so firstly, we have to copy the atoms of ``molecule`` to 
+            objects, so firstly, we have to copy the atoms of ``molecule`` to
             ``self.mol`` and, only then, make the joining bond.
 
             It traverses the atoms of ``molecule`` and adds a copy of each
@@ -676,13 +677,13 @@ class Compound(object):
                     for each neighbor of sprout
                         copy neighbor to self.mol
                         if neighbor itself has more than one neighbor (ie, sprout)
-                            add neighbor to sprouts 
+                            add neighbor to sprouts
 
             Along the way, we have to take care of already processed sprouts, so we
             don't repeat ourselves. That's what the built_atoms dict is for.
 
             Also, instead of letting addAtom guess new serial numbers, we calculate
-            them beforehand by computing the highest serial number in ``self.mol`` 
+            them beforehand by computing the highest serial number in ``self.mol``
             prior to the additions and then incremeting one by one on a per-element
             basis.
 

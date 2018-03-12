@@ -4,17 +4,17 @@
 ##############
 # GaudiMM: Genetic Algorithms with Unrestricted
 # Descriptors for Intuitive Molecular Modeling
-# 
+#
 # https://github.com/insilichem/gaudi
 #
 # Copyright 2017 Jaime Rodriguez-Guerra, Jean-Didier Marechal
-# 
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-# 
+#
 #      http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -58,14 +58,14 @@ class Distance(ObjectiveProvider):
     tolerance : float
         Maximum deviation from threshold that is not penalized
     target : str
-        The atom to measure the distance to, expressed as 
+        The atom to measure the distance to, expressed as
         <molecule name>/<atom serial>
     probes : list of str
         The atoms whose distance to `target` is being measured,
         expressed as <molecule name>/<atom serial>. If more than one
         is provided, the average of all of them is returned
     center_of_mass : bool
-    
+
     Returns
     -------
     float
@@ -73,7 +73,8 @@ class Distance(ObjectiveProvider):
     """
     _validate = {
         parse.Required('probes'): parse.AssertList(parse.Named_spec("molecule", "atom")),
-        parse.Required('target'): parse.Named_spec("molecule", "atom"),
+        parse.Required('target'): parse.Any(parse.Named_spec("molecule", "atom"),
+                                            parse.Coordinates),
         parse.Required('threshold'): parse.Any(parse.Coerce(float), parse.In(['covalent'])),
         'tolerance': parse.Coerce(float),
         'center_of_mass': parse.Coerce(float)
@@ -103,7 +104,11 @@ class Distance(ObjectiveProvider):
         Measure the distance
         """
         distances = []
-        target = ind.find_molecule(self._target.molecule).find_atom(self._target.atom)
+        if isinstance(self._target[0], basestring): # AtomSpec like 'Molecule/1'
+            target = ind.find_molecule(self._target.molecule
+                     ).find_atom(self._target.atom).xformCoord()
+        else:  # coordinates
+            target = chimera.Point(*self._target)
         for a in self.atoms(ind, *self._probes):
             d = self._distance(a, target)
             if self.threshold == 'covalent':
@@ -122,12 +127,12 @@ class Distance(ObjectiveProvider):
         target = ind.find_molecule(self._target.molecule).find_atom(self._target.atom)
         probes = list(self.atoms(ind, *self._probes))
         center_of_mass = self._center(*probes)
-        
+
         return target.xformCoord().distance(chimera.Point(*center_of_mass))
 
     @staticmethod
-    def _distance(atom1, atom2):
-        return atom1.xformCoord().distance(atom2.xformCoord())
+    def _distance(atom, target):
+        return atom.xformCoord().distance(target)
 
     @staticmethod
     def _center(*atoms):
