@@ -1,16 +1,16 @@
 .. GaudiMM: Genetic Algorithms with Unrestricted
    Descriptors for Intuitive Molecular Modeling
-   
+
    https://github.com/insilichem/gaudi
-  
+
    Copyright 2017 Jaime Rodriguez-Guerra, Jean-Didier Marechal
-   
+
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
-   
+
         http://www.apache.org/licenses/LICENSE-2.0
-   
+
    Unless required by applicable law or agreed to in writing, software
    distributed under the License is distributed on an "AS IS" BASIS,
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -23,7 +23,7 @@
 gaudi.objectives
 ================
 
-These are the built-in objectives in GAUDI. You can also build your own, but these are ready to use.
+These are the built-in objectives in GaudiMM. You can also build your own, but these are ready to use.
 
 Angle objective
 ---------------
@@ -65,8 +65,8 @@ DrugScoreX objective
     :undoc-members:
     :show-inheritance:
 
-Energy objective
-----------------
+MM Energy objective
+-------------------
 
 .. automodule:: gaudi.objectives.energy
     :members:
@@ -97,10 +97,26 @@ LigScore objective
     :undoc-members:
     :show-inheritance:
 
+NWChem objective
+----------------
+
+.. automodule:: gaudi.objectives.nwchem
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 Solvation objective
 -------------------
 
 .. automodule:: gaudi.objectives.solvation
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+Vina objective
+--------------
+
+.. automodule:: gaudi.objectives.vina
     :members:
     :undoc-members:
     :show-inheritance:
