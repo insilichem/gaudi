@@ -67,7 +67,7 @@ before_install:
 - source $HOME/miniconda/bin/activate
 - hash -r
 - conda config --set always_yes yes
-- conda install -q conda conda-build
+- conda install -q conda conda-build pytest
 # Show conda info for debugging
 - conda info -a
 # Get Chimera
@@ -109,7 +109,9 @@ install:
 - conda list
 
 script:
-- cd tests && python run_test.py; cd ..
+- cd tests
+- python run_test.py
+- cd ..
 
 before_deploy:
 - conda install anaconda-client
