@@ -4,17 +4,17 @@
 ##############
 # GaudiMM: Genetic Algorithms with Unrestricted
 # Descriptors for Intuitive Molecular Modeling
-# 
+#
 # https://github.com/insilichem/gaudi
 #
 # Copyright 2017 Jaime Rodriguez-Guerra, Jean-Didier Marechal
-# 
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-# 
+#
 #      http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -46,9 +46,9 @@ def test_torsion(individual, path, angle, bonds, rotatable, distance):
     with expressed(individual):
         assert individual.genes['Molecule'].compound.mol.numBonds == bonds
         atom1 = individual.genes['Molecule'].compound.mol.atoms[0]
-        atom2 = individual.genes['Molecule'].compound.mol.atoms[-1]
+        point = individual.genes['Molecule'].compound.mol.atoms[-1].xformCoord()
         assert len(list(torsion.rotatable_bonds)) == rotatable == torsion.max_bonds == len(torsion.allele)
-        assert Distance._distance(atom1, atom2) == distance
+        assert Distance._distance(atom1, point) == distance
 
 
 @pytest.mark.parametrize("path, angle, distance", [
@@ -59,12 +59,12 @@ def test_backbone_torsion(individual, path, angle, distance):
     with expressed(individual):
         assert all('CA' in [a.name for a in br.bond.atoms] for br in torsion.rotatable_bonds)
         atom1 = individual.genes['Molecule'].compound.mol.atoms[0]
-        atom2 = individual.genes['Molecule'].compound.mol.atoms[-1]
-        assert abs(Distance._distance(atom1, atom2) - distance) < 0.0001
+        point = individual.genes['Molecule'].compound.mol.atoms[-1].xformCoord()
+        assert abs(Distance._distance(atom1, point) - distance) < 0.0001
 
 
 @pytest.mark.parametrize("path, angle", [
-    ('3pk2_ligand.pdb', 90.0), 
+    ('3pk2_ligand.pdb', 90.0),
 ])
 def test_benchmark_torsion(benchmark, individual, path, angle):
     @benchmark
