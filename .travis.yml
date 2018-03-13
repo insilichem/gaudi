@@ -114,7 +114,9 @@ install:
 # Dependencies
 - conda build -q --prefix-length 80 conda-recipe
 - conda install -y --use-local gaudi
-- cp $HOME/miniconda/etc/default.nwchemrc $HOME/.nwchemrc
+- if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
+    cp $HOME/miniconda/etc/default.nwchemrc $HOME/.nwchemrc;
+  fi
 # Show currently installed packages
 - conda list
 
