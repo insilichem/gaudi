@@ -8,7 +8,11 @@ about:
   summary: Genetic Algorithms with Unrestricted Descriptors for Intuitive Molecular Modeling
 
 source:
+{% if environ.get('TRAVIS') %}
+  git_url: ../
+{% else %}
   git_url: https://github.com/insilichem/gaudi.git
+{% endif %}
   git_tag: {{ environ.get('GIT_DESCRIBE_TAG', '') }}
 
 requirements:
@@ -31,7 +35,8 @@ requirements:
     - imp
     - autodock-vina
     - autodocktools-prepare
-    - nwchem
+    - nwchem  # [linux]
+
 test:
   imports:
     - gaudi

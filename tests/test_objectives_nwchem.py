@@ -25,10 +25,12 @@
 import sys
 import pytest
 from conftest import datapath, expressed
-from gaudi.objectives.nwchem import NWChem
 from gaudi.genes.molecule import Molecule
+from gaudi.objectives.nwchem import NWChem
 
 
+@pytest.mark.skipif(sys.platform != 'linux2',
+                    reason='NWChem conda package only available in Linux')
 @pytest.mark.parametrize("ligand, energy", [
     ('butane.pdb', -156.87859414774),
 ])
