@@ -111,8 +111,10 @@ class NWChem(ObjectiveProvider):
         ObjectiveProvider.__init__(self, **kwargs)
         self.targets = targets
         self.executable = find_executable('nwchem') if executable is None else executable
+        if self.executable is None:
+            sys.exit('NWChem could not be found in $PATH. Is it (correctly) installed?')
         self._nprocessors = processors
-        self._mpirun = find_executable('mpirun') if processors is not None else None
+        self._mpirun = find_executable('mpirun') if processors else None
         self._title = title if title is not None else self.environment.cfg.output.name
         if template is None:
             self.template = TEMPLATE
