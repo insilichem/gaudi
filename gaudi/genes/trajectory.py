@@ -4,17 +4,17 @@
 ##############
 # GaudiMM: Genetic Algorithms with Unrestricted
 # Descriptors for Intuitive Molecular Modeling
-# 
+#
 # https://github.com/insilichem/gaudi
 #
 # Copyright 2017 Jaime Rodriguez-Guerra, Jean-Didier Marechal
-# 
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-# 
+#
 #      http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -86,7 +86,7 @@ class Trajectory(GeneProvider):
         self.path = path
         self.max_frame = max_frame
         self.stride = stride
-        self.preload = False
+        self.preload = preload
         try:
             self._traj = self._cache[self.name]
         except KeyError:
@@ -125,7 +125,7 @@ class Trajectory(GeneProvider):
     def express(self):
         """
         Load the frame requested by the current allele into
-        a new CoordSet object (always at index 1) and set 
+        a new CoordSet object (always at index 1) and set
         that as the active one.
         """
         traj = self.load_frame(self.allele)
@@ -135,7 +135,7 @@ class Trajectory(GeneProvider):
 
     def unexpress(self):
         """
-        Set the original coordinates (stored at mol.coordSets[0]) 
+        Set the original coordinates (stored at mol.coordSets[0])
         as the active ones.
         """
         for a, xyz in zip(self.molecule.compound.mol.atoms, self._original_xyz):
@@ -143,7 +143,7 @@ class Trajectory(GeneProvider):
 
     def mate(self, mate):
         """
-        Simply exchange alleles. Can't try to interpolate 
+        Simply exchange alleles. Can't try to interpolate
         an intermediate structure because the result wouldn't
         probably belong to the original trajectory!
         """
