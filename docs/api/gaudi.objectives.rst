@@ -65,10 +65,18 @@ DrugScoreX objective
     :undoc-members:
     :show-inheritance:
 
-MM Energy objective
--------------------
+Energy (OpenMM) objective
+-------------------------
 
 .. automodule:: gaudi.objectives.energy
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+GOLD objective
+--------------
+
+.. automodule:: gaudi.objectives.gold
     :members:
     :undoc-members:
     :show-inheritance:

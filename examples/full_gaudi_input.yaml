@@ -198,6 +198,15 @@ objectives:
         parameters: [[some.gaff.mol2, some.frcmod]]
         platform: CPU # or CUDA, OpenCL
 
+    -   name: GOLD
+        module: gaudi.objectives.gold
+        weight: 1.0
+        protein: Protein
+        ligand: Ligand
+        scoring: chemscore # default, optional
+        score_component: Score # default, optional
+        radius: 10 # default, optional
+
     -   name: Hbonds
         module: gaudi.objectives.hbonds
         weight: 1.0
