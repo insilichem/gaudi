@@ -100,8 +100,9 @@ class NWChem(ObjectiveProvider):
         'template': basestring,
         'parser': parse.ExpandUserPathExists,
         'processors': int,
-        'title': str
-        }
+        'title': str,
+        'basis_library': parse.ExpandUserPathExists,
+    }
 
     def __init__(self, template=None, targets=('Ligand',), parser=None, title=None,
                  executable=None, basis_library=None, processors=None,
@@ -127,7 +128,7 @@ class NWChem(ObjectiveProvider):
         if parser is not None:
             self.parse_output = imp.load_source('_nwchem_parser', parser).parse_output
         if basis_library is not None and os.path.isdir(basis_library):
-            if not basis_library.endswith('/'):
+            if basis_library[-1] != '/':
                 basis_library += '/'
             os.environ['NWCHEM_BASIS_LIBRARY'] = basis_library
         self._oldworkingdir = os.getcwd()
