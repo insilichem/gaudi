@@ -22,6 +22,7 @@
 # limitations under the License.
 ##############
 
+import sys
 import pytest
 import mdtraj
 import numpy as np
@@ -39,6 +40,7 @@ def trajectory_setup(individual, molecule, traj, frame, max_frame):
     individual.__expression_hooks__()
     gene.allele = frame
     return gene
+
 
 @pytest.mark.xfail(sys.platform == 'darwin',
                    reason="AttributeError raised because of 'n_bonds' (?)")
