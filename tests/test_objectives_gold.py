@@ -44,6 +44,6 @@ def test_gold(individual, protein, ligand, affinity):
     individual.genes['Ligand'] = Molecule(parent=individual, path=datapath(ligand))
     individual.__ready__()
     individual.__expression_hooks__()
-    objective = Gold(weight=-1.0)
+    objective = Gold(weight=1.0)
     with expressed(individual):
         assert affinity == objective.evaluate(individual)
