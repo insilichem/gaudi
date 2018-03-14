@@ -23,7 +23,6 @@ matrix:
 
 cache:
   directories:
-  - $HOME/download
   - $HOME/miniconda
   - $HOME/chimera
 
@@ -36,7 +35,7 @@ before_cache:
 branches:
   only:
   - master
-  - /^[0-9]+\.[0-9]+(\.[0-9]+)?([ab][0-9]*)?$/  # release branches
+  - /^v[0-9]+\.[0-9]+(\.[0-9]+)?([abc][0-9]*)?$/  # release branches
 
 before_install:
 # Get miniconda. Take the right version, so re-installing python is hopefully not needed.
@@ -127,7 +126,7 @@ script:
 - cd ..
 
 before_deploy:
-- conda install anaconda-client
+- conda install -q anaconda-client
 
 deploy:
   # Deploy to Anaconda.org

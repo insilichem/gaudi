@@ -29,10 +29,6 @@ from gaudi.objectives.gold import Gold
 from gaudi.genes.molecule import Molecule
 import os
 
-if 'CCDC_LICENSE_FILE' not in os.environ:
-    os.environ['CCDC_LICENSE_FILE'] = "/QFsoft/applic/CCDC/GOLD5.2/ccdc_licence.dat"
-os.environ['PATH'] = "/QFsoft/applic/CCDC/GOLD5.2/bin/:/QFsoft/applic/CCDC/GOLD5.2/GOLD/bin/:" + os.environ.get('PATH', '')
-
 
 @pytest.mark.skipif('CCDC_LICENSE_FILE' not in os.environ,
                     reason='CCDC GOLD not installed or licensed. Set CCDC_LICENSE_FILE.')

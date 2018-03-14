@@ -4,17 +4,17 @@
 ##############
 # GaudiMM: Genetic Algorithms with Unrestricted
 # Descriptors for Intuitive Molecular Modeling
-# 
+#
 # https://github.com/insilichem/gaudi
 #
 # Copyright 2017 Jaime Rodriguez-Guerra, Jean-Didier Marechal
-# 
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-# 
+#
 #      http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -23,10 +23,15 @@
 ##############
 
 import pytest
-from os.path import expanduser as expand
+import sys
+import os
+from distutils.spawn import find_executable
 from conftest import datapath, expressed
 from gaudi.genes.molecule import Molecule
 from gaudi.objectives.dsx import DSX
+
+DSX_EXE = 'dsx_linux_64.lnx' if sys.platform.startswith('linux') else 'dsx_mac_64.mac'
+DSX_AVAILABLE = bool(find_executable(DSX_EXE))
 
 
 def dsx(individual, protein, ligand, **kwargs):
@@ -35,11 +40,14 @@ def dsx(individual, protein, ligand, **kwargs):
     individual.__ready__()
     individual.__expression_hooks__()
     options = dict(
-        binary=expand('~/.local/DSX/dsx090_and_hotspotsx061_linux/linux64/dsx_linux_64.lnx'),
-        potentials=expand('~/.local/DSX/dsx090_and_hotspotsx061_linux/pdb_pot_0511'),
+        binary=DSX_EXE,
+        potentials=os.path.join(os.path.dirname(DSX_EXE), '..', 'pdb_pot_0511'),
         terms=[True, False, False, True, False],
-        proteins=['Protein'], ligands=['Ligand'],
-        sorting=1, cofactor_mode=0, with_metals=False)
+        proteins=['Protein'],
+        ligands=['Ligand'],
+        sorting=1,
+        cofactor_mode=0,
+        with_metals=False)
     options.update(kwargs)
     objective = DSX(**options)
     with expressed(individual):
@@ -49,6 +57,7 @@ def dsx(individual, protein, ligand, **kwargs):
 # Assertion tests
 
 
+@pytest.mark.skipif(not DSX_AVAILABLE, reason="DSX not installed")
 @pytest.mark.parametrize("protein, ligand, score", [
     ('5er1_protein.mol2', '5er1_ligand.mol2', -169.462),
 ])
@@ -56,6 +65,7 @@ def test_dsx(individual, protein, ligand, score):
     assert score == dsx(individual, protein, ligand)
 
 
+@pytest.mark.skipif(not DSX_AVAILABLE, reason="DSX not installed")
 @pytest.mark.parametrize("protein, ligand, score", [
     ('3pk2_protein.pdb', '3pk2_ligand_with_metal.mol2', -161.680),
 ])
@@ -65,14 +75,14 @@ def test_dsx_with_metals(individual, protein, ligand, score):
 #------------------------------------------------------------------------------
 # Benchmarking tests
 
-
+@pytest.mark.skipif(not DSX_AVAILABLE, reason="DSX not installed")
 @pytest.mark.parametrize("protein, ligand", [
     ('3pk2_protein.pdb', '3pk2_ligand.mol2'),
 ])
 def test_benchmark_dsx(benchmark, individual, protein, ligand):
     benchmark(dsx, individual, protein, ligand)
 
-
+@pytest.mark.skipif(not DSX_AVAILABLE, reason="DSX not installed")
 @pytest.mark.parametrize("protein, ligand", [
     ('3pk2_protein.pdb', '3pk2_ligand_with_metal.mol2'),
 ])
