@@ -115,7 +115,7 @@ install:
 - conda install -q --use-local gaudi
 - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
     conda install -q nwchem;
-    cp $HOME/miniconda/etc/default.nwchemrc $HOME/.nwchemrc;
+    cp $HOME/miniconda/etc/default.nwchemrc $HOME/.nwchemrc || true;
   fi
 # Show currently installed packages
 - conda list
