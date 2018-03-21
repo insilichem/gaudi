@@ -4,17 +4,17 @@
 ##############
 # GaudiMM: Genetic Algorithms with Unrestricted
 # Descriptors for Intuitive Molecular Modeling
-# 
+#
 # https://github.com/insilichem/gaudi
 #
 # Copyright 2017 Jaime Rodriguez-Guerra, Jean-Didier Marechal
-# 
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-# 
+#
 #      http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -23,7 +23,7 @@
 ##############
 
 """
-This objective is a wrapper around OpenMM, providing a GPU-accelerated energy 
+This objective is a wrapper around OpenMM, providing a GPU-accelerated energy
 calculation of the system with a simple forcefield evaluation.
 """
 
@@ -110,7 +110,7 @@ class Energy(ObjectiveProvider):
                          for g in self.environment.cfg.genes
                          if g.name == m]
             additional_ffxml.append(self._gaff2xml(*filenames))
-        
+
         self._forcefields = tuple(forcefields) + tuple(additional_ffxml)
         self.forcefield = openmm_app.ForceField(*self._forcefields)
 
@@ -126,14 +126,14 @@ class Energy(ObjectiveProvider):
         each time, we cannot guarantee having the same topology. As a result,
         we generate it again for each evaluation.
         """
-        molecules = self.molecules(individual)            
+        molecules = self.molecules(individual)
         coordinates = self.chimera_molecule_to_openmm_positions(*molecules)
-        
+
         # Build topology if it's first time or a dynamic job
         if self.topology is None or not self._gaudi_is_static(individual):
             self.topology = self.chimera_molecule_to_openmm_topology(*molecules)
             self._simulation = None  # This forces a Simulation rebuild
-        
+
         return self.calculate_energy(coordinates)
 
     def molecules(self, individual):
@@ -149,7 +149,7 @@ class Energy(ObjectiveProvider):
 
         Notes
         -----
-        self.topology must be defined previously! 
+        self.topology must be defined previously!
         Use self.chimera_molecule_to_openmm_topology to set it.
 
         """
@@ -203,7 +203,7 @@ class Energy(ObjectiveProvider):
 
         """
         # Create topology
-        
+
         atoms, residues, chains = {}, {}, {}
         topology = openmm_app.Topology()
         for i, mol in enumerate(molecules):
@@ -213,7 +213,7 @@ class Energy(ObjectiveProvider):
                     chain = chains[chain_id]
                 except KeyError:
                     chain = chains[chain_id] = topology.addChain()
-                
+
                 r = a.residue
                 try:
                     residue = residues[r]
@@ -223,7 +223,7 @@ class Energy(ObjectiveProvider):
                 element = openmm_app.Element.getByAtomicNumber(a.element.number)
                 serial = a.serialNumber
                 atoms[a] = topology.addAtom(name, element, residue, serial)
-               
+
             for b in mol.bonds:
                 topology.addBond(atoms[b.atoms[0]], atoms[b.atoms[1]])
 
@@ -237,7 +237,7 @@ class Energy(ObjectiveProvider):
         return unit.Quantity(all_positions, unit=unit.angstrom)
 
     @staticmethod
-    def _gaff2xml(*filenames):
+    def _gaff2xml(*filenames, **kwargs):
         """
         Use OpenMolTools wrapper to run antechamber programatically
         and auto parametrize requested molecules.
@@ -255,7 +255,7 @@ class Energy(ObjectiveProvider):
         frcmods, gaffmol2s = [], []
         for filename in filenames:
             name = '.'.join(filename.split('.')[:-1])
-            gaffmol2, frcmod = run_antechamber(name, filename)
+            gaffmol2, frcmod = run_antechamber(name, filename, **kwargs)
             frcmods.append(frcmod)
             gaffmol2s.append(gaffmol2)
         return create_ffxml_file(gaffmol2s, frcmods)
