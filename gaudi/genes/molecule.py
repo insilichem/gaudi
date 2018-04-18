@@ -464,7 +464,7 @@ class Compound(object):
         elif not molecule or molecule == 'dummy':
             self.mol = _dummy_mol('dummy')
         else:
-            molecules = chimera.openModels.open(molecule)
+            molecules = chimera.openModels.open(molecule, temporary=True)
             self.mol = molecules[0]
             chimera.openModels.remove(molecules)
 
