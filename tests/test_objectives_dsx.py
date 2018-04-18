@@ -30,8 +30,8 @@ from conftest import datapath, expressed
 from gaudi.genes.molecule import Molecule
 from gaudi.objectives.dsx import DSX
 
-DSX_EXE = 'dsx_linux_64.lnx' if sys.platform.startswith('linux') else 'dsx_mac_64.mac'
-DSX_AVAILABLE = bool(find_executable(DSX_EXE))
+
+DSX_AVAILABLE = bool(find_executable('drugscorex'))
 
 
 def dsx(individual, protein, ligand, **kwargs):
@@ -40,8 +40,7 @@ def dsx(individual, protein, ligand, **kwargs):
     individual.__ready__()
     individual.__expression_hooks__()
     options = dict(
-        binary=DSX_EXE,
-        potentials=os.path.join(os.path.dirname(DSX_EXE), '..', 'pdb_pot_0511'),
+        binary='drugscorex',
         terms=[True, False, False, True, False],
         proteins=['Protein'],
         ligands=['Ligand'],

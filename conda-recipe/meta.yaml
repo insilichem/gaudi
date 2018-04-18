@@ -35,7 +35,9 @@ requirements:
     - imp
     - autodock-vina
     - autodocktools-prepare
+    - drugscorex  # [linux]
     # - nwchem  # [linux]
+
 
 test:
   imports:
