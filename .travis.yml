@@ -116,10 +116,10 @@ install:
 - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
     conda install -q nwchem;
     cp $HOME/miniconda/etc/default.nwchemrc $HOME/.nwchemrc || true;
-    conda install -q drugscorex || true;
   fi
 # Show currently installed packages
 - conda list
+- env
 
 script:
 - cd tests

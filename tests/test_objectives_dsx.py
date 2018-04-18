@@ -40,7 +40,7 @@ def dsx(individual, protein, ligand, **kwargs):
     individual.__ready__()
     individual.__expression_hooks__()
     options = dict(
-        binary='drugscorex',
+        weight=-1.0,
         terms=[True, False, False, True, False],
         proteins=['Protein'],
         ligands=['Ligand'],

@@ -92,7 +92,6 @@ class DSX(ObjectiveProvider):
                     4: Ordered by increasing rmsd
                     5: Ordered by increasing torsion score
                     6: Ordered by increasing per-torsion-score
-
     cofactor_mode : int, defaults to 0
         Cofactor handling mode. An int between 0-7, read binary help for -I:
         -I int :  Here you can specify the mode that affects how cofactors,
@@ -120,7 +119,6 @@ class DSX(ObjectiveProvider):
                     7: waters are treated as part of the protein
                   Please note: Only those structures can be treated
                   individually, which are supplied in seperate files.
-
     with_covalent : bool, defaults to False
         Whether to deal with covalently bonded atoms as normal atoms (False) or not (True)
     with_metals : bool, defaults to True
