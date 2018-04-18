@@ -69,6 +69,12 @@ class GeneProvider(object):
     __metaclass__ = plugin.PluginMount
     _cache = {}
     _validate = {}
+    _schema = {parse.Required('parent'): Individual,
+               'name': str,
+               'module': parse.Importable,
+               'cx_eta': parse.Coerce(float),
+               'mut_eta': parse.Coerce(float),
+               'mut_indpb': parse.Coerce(float)}
 
     def __init__(self, parent=None, name=None, cx_eta=5.0, mut_eta=5.0, mut_indpb=0.75,
                  **kwargs):
@@ -77,7 +83,7 @@ class GeneProvider(object):
         self.cxeta = cx_eta
         self.mteta = mut_eta
         self.indpb = mut_indpb
-
+        self.allele = None
 
     def __ready__(self):
         pass
@@ -110,13 +116,8 @@ class GeneProvider(object):
         """
 
     @classmethod
-    def validate(cls, data):
-        schema = {parse.Required('parent'): Individual,
-                  'name': str,
-                  'module': parse.Importable,
-                  'cx_eta': parse.Coerce(float),
-                  'mut_eta': parse.Coerce(float),
-                  'mut_indpb': parse.Coerce(float)}
+    def validate(cls, data, schema=None):
+        schema = cls._schema.copy() if schema is None else schema
         schema.update(cls._validate)
         return parse.validate(schema, data)
 
