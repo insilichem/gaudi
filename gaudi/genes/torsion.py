@@ -130,7 +130,7 @@ class Torsion(GeneProvider):
         for alpha, br in zip(self.allele, self.rotatable_bonds):
             try:
                 if all(a.idatmType in ('C2', 'N2') for a in br.bond.atoms):
-                    alpha = 0 if alpha < 180 else 180
+                    alpha = 0 if alpha <= 0 else 180
                 br.adjustAngle(alpha - br.angle, br.rotanchor)
             # A null bondrot was returned -> non-rotatable bond
             except AttributeError:
