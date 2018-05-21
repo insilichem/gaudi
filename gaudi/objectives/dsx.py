@@ -71,54 +71,53 @@ class DSX(ObjectiveProvider):
         normally takes care of that).
     terms : list of bool, optional
         Enable (True) or disable (False) certain terms in the score function in
-        this order:
-
-            distance-dependent pair potentials,
-            torsion potentials,
-            intramolecular clashes,
-            sas potentials,
-            hbond potentials
+        this order: distance-dependent pair potentials, torsion potentials,
+        intramolecular clashes, sas potentials, hbond potentials
 
     sorting : int, defaults to 1
-        Sorting mode. An int between 0-6, read binary help for -S:
-        -S int :  Here you can specify the mode that affects how the results
-                  will be sorted. The default mode is '-S 1', which sorts the
-                  ligands in the same order as they are found in the lig_file.
-                  The following modes are possible:
-                    0: Same order as in the ligand file
-                    1: Ordered by increasing total score
-                    2: Ordered by increasing per-atom-score
-                    3: Ordered by increasing per-contact-score
-                    4: Ordered by increasing rmsd
-                    5: Ordered by increasing torsion score
-                    6: Ordered by increasing per-torsion-score
+        Sorting mode. An int between 0-6, read binary help for -S::
+
+            -S int :  Here you can specify the mode that affects how the results
+                    will be sorted. The default mode is '-S 1', which sorts the
+                    ligands in the same order as they are found in the lig_file.
+                    The following modes are possible::
+
+                        0: Same order as in the ligand file
+                        1: Ordered by increasing total score
+                        2: Ordered by increasing per-atom-score
+                        3: Ordered by increasing per-contact-score
+                        4: Ordered by increasing rmsd
+                        5: Ordered by increasing torsion score
+                        6: Ordered by increasing per-torsion-score
+
     cofactor_mode : int, defaults to 0
-        Cofactor handling mode. An int between 0-7, read binary help for -I:
-        -I int :  Here you can specify the mode that affects how cofactors,
-                  waters and metals will be handeled.
-                  The default mode is '-I 1', which means, that all molecules
-                  are treated as part of the protein. If a structure should
-                  not be treated as part of the protein you have supply a
-                  seperate file with seperate MOLECULE entries corresponding
-                  to each MOLECULE entry in the ligand_file (It is assumed
-                  that the structure, e.g. a cofactor, was kept flexible in
-                  docking, so that there should be a different geometry
-                  corresponding to each solution. Otherwise it won't make
-                  sense not to treat it as part of the protein.).
-                  The following modes are possible:
-                    0: cofactors, waters and metals interact with protein,
-                       ligand and each other
-                    1: cofactors, waters and metals are treated as part of
-                       the protein
-                    2: cofactors and metals are treated as part of the protein
-                       (waters as in mode 0)
-                    3: cofactors and waters are treated as part of the protein
-                    4: cofactors are treated as part of the protein
-                    5: metals and waters are treated as part of the protein
-                    6: metals are treated as part of the protein
-                    7: waters are treated as part of the protein
-                  Please note: Only those structures can be treated
-                  individually, which are supplied in seperate files.
+        Cofactor handling mode. An int between 0-7, read binary help for -I::
+
+            -I int :  Here you can specify the mode that affects how cofactors,
+                    waters and metals will be handeled.
+                    The default mode is '-I 1', which means, that all molecules
+                    are treated as part of the protein. If a structure should
+                    not be treated as part of the protein you have supply a
+                    seperate file with seperate MOLECULE entries corresponding
+                    to each MOLECULE entry in the ligand_file (It is assumed
+                    that the structure, e.g. a cofactor, was kept flexible in
+                    docking, so that there should be a different geometry
+                    corresponding to each solution. Otherwise it won't make
+                    sense not to treat it as part of the protein.).
+                    The following modes are possible:
+                        0: cofactors, waters and metals interact with protein,
+                        ligand and each other
+                        1: cofactors, waters and metals are treated as part of
+                        the protein
+                        2: cofactors and metals are treated as part of the protein
+                        (waters as in mode 0)
+                        3: cofactors and waters are treated as part of the protein
+                        4: cofactors are treated as part of the protein
+                        5: metals and waters are treated as part of the protein
+                        6: metals are treated as part of the protein
+                        7: waters are treated as part of the protein
+                    Please note: Only those structures can be treated
+                    individually, which are supplied in seperate files.
     with_covalent : bool, defaults to False
         Whether to deal with covalently bonded atoms as normal atoms (False) or not (True)
     with_metals : bool, defaults to True
