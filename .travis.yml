@@ -118,6 +118,8 @@ install:
     cp $HOME/miniconda/etc/default.nwchemrc $HOME/.nwchemrc || true;
   fi
 # Show currently installed packages
+# PCRE creates some problems in Travis build env
+- conda remove --force pcre
 - conda list
 - env
 
