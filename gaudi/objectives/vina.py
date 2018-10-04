@@ -56,6 +56,9 @@ class Vina(ObjectiveProvider):
         Key of the gene containing the molecule acting as receptor (protein)
     ligand : str
         Key of the gene containing the molecule acting as ligand
+    prepare_each : bool
+        Whether to prepare receptors and ligands in every evaluation or try
+        to cache the results for faster performance.
 
     Returns
     -------
@@ -65,13 +68,17 @@ class Vina(ObjectiveProvider):
     _validate = {
         parse.Required('receptor'): parse.Molecule_name,
         parse.Required('ligand'): parse.Molecule_name,
+        'prepare_each': bool,
         }
 
-    def __init__(self, receptor='Protein', ligand='Ligand', *args, **kwargs):
+    def __init__(self, receptor='Protein', ligand='Ligand', prepare_each=False,
+                 *args, **kwargs):
         ObjectiveProvider.__init__(self, **kwargs)
         self.receptor = receptor
         self.ligand = ligand
+        self.prepare_each = prepare_each
         self._paths = []
+        self._tmpfile = None
         if os.name == 'posix' and os.path.exists('/dev/shm'):
             self.tmpdir = '/dev/shm'
         else:
@@ -82,7 +89,6 @@ class Vina(ObjectiveProvider):
         Run a subprocess calling Vina binary with provided options,
         and parse the results. Clean tmp files at exit.
         """
-        self.tmpfile = os.path.join(self.tmpdir, next(_get_candidate_names()))
         receptor = ind.find_molecule(self.receptor)
         ligand = ind.find_molecule(self.ligand)
 
@@ -101,28 +107,57 @@ class Vina(ObjectiveProvider):
         finally:
             self.clean()
 
-    def prepare_receptor(self, molecule):
-        path = '{}_receptor.pdb'.format(self.tmpfile)
+    def _prepare(self, molecule, which='receptor'):
+        if which == 'receptor':
+            preparer = AD4ReceptorPreparation
+        elif which == 'ligand':
+            preparer = AD4LigandPreparation
+        else:
+            raise ValueError('which must be receptor or ligand')
+        path = '{}_{}.pdb'.format(self.tmpfile, which)
         pathqt = path + 'qt'
-        pdb = molecule.write(absolute=path, filetype='pdb')
-        self._paths.append(path)
-        mol = MolKit.Read(path)[0]
-        mol.buildBondsByDistance()
-        RPO = AD4ReceptorPreparation(mol, outputfilename=pathqt)
-        self._paths.append(pathqt)
+        if not os.path.isfile(pathqt):
+            pdb = molecule.write(absolute=path, filetype='pdb')
+            self._paths.append(path)
+            mol = MolKit.Read(path)[0]
+            mol.buildBondsByDistance()
+            RPO = preparer(mol, outputfilename=pathqt)
+            self._paths.append(pathqt)
+        else:
+            # update coordinates
+            self._update_pdbqt_coordinates(molecule.xyz(), pathqt)
         return pathqt
 
+    def prepare_receptor(self, molecule):
+        return self._prepare(molecule, 'receptor')
+
     def prepare_ligand(self, molecule):
-        path = '{}_ligand.pdb'.format(self.tmpfile)
-        pathqt = path + 'qt'
-        pdb = molecule.write(absolute=path, filetype='pdb')
-        self._paths.append(path)
-        mol = MolKit.Read(path)[0]
-        mol.buildBondsByDistance()
-        RPO = AD4LigandPreparation(mol, outputfilename=pathqt)
-        #    inactivate_all_torsions=True)
-        self._paths.append(pathqt)
-        return pathqt
+        return self._prepare(molecule, 'ligand')
+
+    @staticmethod
+    def _update_pdbqt_coordinates(xyz, path):
+        def is_atom(line):
+            if line[0:6] in ('ATOM  ', 'HETATM'):
+                for n in (line[30:38], line[38:46], line[46:54]):
+                    try:
+                        float(n)
+                    except:
+                        return False
+                return True
+            return False
+
+        with open(path, 'r+') as f:
+            lines = []
+            i = 0
+            for line in f:
+                if is_atom(line):
+                    line = line[:30] + '{:8.3f}{:8.3f}{:8.3f}'.format(*xyz[i]) + line[54:]
+                    i += 1
+                lines.append(line)
+            f.seek(0)
+            f.write(''.join(lines))
+            f.truncate()
+
 
     def parse_output(self, stream):
         for line in stream.splitlines():
@@ -131,6 +166,14 @@ class Vina(ObjectiveProvider):
         return -1000 * self.weight
 
     def clean(self):
+        if not self.prepare_each:
+            return
         for p in self._paths:
             os.remove(p)
         self._paths = []
+
+    @property
+    def tmpfile(self):
+        if self.prepare_each or self._tmpfile is None:
+            self._tmpfile = os.path.join(self.tmpdir, next(_get_candidate_names()))
+        return self._tmpfile

@@ -4,17 +4,17 @@
 ##############
 # GaudiMM: Genetic Algorithms with Unrestricted
 # Descriptors for Intuitive Molecular Modeling
-# 
+#
 # https://github.com/insilichem/gaudi
 #
 # Copyright 2017 Jaime Rodriguez-Guerra, Jean-Didier Marechal
-# 
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-# 
+#
 #      http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -100,7 +100,7 @@ class BaseIndividual(object):
         self.expressed = False
         self.__ready__()
         self.__expression_hooks__()
-        
+
     def __ready__(self):
         """
         A *post-init* method used to avoid initialization problems with
@@ -237,7 +237,7 @@ class BaseIndividual(object):
         i : int
             Individual identificator in current generation or hall of fame
 
-        .. note :: 
+        .. note ::
 
             Maybe someday we can pickle it all :/
             >>> filename = os.path.join(path, '{}_{}.pickle.gz'.format(name,i))

@@ -4,17 +4,17 @@
 ##############
 # GaudiMM: Genetic Algorithms with Unrestricted
 # Descriptors for Intuitive Molecular Modeling
-# 
+#
 # https://github.com/insilichem/gaudi
 #
 # Copyright 2017 Jaime Rodriguez-Guerra, Jean-Didier Marechal
-# 
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-# 
+#
 #      http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -51,7 +51,7 @@ if sys.version_info.major == 3:
 
 
 def ea_mu_plus_lambda(population, toolbox, mu, lambda_, cxpb, mutpb, ngen, cfg,
-                      stats=None, halloffame=None, verbose=True, 
+                      stats=None, halloffame=None, verbose=True,
                       prompt_on_exception=True):
     """This is the :math:`(\mu + \lambda)` evolutionary algorithm.
 
@@ -112,7 +112,7 @@ def ea_mu_plus_lambda(population, toolbox, mu, lambda_, cxpb, mutpb, ngen, cfg,
     remaining_evals = estimated_evals - performed_evals
     remaining = timedelta(seconds=int(remaining_evals / speed))
     progress = '{:.2f}%'.format(100/(ngen+1))
-    logbook.record(gen=0, progress=progress, nevals=nevals, 
+    logbook.record(gen=0, progress=progress, nevals=nevals,
                    speed='{:.2f} ev/s'.format(speed), eta=remaining, **record)
     if verbose:
         logger.log(100, logbook.stream)
@@ -165,7 +165,7 @@ def ea_mu_plus_lambda(population, toolbox, mu, lambda_, cxpb, mutpb, ngen, cfg,
                     pass
             break
         else:
-            # Save a copy of an fully evaluated population, in case the 
+            # Save a copy of an fully evaluated population, in case the
             # simulation is stopped in next generation.
             population_ = population[:]
             if halloffame and cfg.output.check_every and not gen % cfg.output.check_every:

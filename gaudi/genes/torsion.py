@@ -4,17 +4,17 @@
 ##############
 # GaudiMM: Genetic Algorithms with Unrestricted
 # Descriptors for Intuitive Molecular Modeling
-# 
+#
 # https://github.com/insilichem/gaudi
 #
 # Copyright 2017 Jaime Rodriguez-Guerra, Jean-Didier Marechal
-# 
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-# 
+#
 #      http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -43,7 +43,6 @@ from gaudi import box, parse
 
 logger = logging.getLogger(__name__)
 
-
 def enable(**kwargs):
     kwargs = Torsion.validate(kwargs)
     return Torsion(**kwargs)
@@ -60,7 +59,7 @@ class Torsion(GeneProvider):
         Maximum number of degrees a bond can rotate
     max_bonds :
         Expected number of free rotations in molecule. Needed to store
-        arbitrary rotations. 
+        arbitrary rotations.
     anchor : str
         Molecule/atom_serial_number of reference atom for torsions
     rotatable_atom_types : list of str
@@ -69,7 +68,7 @@ class Torsion(GeneProvider):
     rotatable_atom_names : list of str
         Which type of atom names (as in chimera.Atom.name) should rotate.
         Defaults to ().
-    
+
     Attributes
     ----------
     allele : tuple of float
@@ -102,7 +101,7 @@ class Torsion(GeneProvider):
     BONDS_ROTS = {}
 
     def __init__(self, target=None, flexibility=360.0, max_bonds=None, anchor=None,
-                 rotatable_atom_types=('C3', 'N3', 'C2', 'N2', 'P'), 
+                 rotatable_atom_types=('C3', 'N3', 'C2', 'N2', 'P'),
                  rotatable_atom_names=(), rotatable_elements=(),
                  non_rotatable_bonds=(), precision=1, **kwargs):
         GeneProvider.__init__(self, **kwargs)
@@ -120,7 +119,7 @@ class Torsion(GeneProvider):
 
     def __expression_hooks__(self):
         if self.max_bonds is None:
-            self.max_bonds = len(list(self.rotatable_bonds))
+            self.max_bonds = len(self.rotatable_bonds)
         self.allele = [self.random_angle() for i in xrange(self.max_bonds)]
 
     def express(self):
@@ -186,7 +185,7 @@ class Torsion(GeneProvider):
 
         In this step, we have to discard non rotatable atoms (as requested
         by the user), and make sure the involved atoms are of compatible type.
-        Namely, one of them must be either C3, N3, C2 or N2, and both of them, 
+        Namely, one of them must be either C3, N3, C2 or N2, and both of them,
         non-terminal (more than one neighbor).
 
         If the bond is valid, get the BondRot object. Chimera will complain
@@ -204,7 +203,7 @@ class Torsion(GeneProvider):
             return self.molecule._rotatable_bonds
 
     def _compute_rotatable_bonds(self):
-        bonds = sorted(self.molecule.bonds, 
+        bonds = sorted(self.molecule.bonds,
                        key=lambda b: min(y.serialNumber for y in b.atoms))
 
         non_rotatable_bonds = []
@@ -266,7 +265,7 @@ class Torsion(GeneProvider):
             else:
                 self.molecule._rotation_anchor = anchor
                 return anchor
-                
+
         target_gene = self.parent.find_molecule(self.target)
         try:
             search_gene = next(g for g in self.parent.genes.values()
