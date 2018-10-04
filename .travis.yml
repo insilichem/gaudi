@@ -119,7 +119,7 @@ install:
   fi
 # Show currently installed packages
 # PCRE creates some problems in Travis build env
-- conda remove --force pcre
+- conda remove --force pcre || true
 - conda list
 - env
 
