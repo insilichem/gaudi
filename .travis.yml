@@ -103,7 +103,7 @@ before_install:
         hdiutil attach -mountpoint "$HOME/chimera" chimerarw.dmg;
         rm -rf $HOME/chimera/Chimera.app/Contents/Resources/lib/python2.7/site-packages/{AutoDockTools,MolKit,PyBabel,mglutil,mmLib,mslib};
         rm -rf $HOME/chimera/Chimera.app/Contents/Resources/lib/python2.7/site-packages/setuptools*;
-        pip install -U setuptools numpy=1.11 -t $HOME/chimera/Chimera.app/Contents/Resources/lib/python2.7/site-packages;
+        pip install -U setuptools numpy=1.15 -t $HOME/chimera/Chimera.app/Contents/Resources/lib/python2.7/site-packages;
     fi;
     export CHIMERADIR="$HOME/chimera/Chimera.app/Contents/Resources";
   fi
