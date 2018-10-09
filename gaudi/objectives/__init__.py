@@ -4,17 +4,17 @@
 ##############
 # GaudiMM: Genetic Algorithms with Unrestricted
 # Descriptors for Intuitive Molecular Modeling
-# 
+#
 # https://github.com/insilichem/gaudi
 #
 # Copyright 2017 Jaime Rodriguez-Guerra, Jean-Didier Marechal
-# 
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-# 
+#
 #      http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -72,6 +72,12 @@ class ObjectiveProvider(object):
     __metaclass__ = plugin.PluginMount
     _cache = {}
     _validate = {}
+    _schema = {parse.Required('environment'): Environment,
+               'module': parse.Importable,
+               'name': str,
+               'weight': parse.Coerce(float),
+               'zone': chimera.selection.ItemizedSelection,
+               'precision': parse.All(parse.Coerce(int), parse.Range(min=0, max=9))}
 
     def __init__(self, environment=None, name=None, weight=None, zone=None,
                  precision=3, **kwargs):
@@ -95,17 +101,11 @@ class ObjectiveProvider(object):
         cls._cache.clear()
 
     @classmethod
-    def validate(cls, data):
-        schema = {parse.Required('environment'): Environment,
-                  'module': parse.Importable,
-                  'name': str,
-                  'weight': parse.Coerce(float),
-                  'zone': chimera.selection.ItemizedSelection,
-                  'precision': parse.All(parse.Coerce(int), parse.Range(min=0, max=9))}
+    def validate(cls, data, schema=None):
+        schema = cls._schema.copy() if schema is None else schema
         schema.update(cls._validate)
         return parse.validate(schema, data)
 
     @classmethod
     def with_validation(cls, **kwargs):
         cls.__init__(**cls.validate(kwargs))
-        

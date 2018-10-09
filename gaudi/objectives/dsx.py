@@ -4,17 +4,17 @@
 ##############
 # GaudiMM: Genetic Algorithms with Unrestricted
 # Descriptors for Intuitive Molecular Modeling
-# 
+#
 # https://github.com/insilichem/gaudi
 #
 # Copyright 2017 Jaime Rodriguez-Guerra, Jean-Didier Marechal
-# 
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-# 
+#
 #      http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -35,6 +35,7 @@ The lower, the better, so usually you will use a -1.0 weight.
 import os
 import subprocess
 from tempfile import _get_default_tempdir as default_tempdir, _get_candidate_names as tempnames
+from distutils.spawn import find_executable
 import logging
 # Chimera
 from SplitMolecule.split import molecule_from_atoms
@@ -58,28 +59,65 @@ class DSX(ObjectiveProvider):
 
     Parameters
     ----------
-    binary : str
-        Path to the DSX binary
-    potentials : str
-        Path to DSX potentials
     protein : str
         The molecule name that is acting as a protein
     ligand : str
         The molecule name that is acting as a ligand
-    terms : list of bool
-        Enable or disable certain terms in the score function in
-        this order:
-
-            distance-dependent pair potentials, 
-            torsion potentials,
-            intramolecular clashes, 
-            sas potentials, 
-            hbond potentials
+    binary : str, optional
+        Path to the DSX binary. Only needed if ``drugscorex`` is not in PATH.
+    potentials : str, optional
+        Path to DSX potentials. Only needed if ``DSX_POTENTIALS`` env var has not
+        been set by the installation process (``conda install -c insilichem drugscorex``
+        normally takes care of that).
+    terms : list of bool, optional
+        Enable (True) or disable (False) certain terms in the score function in
+        this order: distance-dependent pair potentials, torsion potentials,
+        intramolecular clashes, sas potentials, hbond potentials
 
     sorting : int, defaults to 1
-        Sorting mode. An int between 0-6, read binary help for -S
+        Sorting mode. An int between 0-6, read binary help for -S::
+
+            -S int :  Here you can specify the mode that affects how the results
+                    will be sorted. The default mode is '-S 1', which sorts the
+                    ligands in the same order as they are found in the lig_file.
+                    The following modes are possible::
+
+                        0: Same order as in the ligand file
+                        1: Ordered by increasing total score
+                        2: Ordered by increasing per-atom-score
+                        3: Ordered by increasing per-contact-score
+                        4: Ordered by increasing rmsd
+                        5: Ordered by increasing torsion score
+                        6: Ordered by increasing per-torsion-score
+
     cofactor_mode : int, defaults to 0
-        Cofactor handling mode. An int between 0-7, read binary help for -I
+        Cofactor handling mode. An int between 0-7, read binary help for -I::
+
+            -I int :  Here you can specify the mode that affects how cofactors,
+                    waters and metals will be handeled.
+                    The default mode is '-I 1', which means, that all molecules
+                    are treated as part of the protein. If a structure should
+                    not be treated as part of the protein you have supply a
+                    seperate file with seperate MOLECULE entries corresponding
+                    to each MOLECULE entry in the ligand_file (It is assumed
+                    that the structure, e.g. a cofactor, was kept flexible in
+                    docking, so that there should be a different geometry
+                    corresponding to each solution. Otherwise it won't make
+                    sense not to treat it as part of the protein.).
+                    The following modes are possible:
+                        0: cofactors, waters and metals interact with protein,
+                        ligand and each other
+                        1: cofactors, waters and metals are treated as part of
+                        the protein
+                        2: cofactors and metals are treated as part of the protein
+                        (waters as in mode 0)
+                        3: cofactors and waters are treated as part of the protein
+                        4: cofactors are treated as part of the protein
+                        5: metals and waters are treated as part of the protein
+                        6: metals are treated as part of the protein
+                        7: waters are treated as part of the protein
+                    Please note: Only those structures can be treated
+                    individually, which are supplied in seperate files.
     with_covalent : bool, defaults to False
         Whether to deal with covalently bonded atoms as normal atoms (False) or not (True)
     with_metals : bool, defaults to True
@@ -91,22 +129,26 @@ class DSX(ObjectiveProvider):
         Interaction energy as reported by DSX output logs.
     """
     _validate = {
-        parse.Required('binary'): parse.ExpandUserPathExists,
-        parse.Required('potentials'): parse.ExpandUserPathExists,
         parse.Required('proteins'): [parse.Molecule_name],
         parse.Required('ligands'): [parse.Molecule_name],
-        parse.Required('terms'): parse.All([parse.Coerce(bool)], parse.Length(min=5, max=5)),
+        'binary': parse.ExpandUserPathExists,
+        'potentials': parse.ExpandUserPathExists,
+        'terms': parse.All([parse.Coerce(bool)], parse.Length(min=5, max=5)),
         'sorting': parse.All(parse.Coerce(int), parse.Range(min=0, max=6)),
         'cofactor_mode': parse.All(parse.Coerce(int), parse.Range(min=0, max=7)),
         'with_covalent': parse.Coerce(bool),
         'with_metals': parse.Coerce(bool)
         }
-    
+
     def __init__(self, binary=None, potentials=None, proteins=('Protein',),
                  ligands=('Ligand',), terms=None, sorting=1, cofactor_mode=0,
                  with_covalent=False, with_metals=True, *args, **kwargs):
         ObjectiveProvider.__init__(self, **kwargs)
-        self.binary = binary
+        self.binary = find_executable('drugscorex') if binary is None else binary
+        if not self.binary:
+            raise ValueError('Could not find `drugscorex` executable. Please install it '
+                             'with `conda install -c insilichem drugscorex` or manually '
+                             'specify the location with `binary` and `potentials` keys.')
         self.potentials = potentials
         self.protein_names = proteins
         self.ligand_names = ligands
@@ -142,7 +184,7 @@ class DSX(ObjectiveProvider):
         self.prepare_proteins(proteins)
         self.prepare_ligands(ligands)
         command = self.prepare_command()
-        
+
         try:
             os.chdir(self.tmpdir)
             stream = subprocess.check_output(command, universal_newlines=True)
@@ -183,7 +225,7 @@ class DSX(ObjectiveProvider):
                 writeMol2(metal_mols, metalpath, temporary=True)
                 self._paths['metals'] = metalpath
                 ligand_mols = nonmetal_mols
-       
+
         writeMol2(ligand_mols, ligandpath, temporary=True, multimodelHandling='combined')
         self._paths['ligands'] = ligandpath
 
@@ -196,11 +238,15 @@ class DSX(ObjectiveProvider):
             metalpath = self._paths.get('metals')
             if metalpath:
                 cmd.extend(['-M', metalpath])
-        cmd.extend(['-I', self.cofactor_mode])
-        cmd.extend(['-S', self.sorting])
-        T0, T1, T2, T3, T4 = [1.0 * t for t in self.terms]
-        cmd.extend(['-T0', T0, '-T1', T1, '-T2', T2, '-T3', T3, '-T4', T4])
-        cmd.extend(['-D', self.potentials])
+        if self.cofactor_mode is not None:
+            cmd.extend(['-I', self.cofactor_mode])
+        if self.sorting is not None:
+            cmd.extend(['-S', self.sorting])
+        if self.terms is not None:
+            T0, T1, T2, T3, T4 = [1.0 * t for t in self.terms]
+            cmd.extend(['-T0', T0, '-T1', T1, '-T2', T2, '-T3', T3, '-T4', T4])
+        if self.potentials is not None:
+            cmd.extend(['-D', self.potentials])
         return map(str, cmd)
 
     def parse_output(self, stream):

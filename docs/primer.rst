@@ -1,16 +1,16 @@
 .. GaudiMM: Genetic Algorithms with Unrestricted
    Descriptors for Intuitive Molecular Modeling
-   
+
    https://github.com/insilichem/gaudi
-  
+
    Copyright 2017 Jaime Rodriguez-Guerra, Jean-Didier Marechal
-   
+
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
-   
+
         http://www.apache.org/licenses/LICENSE-2.0
-   
+
    Unless required by applicable law or agreed to in writing, software
    distributed under the License is distributed on an "AS IS" BASIS,
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -38,7 +38,7 @@ The other genes are responsible of applying changes to the coordinates of that i
 Evaluation and objectives
 =========================
 
-However, there is no guarantee that, given a new position on such search space, that hypothetical solution is actually good enough to solve the problem. To assess the quality of a random solution, it must be *evaluated* with some criteria or *objectives*. 
+However, there is no guarantee that, given a new position on such search space, that hypothetical solution is actually good enough to solve the problem. To assess the quality of a random solution, it must be *evaluated* with some criteria or *objectives*.
 All objectives have something in common: they take a candidate solution (ie, a point of the search space) and measure some property to return a numeric score. Some examples include the distance between two given atoms (:class:`gaudi.objectives.distance.Distance` objective), the steric clashes of the molecules (:class:`gaudi.objectives.contacts.Contacts` objective) or the forcefield energy of the system (:class:`gaudi.objectives.energy.Energy` objective).
 
 Examples of application
@@ -54,12 +54,12 @@ Docking problems devote to finding the correct orientation and position of a sma
 - A :class:`gaudi.genes.molecule.Molecule` gene to load the file corresponding to the protein structure.
 - Another :class:`gaudi.genes.molecule.Molecule` gene to load the ligand itself.
 - A :class:`gaudi.genes.search.Search` gene to translate and rotate the ligand around the protein surroundings.
-  
+
 This is all you need to move a rigid ligand around a protein. However, most of the time you want to implement some kind of internal **flexibility**, such as torsions in the ligand or some residues sidechains. To do that, add these to your ``genes`` section:
 
 - A :class:`gaudi.genes.torsion.Torsion` gene with the ligand as target to implement dihedral angle torsions along the rotatable bonds of the ligand.
 - A :class:`gaudi.genes.rotamers.Rotamers` gene with some residues of the protein as target. This will randomly modify the dihedral torsions of the sidechains of the specified residues according to the angles provided by the rotamer library (defaults to Dunbrack's).
-  
+
 There is also a :class:`gaudi.genes.mutamers.Mutamers` gene that allows you to mutate residues in addition to rotameric exploration. This will provide some traversal along the biochemical axis of your protein, but careful, because the current implementation is RAM hungry!
 
 The *evaluation* stage can be comprised of several objectives, but normally you'd want to:
@@ -91,7 +91,7 @@ Hacking Molecule genes for complex studies
 
 In addition to loading molecular structure files, the :class:`gaudi.genes.molecule.Molecule` does a couple of extra things. The path parameter can be set to two different values:
 
-- The path to a PDBor mol2 file (or any format that Chimera can open). This is the standard behaviour. It will load the structure and that's it.
+- The path to a PDB or Mol2 file (or any format that Chimera can open). This is the standard behaviour. It will load the structure and that's it.
 
 - The path to a directory, whose contents determine the final behaviour:
 
@@ -99,7 +99,7 @@ In addition to loading molecular structure files, the :class:`gaudi.genes.molecu
 
     B) If the directory contains subdirectories which, in turn, contain molecules files, GaudiMM will sort those subdirectories by name and then pick one molecule from each, in that order. The chosen molecules will be chained linearly as specified in the accompanying ``*.attr`` files. Perfect for drug design, since you can fill a couple of directories with different alkanes to link a cofactor
 
-Case **A** allows GaudiMM to deal test a library of compounds against certain criteria: ie, virtual screening!
+Case **A** allows GaudiMM to test a library of compounds against certain criteria: ie, virtual screening!
 
 Case **B** makes drug design studies possible. If you want to test different linker molecules to anchor a cofactor to a protein, you can use a two-directories scheme: one directory would contain the aforementioned linkers, and the other one just the cofactor (it's fine it there's only one molecule in one directory).
 
@@ -113,7 +113,7 @@ For the evaluation, you can use the :class:`gaudi.objectives.energy.Energy` obje
 Homology modeling
 -----------------
 
-In the same fashion, given an unfolded peptided or protein segment, you could apply the same Torsion scheme to explore different conformations. A hypothetical objective could be devised to calculate the RMS deviation of the new fragment and a reference one, which then the GA would minimize to obtain a similar structure. 
+In the same fashion, given an unfolded peptided or protein segment, you could apply the same Torsion scheme to explore different conformations. A hypothetical objective could be devised to calculate the RMS deviation of the new fragment and a reference one, which then the GA would minimize to obtain a similar structure.
 
 Conformational analysis
 -----------------------

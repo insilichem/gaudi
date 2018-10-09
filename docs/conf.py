@@ -18,22 +18,12 @@ import gaudi
 from mock import MagicMock
 
 class Mock(MagicMock):
-    def __init__(self, *args, **kwargs):
-        pass
 
-    def __call__(self, *args, **kwargs):
-        return Mock()
-
-    @classmethod
     def __getattr__(cls, name):
         if name in ('__file__', '__path__'):
             return '.',
-        # elif name[0] == name[0].upper():
-        #     mockType = type(name, (), {})
-        #     mockType.__module__ = __name__
-        #     return mockType
-        else:
-            return Mock()
+        return super(MagicMock, cls).__getattr__(name)
+
 
 MOCK_MODULES = [
     'chimera', 'chimera.molEdit', 'chimera.phipsi',
@@ -49,6 +39,7 @@ MOCK_MODULES = [
     'Matrix',
     'MeasureVolume',
     'MetalGeom',
+    'Midas',
     'Molecule',
     'MoleculeSurface',
     'Rotamers',
@@ -58,14 +49,16 @@ MOCK_MODULES = [
     'WriteMol2',
     'cclib', 'cclib.parser',
     'rdkit',
-    'simtk', 'simtk.unit', 'simtk.openmm', 'simtk.openmm.app', 
+    'simtk', 'simtk.unit', 'simtk.openmm', 'simtk.openmm.app',
     'openmoltools', 'openmoltools.amber', 'openmoltools.utils',
-    'pdbfixer', 
-    'scipy', 'scipy.spatial', 
-    'numpy', 'numpy.linalg', 'numpy.core.multiarray',
-    'imp', 
+    'pdbfixer',
+    'scipy', 'scipy.spatial',
+    'np', 'numpy', 'numpy.linalg', 'numpy.core.multiarray',
+    'imp',
     'prody',
-    'mdtraj']
+    'mdtraj',
+    'MolKit',
+    'AutoDockTools', 'AutoDockTools.MoleculePreparation']
 
 sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 
