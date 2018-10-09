@@ -238,7 +238,7 @@ class NormalModes(GeneProvider):
         and calculate n_confs number of configurations using this modes
         """
         prody_molecule, chimera2prody = convert_chimera_molecule_to_prody(self.molecule)
-        modes = prody_modes(prody_molecule, self.max_modes, GROUPERS[self.group_by],
+        modes = prody_modes(prody_molecule, self.max_modes, self.group_by,
                             **self.group_by_options)
         samples = prody.sampleModes(modes=modes[self.modes], atoms=prody_molecule,
                                     n_confs=self.n_samples, rmsd=self.rmsd)
@@ -292,7 +292,7 @@ def prody_modes(molecule, max_modes, algorithm=None, **options):
     modes = None
     if algorithm in ['residues', 'mass']:
         title = 'normal modes for {}'.format(molecule.getTitle())
-        molecule = algorithm(molecule, **options)
+        molecule = GROUPERS[algorithm](molecule, **options)
         modes = prody.RTB(title)
         modes.buildHessian(molecule.getCoords(), molecule.getBetas())
         modes.calcModes(n_modes=max_modes)
