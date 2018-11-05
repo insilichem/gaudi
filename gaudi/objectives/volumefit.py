@@ -54,31 +54,40 @@ class VolumeFit(ObjectiveProvider):
     probe : str
         Name of the molecule that must be fitted within a volume
     volume : str
-        Path to a volume file
-
+        Path to a volume file, or a equivalent molecule (ie SAXS probes)
+    resolution : float
+        Interpolation resolution (in A) to use for map generation
+        if a molecule is provided in ``volume``.
 
     Returns
     -------
-    int
+    float
         Number of atoms outside volume (to be minimized)
     """
 
     _validate = {
         parse.required('probe'): parse.Molecule_name,
         parse.required('volume'): parse.RelPathToInputFile(),
+        'resolution': parse.All(parse.Coerce(float), parse.Range(min=0))
         }
 
-    def __init__(self, probe=None, volume=None, *args, **kwargs):
+    def __init__(self, probe=None, volume=None, resolution=10.0, *args, **kwargs):
         ObjectiveProvider.__init__(self, **kwargs)
         self._volume = volume
         self._probe = probe
+        self.resolution = resolution
         self._id_xform = chimera.Xform()
 
     @property
     def volume(self):
         if not self._cache.get(self.name):
-            self._cache[self.name] = chimera.openModels.open(self._volume)[0]
-        return self._cache.get(self.name)
+            model = chimera.openModels.open(self._volume)[0]
+            if isinstance(model, chimera.Molecule):  # we want the molmap!
+                molecule = model
+                model = molecule_map(model.atoms, self.resolution)
+                chimera.openModels.close(molecule)
+            self._cache[self.name] = model
+        return self._cache[self.name]
 
     def probe(self, ind):
         return ind.find_molecule(self._probe).compound.mol
