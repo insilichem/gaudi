@@ -84,4 +84,4 @@ class VolumeFit(ObjectiveProvider):
         return ind.find_molecule(self._probe).compound.mol
 
     def evaluate(self, ind):
-        return points_outside_contour(self.probe(ind).xyz, self._id_xform, self.volume)
+        return float(points_outside_contour(self.probe(ind).xyz, self._id_xform, self.volume)[0])
