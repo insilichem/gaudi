@@ -35,6 +35,7 @@ import random
 import logging
 # Chimera
 import chimera
+from chimera.specifier import evalSpec
 # External dependencies
 from deap.tools import cxSimulatedBinaryBounded, mutPolynomialBounded
 # GAUDI
@@ -68,6 +69,14 @@ class Torsion(GeneProvider):
     rotatable_atom_names : list of str
         Which type of atom names (as in chimera.Atom.name) should rotate.
         Defaults to ().
+    rotatable_elements : list of str
+        Which elements should be rotatable
+    non_rotatable_bonds : list of 2-tuple of AtomSpecifier
+        List of bonds (expressed as a 2-tuple of atoms) that should be kept
+        frozen. Example: [(Protein/1, Protein/3), (Protein/5, Protein/7)]
+    non_rotatable_selection : str
+        Chimera specifier query. It should return one or more bonds to be kept
+        frozen. Can be used together with ``non_rotatable_bonds``.
 
     Attributes
     ----------
@@ -95,6 +104,7 @@ class Torsion(GeneProvider):
         'rotatable_elements': [basestring],
         'non_rotatable_bonds': [parse.All([parse.Named_spec("molecule", "atom")],
                                           parse.Length(min=2, max=2))],
+        'non_rotatable_selection': parse.Coerce(str),
         'precision': parse.All(parse.Coerce(int), parse.Range(min=-3, max=3))
         }
 
@@ -103,7 +113,8 @@ class Torsion(GeneProvider):
     def __init__(self, target=None, flexibility=360.0, max_bonds=None, anchor=None,
                  rotatable_atom_types=('C3', 'N3', 'C2', 'N2', 'P'),
                  rotatable_atom_names=(), rotatable_elements=(),
-                 non_rotatable_bonds=(), precision=1, **kwargs):
+                 non_rotatable_bonds=(), non_rotatable_selection='',
+                 precision=1, **kwargs):
         GeneProvider.__init__(self, **kwargs)
         self._kwargs = kwargs
         self.target = target
@@ -113,6 +124,7 @@ class Torsion(GeneProvider):
         self.rotatable_atom_names = rotatable_atom_names
         self.rotatable_elements = rotatable_elements
         self.non_rotatable_bonds = non_rotatable_bonds
+        self.non_rotatable_selection = non_rotatable_selection
         self.precision = precision
         self._anchor = anchor
         self.allele = [self.random_angle() for i in xrange(50)]
@@ -206,6 +218,7 @@ class Torsion(GeneProvider):
         bonds = sorted(self.molecule.bonds,
                        key=lambda b: min(y.serialNumber for y in b.atoms))
 
+        # TODO: Cache non-rotatable bonds per topology
         non_rotatable_bonds = set()
         for atom_a, atom_b in self.non_rotatable_bonds:
             a = self.parent.find_molecule(atom_a.molecule).find_atom(atom_a.atom)
@@ -215,6 +228,14 @@ class Torsion(GeneProvider):
                 non_rotatable_bonds.add(bond)
             else:
                 logger.warning('Atoms {} and {} are not bonded!'.format(a, b))
+
+        if self.non_rotatable_selection:
+            try:
+                non_rotatable_bonds.update(evalSpec(self._non_rotatable_selection,
+                                                    models=[self.molecule]))
+            except (SyntaxError, AttributeError):
+                logger.error('Selection query `{}` is not valid '
+                             'syntax!'.format(self._non_rotatable_selection))
 
         def conditions(*atoms):
             for a in atoms:
