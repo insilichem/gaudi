@@ -206,13 +206,13 @@ class Torsion(GeneProvider):
         bonds = sorted(self.molecule.bonds,
                        key=lambda b: min(y.serialNumber for y in b.atoms))
 
-        non_rotatable_bonds = []
+        non_rotatable_bonds = set()
         for atom_a, atom_b in self.non_rotatable_bonds:
             a = self.parent.find_molecule(atom_a.molecule).find_atom(atom_a.atom)
             b = self.parent.find_molecule(atom_b.molecule).find_atom(atom_b.atom)
             bond = a.findBond(b)
             if bond:
-                non_rotatable_bonds.append(bond)
+                non_rotatable_bonds.add(bond)
             else:
                 logger.warning('Atoms {} and {} are not bonded!'.format(a, b))
 
