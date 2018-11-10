@@ -103,7 +103,7 @@ class Energy(ObjectiveProvider):
         self._simulation = None
 
         if len(forcefields) == 1 and forcefields[0].endswith('.prmtop'):
-            self.forcefield = openmm_app.AmberPrmtop(forcefields[0])
+            self.forcefield = openmm_app.AmberPrmtopFile(forcefields[0])
             self.topology = self.forcefield.topology
         else:
             additional_ffxml = []
