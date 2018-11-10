@@ -102,17 +102,22 @@ class Energy(ObjectiveProvider):
         self.topology = None
         self._simulation = None
 
-        additional_ffxml = []
-        if parameters:
-            additional_ffxml.append(create_ffxml_file(*zip(*parameters)))
-        if auto_parametrize:
-            filenames = [g.path for m in auto_parametrize
-                         for g in self.environment.cfg.genes
-                         if g.name == m]
-            additional_ffxml.append(self._gaff2xml(*filenames))
+        if len(forcefields) == 1 and forcefields[0].endswith('.prmtop'):
+            self.forcefield = openmm_app.AmberPrmtop(forcefields[0])
+            self.topology = self.forcefield.topology
+        else:
+            additional_ffxml = []
+            if parameters:
+                additional_ffxml.append(create_ffxml_file(*zip(*parameters)))
+            if auto_parametrize:
+                filenames = [g.path for m in auto_parametrize
+                            for g in self.environment.cfg.genes
+                            if g.name == m]
+                additional_ffxml.append(self._gaff2xml(*filenames))
 
-        self._forcefields = tuple(forcefields) + tuple(additional_ffxml)
-        self.forcefield = openmm_app.ForceField(*self._forcefields)
+            self._forcefields = tuple(forcefields) + tuple(additional_ffxml)
+
+            self.forcefield = openmm_app.ForceField(*self._forcefields)
 
     def evaluate(self, individual):
         """
