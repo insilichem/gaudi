@@ -164,15 +164,19 @@ class Energy(ObjectiveProvider):
 
         Notes
         -----
-        self.topology must be defined previously!
+        self.topology must be defined previously! (Only with XML force fields)
         Use self.chimera_molecule_to_openmm_topology to set it.
 
         """
         if self._simulation is None:
-            system = self.forcefield.createSystem(self.topology,
-                                                  nonbondedMethod=openmm_app.CutoffNonPeriodic,
-                                                  nonbondedCutoff=1.0*unit.nanometers,
-                                                  rigidWater=True, constraints=None)
+            if isinstance(self.forcefield, openmm_app.ForceField):
+                args = (self.topology,)
+            else:
+                args = ()
+            kwargs = dict(nonbondedMethod=openmm_app.CutoffNonPeriodic,
+                        nonbondedCutoff=1.0*unit.nanometers,
+                        rigidWater=True, constraints=None)
+            system = self.forcefield.createSystem(*args, **kwargs)
             integrator = openmm.VerletIntegrator(0.001)
             if self.platform is not None:
                 platform = openmm.Platform.getPlatformByName(self.platform),
