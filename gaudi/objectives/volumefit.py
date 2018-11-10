@@ -66,8 +66,8 @@ class VolumeFit(ObjectiveProvider):
     """
 
     _validate = {
-        parse.required('probe'): parse.Molecule_name,
-        parse.required('volume'): parse.RelPathToInputFile(),
+        parse.Required('probe'): parse.Molecule_name,
+        parse.Required('volume'): parse.RelPathToInputFile(),
         'resolution': parse.All(parse.Coerce(float), parse.Range(min=0))
         }
 
