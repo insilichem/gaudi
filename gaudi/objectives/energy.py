@@ -74,6 +74,8 @@ class Energy(ObjectiveProvider):
         List of (gaff.mol2, .frcmod) files to use as parametrization source.
     platform : str
         Which platform to use for calculations. Choose between CPU, CUDA, OpenCL.
+    minimize : bool
+        Whether to minimize the structure or not. Only valid when one target is chosen.
 
     Returns
     -------
@@ -87,15 +89,17 @@ class Energy(ObjectiveProvider):
         'forcefields': [parse.Any(parse.ExpandUserPathExists, parse.In(_openmm_builtin_forcefields))],
         'auto_parametrize': [parse.Molecule_name],
         'parameters': [parse.All([parse.ExpandUserPathExists], parse.Length(min=2, max=2))],
-        'platform': parse.In(['CUDA', 'OpenCL', 'CPU'])
+        'platform': parse.In(['CUDA', 'OpenCL', 'CPU']),
+        'minimize': parse.Coerce(bool)
         }
 
     def __init__(self, targets=None, forcefields=('amber99sbildn.xml',), auto_parametrize=None,
-                 parameters=None, platform=None, *args, **kwargs):
+                 parameters=None, platform=None, minimize=False, *args, **kwargs):
         if kwargs.get('precision', 6) < 6:
             kwargs['precision'] = 6
         ObjectiveProvider.__init__(self, **kwargs)
         self.auto_parametrize = auto_parametrize
+        self.minimize = minimize
         self._targets = targets
         self._parameters = parameters
         self.platform = platform
@@ -139,7 +143,13 @@ class Energy(ObjectiveProvider):
             self.topology = self.chimera_molecule_to_openmm_topology(*molecules)
             self._simulation = None  # This forces a Simulation rebuild
 
-        return self.calculate_energy(coordinates)
+        energy = self.calculate_energy(coordinates)
+        if self.minimize and len(molecules) == 1:
+            positions = self._state.getPositions().value_in_unit(unit.angstrom)
+            m, = molecules
+            cs = m.newCoordSet(100)
+            cs.load(positions)
+        return energy
 
     def molecules(self, individual):
         if self._targets is None:
@@ -187,6 +197,8 @@ class Energy(ObjectiveProvider):
             Potential energy of the system, in kJ/mol
         """
         self.simulation.context.setPositions(coordinates)
+        if self.minimize:
+            self.simulation.minimizeEnergy(maxIterations=100)
         # Retrieve initial energy
         state = self.simulation.context.getState(getEnergy=True)
         return state.getPotentialEnergy()._value
