@@ -90,16 +90,22 @@ class Energy(ObjectiveProvider):
         'auto_parametrize': [parse.Molecule_name],
         'parameters': [parse.All([parse.ExpandUserPathExists], parse.Length(min=2, max=2))],
         'platform': parse.In(['CUDA', 'OpenCL', 'CPU']),
-        'minimize': parse.Coerce(bool)
+        'minimize': parse.Coerce(bool),
+        'system_options': parse.Any(dict, None)
         }
 
     def __init__(self, targets=None, forcefields=('amber99sbildn.xml',), auto_parametrize=None,
-                 parameters=None, platform=None, minimize=False, *args, **kwargs):
+                 parameters=None, platform=None, minimize=False, system_options=None, *args, **kwargs):
         if kwargs.get('precision', 6) < 6:
             kwargs['precision'] = 6
         ObjectiveProvider.__init__(self, **kwargs)
         self.auto_parametrize = auto_parametrize
         self.minimize = minimize
+        self.system_options = {'nonbondedMethod': openmm_app.CutoffNonPeriodic,
+                               'nonbondedCutoff': 1.0*unit.nanometers,
+                               'rigidWater': True, 'constraints': None}
+        if system_options:
+            self.system_options.update(self._prepare_system_options(system_options))
         self._targets = targets
         self._parameters = parameters
         self.platform = platform
@@ -173,10 +179,7 @@ class Energy(ObjectiveProvider):
                 args = (self.topology,)
             else:
                 args = ()
-            kwargs = dict(nonbondedMethod=openmm_app.CutoffNonPeriodic,
-                        nonbondedCutoff=1.0*unit.nanometers,
-                        rigidWater=True, constraints=None)
-            system = self.forcefield.createSystem(*args, **kwargs)
+            system = self.forcefield.createSystem(*args, **self.system_options)
             integrator = openmm.VerletIntegrator(0.001)
             if self.platform is not None:
                 platform = openmm.Platform.getPlatformByName(self.platform),
@@ -307,6 +310,14 @@ class Energy(ObjectiveProvider):
                     return False
 
         return True
+
+    def _prepare_system_options(self, mapping):
+        if not mapping:
+            return mapping
+        for key, value in mapping.items():
+            if key in ('implicitSolvent', 'nonbondedMethod'):
+                mapping[key] = getattr(openmm_app, value)
+        return mapping
 
 
 def calculate_energy(filename, forcefields=None):
