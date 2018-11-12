@@ -71,13 +71,13 @@ class VolumeFit(ObjectiveProvider):
         parse.Required('volume'): parse.RelPathToInputFile(),
         'resolution': parse.All(parse.Coerce(float), parse.Range(min=0))
         }
+    _id_xform = chimera.Xform()
 
     def __init__(self, probe=None, volume=None, resolution=10.0, *args, **kwargs):
         ObjectiveProvider.__init__(self, **kwargs)
         self._volume = volume
         self._probe = probe
         self.resolution = resolution
-        self._id_xform = chimera.Xform()
 
     @property
     def volume(self):
