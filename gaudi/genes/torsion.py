@@ -231,11 +231,11 @@ class Torsion(GeneProvider):
 
         if self.non_rotatable_selection:
             try:
-                non_rotatable_bonds.update(evalSpec(self._non_rotatable_selection,
-                                                    models=[self.molecule]))
+                sel = evalSpec(self.non_rotatable_selection, models=[self.molecule])
+                non_rotatable_bonds.update(sel.bonds())
             except (SyntaxError, AttributeError):
                 logger.error('Selection query `{}` is not valid '
-                             'syntax!'.format(self._non_rotatable_selection))
+                             'syntax!'.format(self.non_rotatable_selection))
 
         def conditions(*atoms):
             for a in atoms:
