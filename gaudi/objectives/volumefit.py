@@ -32,6 +32,7 @@ import logging
 # 3rd party
 import chimera
 from FitMap.fitmap import points_outside_contour
+from MoleculeMap import molecule_map
 # GAUDI
 from gaudi import parse
 from gaudi.objectives import ObjectiveProvider
