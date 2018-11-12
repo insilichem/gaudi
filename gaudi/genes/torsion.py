@@ -218,7 +218,6 @@ class Torsion(GeneProvider):
         bonds = sorted(self.molecule.bonds,
                        key=lambda b: min(y.serialNumber for y in b.atoms))
 
-        # TODO: Cache non-rotatable bonds per topology
         non_rotatable_bonds = set()
         for atom_a, atom_b in self.non_rotatable_bonds:
             a = self.parent.find_molecule(atom_a.molecule).find_atom(atom_a.atom)
@@ -232,10 +231,12 @@ class Torsion(GeneProvider):
         if self.non_rotatable_selection:
             try:
                 sel = evalSpec(self.non_rotatable_selection, models=[self.molecule])
+                non_rotatable_bonds.update(chimera.misc.bonds(sel.atoms()))
                 non_rotatable_bonds.update(sel.bonds())
             except (SyntaxError, AttributeError):
                 logger.error('Selection query `{}` is not valid '
                              'syntax!'.format(self.non_rotatable_selection))
+                raise
 
         def conditions(*atoms):
             for a in atoms:
