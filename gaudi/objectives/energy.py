@@ -38,6 +38,7 @@ import logging
 from Molecule import atom_positions
 import simtk.openmm.app as openmm_app
 from simtk import unit, openmm
+from mdtraj import Topology as MDTrajTopology
 from openmoltools.amber import run_antechamber
 from openmoltools.utils import create_ffxml_file
 import numpy
@@ -76,6 +77,15 @@ class Energy(ObjectiveProvider):
         Which platform to use for calculations. Choose between CPU, CUDA, OpenCL.
     minimize : bool
         Whether to minimize the structure or not. Only valid when one target is chosen.
+    minimization_tolerance : float, optional=10
+        Convergence criteria for energy minimization. In kJ/mol.
+    minimization_iterations : int, optional=10
+        Max attempts to converge at minimization.
+    frozen_atoms : str
+        MDTraj DSL query that will select atoms to be froze; e.g., ``backbone``
+    system_options : dict
+        Key-value options that will be passed to ``.createSystem()`` calls. Useful
+        for implicit solvent declaration, custom non bonded methods, and so on.
 
     Returns
     -------
@@ -91,16 +101,24 @@ class Energy(ObjectiveProvider):
         'parameters': [parse.All([parse.ExpandUserPathExists], parse.Length(min=2, max=2))],
         'platform': parse.In(['CUDA', 'OpenCL', 'CPU']),
         'minimize': parse.Coerce(bool),
+        'minimization_tolerance': float,
+        'minimization_iterations': int,
+        'frozen_atoms': parse.Any(None, parse.Coerce(str)),
         'system_options': parse.Any(dict, None)
         }
 
-    def __init__(self, targets=None, forcefields=('amber99sbildn.xml',), auto_parametrize=None,
-                 parameters=None, platform=None, minimize=False, system_options=None, *args, **kwargs):
+    def __init__(self, targets=None, forcefields=('amber99sbildn.xml',),
+                 auto_parametrize=None, parameters=None, platform=None,
+                 minimize=False, minimization_tolerance=10, minimization_iterations=10,
+                 system_options=None, frozen_atoms=None, *args, **kwargs):
         if kwargs.get('precision', 6) < 6:
             kwargs['precision'] = 6
         ObjectiveProvider.__init__(self, **kwargs)
         self.auto_parametrize = auto_parametrize
         self.minimize = minimize
+        self.minimization_tolerance = minimization_tolerance
+        self.minimization_iterations = minimization_iterations
+        self.frozen_atoms = frozen_atoms
         self.system_options = {'nonbondedMethod': openmm_app.CutoffNonPeriodic,
                                'nonbondedCutoff': 1.0*unit.nanometers,
                                'rigidWater': True, 'constraints': None}
@@ -111,6 +129,7 @@ class Energy(ObjectiveProvider):
         self.platform = platform
         self.topology = None
         self._simulation = None
+        self._state = None
 
         if len(forcefields) == 1 and forcefields[0].endswith('.prmtop'):
             self.forcefield = openmm_app.AmberPrmtopFile(forcefields[0])
@@ -149,13 +168,7 @@ class Energy(ObjectiveProvider):
             self.topology = self.chimera_molecule_to_openmm_topology(*molecules)
             self._simulation = None  # This forces a Simulation rebuild
 
-        energy = self.calculate_energy(coordinates)
-        if self.minimize and len(molecules) == 1:
-            positions = self._state.getPositions().value_in_unit(unit.angstrom)
-            m, = molecules
-            cs = m.newCoordSet(100)
-            cs.load(positions)
-        return energy
+        return self.calculate_energy(coordinates)
 
     def molecules(self, individual):
         if self._targets is None:
@@ -180,6 +193,10 @@ class Energy(ObjectiveProvider):
             else:
                 args = ()
             system = self.forcefield.createSystem(*args, **self.system_options)
+            if self.frozen_atoms:
+                for i in self._subset():
+                    system.setParticleMass(i, 0.0)  # This freezes the particle
+
             integrator = openmm.VerletIntegrator(0.001)
             if self.platform is not None:
                 platform = openmm.Platform.getPlatformByName(self.platform),
@@ -205,10 +222,12 @@ class Energy(ObjectiveProvider):
         """
         self.simulation.context.setPositions(coordinates)
         if self.minimize:
-            self.simulation.minimizeEnergy(maxIterations=100)
-        # Retrieve initial energy
-        state = self.simulation.context.getState(getEnergy=True)
-        return state.getPotentialEnergy()._value
+            self.simulation.minimizeEnergy(
+                tolerance=self.minimization_tolerance*unit.kilojoule_per_mole,
+                maxIterations=self.minimization_iterations)
+        # Retrieve energy
+        self._state = self.simulation.context.getState(getEnergy=True, getPositions=True)
+        return self._state.getPotentialEnergy()._value
 
     @staticmethod
     def chimera_molecule_to_openmm_topology(*molecules):
@@ -318,6 +337,14 @@ class Energy(ObjectiveProvider):
             if key in ('implicitSolvent', 'nonbondedMethod'):
                 mapping[key] = getattr(openmm_app, value)
         return mapping
+
+    def _subset(self, query=None):
+        if query is None:
+            query = self.frozen_atoms
+        if query:
+            mdtop = MDTrajTopology.from_openmm(self.topology)
+            return mdtop.select(query)
+        return []
 
 
 def calculate_energy(filename, forcefields=None):
