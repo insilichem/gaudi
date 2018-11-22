@@ -250,6 +250,9 @@ class Torsion(GeneProvider):
                    a.element.name in self.rotatable_elements:
                     return True
 
+        distances, graph, atom_map = box.shortest_distance_matrix(self.molecule)
+        anchor = self.anchor
+        anchor_index = atom_map[self.anchor]
         for b in bonds:
             if b in non_rotatable_bonds:
                 continue
@@ -261,7 +264,8 @@ class Torsion(GeneProvider):
                         continue  # discard bonds in cycles and used!
                     raise
                 else:
-                    br.rotanchor = box.find_nearest(self.anchor, b.atoms)
+                    br.rotanchor = min(b.atoms,
+                                       key=lambda a: distances[anchor_index, atom_map[a]])
                     yield br
 
     @property

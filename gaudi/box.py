@@ -39,6 +39,8 @@ from contextlib import contextmanager
 import sys
 # Chimera
 import chimera
+import numpy as np
+from scipy.sparse.csgraph import shortest_path as _shortest_path
 # Gaudi
 import gaudi
 
@@ -247,6 +249,13 @@ def find_nearest(anchor, atoms):
     """
     Find the atom of `atoms` that is closer to `anchor`, in terms of
     number of atoms in between.
+
+    Note
+    ----
+    Can be very slow with lots of atoms in a molecule. For large
+    structures, using ``gaudi.box.shortest_distance_matrix`` as
+    done in ``gaudi.genes.torsion.Torsion._compute_rotatable_bonds``
+    is recommended.
     """
     try:
         return next(a for a in atoms if a is anchor)
@@ -319,6 +328,43 @@ def pseudobond_to_bond(molecule, remove=False):
                 pbgroup.deletePseudoBond(pb)
         pbm = molecule.pseudoBondMgr()
         pbm.deletePseudoBondGroup(pbgroup)
+
+
+def shortest_distance_matrix(molecule, graph=None, atom_map=None):
+    """
+    Compute minimum distance matrix for all atoms in molecule.
+
+    Parameters
+    ----------
+    molecule : chimera.Molecule
+
+    graph : array_like
+        Matrix-form graph with NxN elements (``N=molecule.numAtoms``)
+        , where ``[i,j]`` values are 1 if atom ``i`` is bonded to ``j``.
+        If not provided, it will be built.
+
+    atom_map : dict, optional
+        Mapping from ``chimera.Atom`` objects to its position
+        in ``molecule.atoms``. If not provided, it will be built.
+
+    Returns
+    -------
+    distances : array_like
+        Specific distances can be queried in ``distances[i,j]``,
+        with ``i,j`` being the indices of each atom in ``molecule.atoms``
+    graph
+    atom_map
+    """
+    if not atom_map:
+        atom_map = {a: i for (i, a) in enumerate(molecule.atoms)}
+    if not graph:
+        graph = np.zeros((molecule.numAtoms, molecule.numAtoms))
+        for b in molecule.bonds:
+            i1, i2 = atom_map[b.atoms[0]], atom_map[b.atoms[1]]
+            graph[i1, i2] = 1
+    distances = _shortest_path(graph, method='auto', directed=False,
+                               unweighted=True)
+    return distances, graph, atom_map
 
 
 def suppress_ksdssp(trig_name, my_data, molecules):
