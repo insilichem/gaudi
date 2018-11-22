@@ -45,17 +45,24 @@ import gaudi
 
 def atoms_between(atom1, atom2):
     """
-    Finds all connected atoms between two given atoms
+    Finds all connected atoms between two given atoms. Can be slow with
+    large molecules.
     """
-    assert atom1.molecule == atom2.molecule
-    m = atom1.molecule
-    r1, r2 = m.rootForAtom(atom1, True), m.rootForAtom(atom2, True)
-    assert r1 == r2
-    traversed = m.traverseAtoms(r1)
-    i1 = traversed.index(atom1)
-    i2 = traversed.index(atom2)
-    i1, i2 = sorted([i1, i2])
-    return traversed[i1:i2]
+    chain1 = [atom1]
+    chain2 = [atom2]
+    i = 0
+    while i < len(chain1):
+        a1 = chain1[i]
+        if atom2 not in a1.neighbors:
+            chain1.extend([a for a in a1.neighbors if a not in chain1])
+        i += 1
+    j = 0
+    while j < len(chain2):
+        a2 = chain2[j]
+        if atom1 not in a2.neighbors:
+            chain2.extend([a for a in a2.neighbors if a not in chain2])
+        j += 1
+    return set(chain1) & set(chain2)
 
 
 def atoms_by_serial(*serials, **kw):
