@@ -111,7 +111,7 @@ before_install:
 
 install:
 # Dependencies
-- conda build -q conda-recipe
+- conda build -q --python=2.7 conda-recipe
 - conda install -q --use-local gaudi
 - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
     conda install -q nwchem;
