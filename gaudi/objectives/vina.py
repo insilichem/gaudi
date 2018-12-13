@@ -49,7 +49,6 @@ class Vina(ObjectiveProvider):
 
     """
     Vina class
-
     Parameters
     ----------
     receptor : str
@@ -59,7 +58,6 @@ class Vina(ObjectiveProvider):
     prepare_each : bool
         Whether to prepare receptors and ligands in every evaluation or try
         to cache the results for faster performance.
-
     Returns
     -------
     float
@@ -110,8 +108,10 @@ class Vina(ObjectiveProvider):
     def _prepare(self, molecule, which='receptor'):
         if which == 'receptor':
             preparer = AD4ReceptorPreparation
+            kwargs = {"repairs": '', "cleanup": ''}
         elif which == 'ligand':
             preparer = AD4LigandPreparation
+            kwargs = {"repairs": '', "cleanup": '', "inactivate_all_torsions": True}
         else:
             raise ValueError('which must be receptor or ligand')
         path = '{}_{}.pdb'.format(self.tmpfile, which)
@@ -121,7 +121,7 @@ class Vina(ObjectiveProvider):
             self._paths.append(path)
             mol = MolKit.Read(path)[0]
             mol.buildBondsByDistance()
-            RPO = preparer(mol, outputfilename=pathqt)
+            RPO = preparer(mol, outputfilename=pathqt, **kwargs)
             self._paths.append(pathqt)
         else:
             # update coordinates
