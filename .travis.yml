@@ -64,7 +64,7 @@ before_install:
 - conda config --add channels omnia
 - conda config --add channels insilichem
 - conda config --add channels defaults
-- conda install -q conda conda-build
+- conda install -q conda conda-build=3.16
 - pip install -U pytest pytest-benchmark
 # Show conda info for debugging
 - conda info -a
