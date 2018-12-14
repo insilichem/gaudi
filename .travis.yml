@@ -77,11 +77,11 @@ before_install:
       echo "IMPORTANT - Downloading in 10 seconds...'";
       sleep 10;
       set -x;
-      _curl=$(which curl)
       _file="chimera-1.13.1-linux_x86_64_osmesa.bin";
       _filepath="linux_x86_64_osmesa/${_file}";
       _downloader="https://www.cgl.ucsf.edu/chimera/cgi-bin/secure/chimera-get.py";
       _download=$(command curl -F file=${_filepath} -F choice=Accept "${_downloader}" | grep href | sed -E 's/.*href="(.*)">/\1/');
+      sleep 3;
       command curl "https://www.cgl.ucsf.edu${_download}" -o "${_file}";
       chmod +x "${_file}";
       mkdir -p "$HOME/chimera";
@@ -103,8 +103,9 @@ before_install:
         _file="chimera-1.13.1-mac64.dmg";
         _filepath="mac64/${_file}";
         _downloader="https://www.cgl.ucsf.edu/chimera/cgi-bin/secure/chimera-get.py";
-        _download=`curl -s -F file="${_filepath}" -F choice=Accept "${_downloader}" | grep href | sed -E 's/.*href="(.*)">/\1/'`;
-        curl "https://www.cgl.ucsf.edu""${_download}" -o "${_file}";
+        _download=$(command curl -F file="${_filepath}" -F choice=Accept "${_downloader}" | grep href | sed -E 's/.*href="(.*)">/\1/');
+        sleep 3;
+        command curl "https://www.cgl.ucsf.edu${_download}" -o "${_file}";
         hdiutil convert "${_file}" -format UDRW -o chimerarw;
         hdiutil attach -mountpoint "$HOME/chimera" chimerarw.dmg;
         rm -rf $HOME/chimera/Chimera.app/Contents/Resources/lib/python2.7/site-packages/{AutoDockTools,MolKit,PyBabel,mglutil,mmLib,mslib};
