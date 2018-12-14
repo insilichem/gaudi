@@ -70,18 +70,25 @@ before_install:
 # Get Chimera
 - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
     if [[ ! -e $HOME/chimera/bin/chimera ]]; then
-      _file="chimera-1.12-linux_x86_64.bin";
-      _filepath="linux_x86_64/${_file}";
-      _downloader="https://www.rbvi.ucsf.edu/chimera/cgi-bin/secure/chimera-get.py";
-      _download=`curl -s -F file="${_filepath}" -F choice=Accept "${_downloader}" | grep href | sed -E 's/.*href="(.*)">/\1/'`;
-      curl "https://www.rbvi.ucsf.edu""${_download}" -o "${_file}";
+      set +x;
+      echo "IMPORTANT - By downloading you accept the UCSF Chimera Non-Commercial Software License Agreement!";
+      echo "IMPORTANT - The license agreement can be found at http://www.cgl.ucsf.edu/chimera/license.html";
+      echo "IMPORTANT - If you do not agree, please press Ctrl-C now.";
+      echo "IMPORTANT - Downloading in 10 seconds...'";
+      sleep 10;
+      set -x;
+      _curl=$(which curl)
+      _file="chimera-1.13.1-linux_x86_64_osmesa.bin";
+      _filepath="linux_x86_64_osmesa/${_file}";
+      _downloader="https://www.cgl.ucsf.edu/chimera/cgi-bin/secure/chimera-get.py";
+      _download=$(command curl -F file=${_filepath} -F choice=Accept "${_downloader}" | grep href | sed -E 's/.*href="(.*)">/\1/');
+      command curl "https://www.cgl.ucsf.edu${_download}" -o "${_file}";
       chmod +x "${_file}";
       mkdir -p "$HOME/chimera";
       echo "$HOME/chimera" | "./${_file}";
       ln -s $HOME/chimera/bin/chimera $HOME/miniconda/bin/chimera || true;
       rm -rf $HOME/chimera/lib/python2.7/site-packages/{AutoDockTools,MolKit,PyBabel,mglutil,mmLib,mslib};
       rm -rf $HOME/chimera/lib/python2.7/site-packages/setuptools*;
-      pip install -U setuptools numpy==1.11 -t $HOME/chimera/lib/python2.7/site-packages;
     fi;
     export CHIMERADIR="$HOME/chimera";
   else
@@ -93,16 +100,15 @@ before_install:
         echo "IMPORTANT - Downloading in 10 seconds...'";
         sleep 10;
         set -x;
-        _file="chimera-1.12-mac64.dmg";
+        _file="chimera-1.13.1-mac64.dmg";
         _filepath="mac64/${_file}";
-        _downloader="https://www.rbvi.ucsf.edu/chimera/cgi-bin/secure/chimera-get.py";
+        _downloader="https://www.cgl.ucsf.edu/chimera/cgi-bin/secure/chimera-get.py";
         _download=`curl -s -F file="${_filepath}" -F choice=Accept "${_downloader}" | grep href | sed -E 's/.*href="(.*)">/\1/'`;
-        curl "https://www.rbvi.ucsf.edu""${_download}" -o "${_file}";
+        curl "https://www.cgl.ucsf.edu""${_download}" -o "${_file}";
         hdiutil convert "${_file}" -format UDRW -o chimerarw;
         hdiutil attach -mountpoint "$HOME/chimera" chimerarw.dmg;
         rm -rf $HOME/chimera/Chimera.app/Contents/Resources/lib/python2.7/site-packages/{AutoDockTools,MolKit,PyBabel,mglutil,mmLib,mslib};
         rm -rf $HOME/chimera/Chimera.app/Contents/Resources/lib/python2.7/site-packages/setuptools*;
-        pip install -U setuptools numpy==1.15 -t $HOME/chimera/Chimera.app/Contents/Resources/lib/python2.7/site-packages;
     fi;
     export CHIMERADIR="$HOME/chimera/Chimera.app/Contents/Resources";
   fi
