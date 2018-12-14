@@ -82,7 +82,7 @@ before_install:
       ln -s $HOME/chimera/bin/chimera $HOME/miniconda/bin/chimera || true;
       rm -rf $HOME/chimera/lib/python2.7/site-packages/{AutoDockTools,MolKit,PyBabel,mglutil,mmLib,mslib};
       rm -rf $HOME/chimera/lib/python2.7/site-packages/setuptools*;
-      pip install -U setuptools numpy=1.11 -t $HOME/chimera/lib/python2.7/site-packages;
+      pip install -U setuptools numpy==1.11 -t $HOME/chimera/lib/python2.7/site-packages;
     fi;
     export CHIMERADIR="$HOME/chimera";
   else
@@ -103,13 +103,14 @@ before_install:
         hdiutil attach -mountpoint "$HOME/chimera" chimerarw.dmg;
         rm -rf $HOME/chimera/Chimera.app/Contents/Resources/lib/python2.7/site-packages/{AutoDockTools,MolKit,PyBabel,mglutil,mmLib,mslib};
         rm -rf $HOME/chimera/Chimera.app/Contents/Resources/lib/python2.7/site-packages/setuptools*;
-        pip install -U setuptools numpy=1.15 -t $HOME/chimera/Chimera.app/Contents/Resources/lib/python2.7/site-packages;
+        pip install -U setuptools numpy==1.15 -t $HOME/chimera/Chimera.app/Contents/Resources/lib/python2.7/site-packages;
     fi;
     export CHIMERADIR="$HOME/chimera/Chimera.app/Contents/Resources";
   fi
 
 
 install:
+- export LC_ALL=en_US.UTF8
 # Dependencies
 - conda build -q --python=2.7 conda-recipe
 - conda install -q --use-local gaudi
