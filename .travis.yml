@@ -47,9 +47,9 @@ before_install:
     mkdir -p $HOME/download;
     if [[ -d $HOME/download/miniconda.sh ]]; then rm -rf $HOME/download/miniconda.sh; fi;
     if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
-      wget https://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh -O $HOME/download/miniconda.sh;
+      wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O $HOME/download/miniconda.sh;
     else
-      wget https://repo.continuum.io/miniconda/Miniconda2-latest-MacOSX-x86_64.sh -O $HOME/download/miniconda.sh;
+      wget https://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -O $HOME/download/miniconda.sh;
     fi;
     bash $HOME/download/miniconda.sh -b -p $HOME/miniconda;
   fi
@@ -65,7 +65,6 @@ before_install:
 - conda config --add channels insilichem
 - conda config --add channels defaults
 - conda install -q conda conda-build=3.16
-- pip install -U pytest pytest-benchmark
 # Show conda info for debugging
 - conda info -a
 # Get Chimera
@@ -107,13 +106,16 @@ before_install:
     fi;
     export CHIMERADIR="$HOME/chimera/Chimera.app/Contents/Resources";
   fi
-
+- env
 
 install:
 - export LC_ALL=en_US.UTF8
 # Dependencies
 - conda build -q --python=2.7 conda-recipe
-- conda install -q --use-local gaudi
+# Create specific Python 2 env
+- conda create -n gaudi --use-local python=2.7 gaudi
+- conda activate gaudi
+- pip install -U pytest pytest-benchmark
 - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
     conda install -q nwchem;
     cp $HOME/miniconda/etc/default.nwchemrc $HOME/.nwchemrc || true;
