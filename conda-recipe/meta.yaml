@@ -27,6 +27,12 @@ requirements:
     - setuptools
     - distribute
     - nomkl
+    - munch 2.2*
+    - voluptuous 0.10*
+    - click 6.7*
+    - boltons 17.2*
+    - deap 1.2*
+    - pyyaml
     - openmm
     - openmoltools
     - pdbfixer
