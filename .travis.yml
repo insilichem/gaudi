@@ -124,6 +124,8 @@ install:
 - conda create -n gaudi --use-local python=2.7 gaudi
 - conda activate gaudi
 - pip install -U pytest pytest-benchmark
+- pip uninstall -y pychimera || true
+- conda install pychimera --no-deps
 - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
     conda install -q nwchem;
     cp $HOME/miniconda/etc/default.nwchemrc $HOME/.nwchemrc || true;
@@ -135,6 +137,7 @@ install:
 - env
 
 script:
+- conda activate gaudi
 - cd tests
 - python run_test.py
 - cd ..
