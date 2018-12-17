@@ -26,6 +26,8 @@ import pytest
 from conftest import datapath, expressed
 from gaudi.genes.molecule import Molecule
 from gaudi.genes.rotamers import Rotamers
+import chimera
+
 
 def rotamers(individual, path, position, seed):
     individual.genes['Molecule'] = Molecule(parent=individual, path=datapath(path))
@@ -37,12 +39,22 @@ def rotamers(individual, path, position, seed):
     return rotamers
 
 
-@pytest.mark.parametrize("path, position, seed, restype, original_chis, new_chis", [
-    ('4c3w_protein.mol2', 5, 0, 'ARG', [179.734, 178.061, 60.608, 90.076],
-                                       [179.734, 178.061, 60.608, 90.076]),
-    ('4c3w_protein.mol2', 5, 0.015, 'ARG', [179.734, 178.061, 60.608, 90.076],
-                                           [-174.7, -174.4, 69.2, 79.1]),
-])
+if chimera.version.releaseNum < [1, 13, 1]:
+    rotamer_parameters = [
+        ('4c3w_protein.mol2', 5, 0, 'ARG', [179.734, 178.061, 60.608, 90.076],
+         [179.734, 178.061, 60.608, 90.076]),
+        ('4c3w_protein.mol2', 5, 0.015, 'ARG',
+         [179.734, 178.061, 60.608, 90.076], [-174.7, -174.4, 69.2, 79.1]),
+    ]
+else:
+    rotamer_parameters = [
+        ('4c3w_protein.mol2', 5, 0, 'ARG', [179.734, 178.061, 60.608, 90.076],
+         [179.734, 178.061, 60.608, 90.076]),
+        ('4c3w_protein.mol2', 5, 0.015, 'ARG',
+         [179.734, 178.061, 60.608, 90.076], [-178.1, -176.0, 63.4, 79.4]),
+    ]
+@pytest.mark.parametrize("path, position, seed, restype, original_chis, new_chis",
+    rotamer_parameters)
 def test_rotamers(individual, path, position, seed, restype, original_chis, new_chis):
     rotamer = rotamers(individual, path, position, seed)
     residue = rotamer.residues[('Molecule', position)]
