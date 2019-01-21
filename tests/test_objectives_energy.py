@@ -24,7 +24,9 @@
 
 import pytest
 from conftest import datapath, expressed
-from gaudi.objectives.energy import Energy
+import numpy as np
+from chimera.specifier import evalSpec
+from gaudi.objectives.energy import Energy, unit
 from gaudi.genes.molecule import Molecule
 
 
@@ -45,11 +47,16 @@ def test_topology(individual, path, atoms, bonds, residues):
         assert topology.getNumResidues() == sum(m.numResidues for m in molecules)
 
 
-def energy(individual, path):
-    individual.genes['Molecule'] = Molecule(parent=individual, path=datapath(path))
+def energy_obj(individual, path, **kwargs):
+    individual.genes['Molecule'] = Molecule(
+        parent=individual, path=datapath(path))
     individual.__ready__()
     individual.__expression_hooks__()
-    objective = Energy()
+    return Energy(**kwargs)
+
+
+def energy(individual, path, **kwargs):
+    objective = energy_obj(individual, path, **kwargs)
     with expressed(individual):
         return objective.evaluate(individual)
 
@@ -59,7 +66,22 @@ def energy(individual, path):
     ('1amb.pdb', 4401.90005384),
 ])
 def test_energy(individual, path, score):
-    assert (energy(individual, path) - score) < 0.001
+    assert abs(energy(individual, path) - score) < 0.001
+
+
+@pytest.mark.parametrize("path, score, selection", [
+    ('5dfr_minimized.pdb', 10701.1228976, 'name CA')
+])
+def test_constraints(individual, path, score, selection):
+    obj = energy_obj(individual, path, frozen_atoms=selection, minimize=True,
+        minimization_tolerance=10, minimization_iterations=10)
+    with expressed(individual):
+        m = individual.genes['Molecule']
+        ca = evalSpec('@CA', models=[m.compound.mol]).atoms()
+        orig_xyz = np.array([a.coord().data() for a in ca])
+        assert obj.evaluate(individual) < score
+        positions = np.array(obj._state.getPositions().value_in_unit(unit.angstrom))
+        assert np.isclose(orig_xyz, positions[obj._subset()]).all()
 
 
 @pytest.mark.parametrize("path", [
@@ -68,4 +90,3 @@ def test_energy(individual, path, score):
 ])
 def test_benchmark_energy(benchmark, individual, path):
     benchmark(energy, individual, path)
-
