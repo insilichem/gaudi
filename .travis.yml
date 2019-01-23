@@ -145,13 +145,14 @@ install:
 - pip install -U pytest pytest-benchmark
 - pip uninstall -y pychimera || true
 - conda install pychimera --no-deps
-- if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
-    conda install -q nwchem;
-    cp $HOME/miniconda/etc/default.nwchemrc $HOME/.nwchemrc || true;
-  fi
-# Show currently installed packages
+# Disable until nwchem package is fixed in anaconda.org/insilichem
+# - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
+#     conda install -q nwchem;
+#     cp $HOME/miniconda/etc/default.nwchemrc $HOME/.nwchemrc || true;
+#   fi
 # PCRE creates some problems in Travis build env
 - conda remove --force pcre || true
+# Show currently installed packages
 - conda list
 - env
 
