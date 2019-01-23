@@ -81,13 +81,15 @@ before_install:
       _hash="ead53d8e3746d46176a1570835a03b1c";
       _filepath="linux_x86_64_osmesa/${_file}";
       _downloader="https://www.cgl.ucsf.edu/chimera/cgi-bin/secure/chimera-get.py";
+      _agent="Mozilla/5.0 (X11; Linux x86_64; rv:64.0) Gecko/20100101 Firefox/64.0";
       n=0;
-      until [ $n -ge 5 ]; do
-        _download=$(command curl -F file=${_filepath} -F choice=Accept "${_downloader}" | grep href | sed -E 's/.*href="(.*)">/\1/');
+      until [ $n -ge 10 ]; do
+        _download=$(command curl -A "${_agent}" -F file=${_filepath} -F choice=Accept "${_downloader}" | grep href | sed -E 's/.*href="(.*)">/\1/');
         sleep 3;
-        command curl "https://www.cgl.ucsf.edu${_download}" -o "${_file}";
+        command curl -A "${_agent}" "https://www.cgl.ucsf.edu${_download}" -o "${_file}";
         echo "${_hash} ${_file}" | md5sum -c --strict --quiet && break;
         n=$[$n+1];
+        sleep 3;
       done;
       echo "${_hash} ${_file}" | md5sum -c --strict --quiet;
       chmod +x "${_file}";
@@ -112,14 +114,17 @@ before_install:
         _hash="62251f8677846e367de3cab4b5b1e8af";
         _filepath="mac64/${_file}";
         _downloader="https://www.cgl.ucsf.edu/chimera/cgi-bin/secure/chimera-get.py";
+        _agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.90 Safari/537.36";
         n=0;
-        until [ $n -ge 5 ]; do
-          _download=$(command curl -F file=${_filepath} -F choice=Accept "${_downloader}" | grep href | sed -E 's/.*href="(.*)">/\1/');
+        until [ $n -ge 10 ]; do
+          _download=$(command curl -A "${_agent}" -F file=${_filepath} -F choice=Accept "${_downloader}" | grep href | sed -E 's/.*href="(.*)">/\1/');
           sleep 3;
-          command curl "https://www.cgl.ucsf.edu${_download}" -o "${_file}";
+          command curl -A "${_agent}" "https://www.cgl.ucsf.edu${_download}" -o "${_file}";
           echo "${_hash} ${_file}" | md5sum -c --strict --quiet && break;
           n=$[$n+1];
+          sleep 3;
         done;
+        echo "${_hash} ${_file}" | md5sum -c --strict --quiet;
         hdiutil convert "${_file}" -format UDRW -o chimerarw;
         hdiutil attach -mountpoint "$HOME/chimera" chimerarw.dmg;
         rm -rf $HOME/chimera/Chimera.app/Contents/Resources/lib/python2.7/site-packages/{AutoDockTools,MolKit,PyBabel,mglutil,mmLib,mslib};
@@ -127,7 +132,7 @@ before_install:
     fi;
     export CHIMERADIR="$HOME/chimera/Chimera.app/Contents/Resources";
   fi
-- env
+- env | sort
 
 install:
 - export LC_ALL=en_US.UTF8
