@@ -4,17 +4,17 @@
 ##############
 # GaudiMM: Genetic Algorithms with Unrestricted
 # Descriptors for Intuitive Molecular Modeling
-# 
+#
 # https://github.com/insilichem/gaudi
 #
 # Copyright 2017 Jaime Rodriguez-Guerra, Jean-Didier Marechal
-# 
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-# 
+#
 #      http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -65,8 +65,8 @@ class NormalModes(GeneProvider):
 
     Parameters
     ----------
-    method : str
-        Either: 
+    method : str, optional, default=prody
+        Either:
         - prody : calculate normal modes using prody algorithms
         - gaussian : read normal modes from a gaussian output file
     target : str
@@ -74,13 +74,14 @@ class NormalModes(GeneProvider):
     modes : list, optional, default=range(12)
         Modes to be used to move the molecule
     group_by : str or callable, optional, default=None
-        group_by_*: algorithm name or callable
-        coarseGrain(prm) which makes ``mol.select().setBetas(i)``,
-        where ``i`` is the index Coarse Grain group,
-        and ``prm`` is ``prody.AtomGroup``
+        Available str names: residues, mass.
+        This is, consider only pseudoatoms that group a whole
+        residue, groups of contiguous atoms that amount for certain
+        mass, or only alpha carbons. If residues or mass, the ``group_lambda``
+        parameter can customize the behaviour.
     group_lambda : int, optional
         Either: number of residues per group (default=7), or
-        total mass per group (default=100)
+        number of groups with same mass (default=100).
     path : str
         Gaussian or prody modes output path. Required if ``method`` is
         ``gaussian``.
@@ -89,8 +90,9 @@ class NormalModes(GeneProvider):
     n_samples : int, optional, default=10000
         number of conformations to generate
     rmsd : float, optional, default=1.0
-        average RMSD that the conformations will have with respect 
-        to the initial conformation
+        RMSD (in angstrom) that the conformations will have with respect
+        to the initial conformation. In some cases, it can be slightly
+        higher than the requested threshold (e.g. 1.07A instead of 1A)
 
     Attributes
     ----------
@@ -109,20 +111,20 @@ class NormalModes(GeneProvider):
     """
 
     _validate = {
-        parse.Required('method'): parse.In(['prody', 'gaussian']),
+        'method': parse.In(['prody', 'gaussian']),
         'path': parse.RelPathToInputFile(),
         'write_modes': parse.Boolean,
         parse.Required('target'): parse.Molecule_name,
-        'group_by': parse.In(['residues', 'mass', 'calpha', '']),
+        'group_by': parse.In(['residues', 'mass', 'calpha', '', None]),
         'group_lambda': parse.All(parse.Coerce(int), parse.Range(min=1)),
         'modes': [parse.All(parse.Coerce(int), parse.Range(min=0))],
         'n_samples': parse.All(parse.Coerce(int), parse.Range(min=1)),
-        'rmsd': parse.All(parse.Coerce(float), parse.Range(min=0))
+        'rmsd': parse.All(parse.Coerce(float), parse.Range(min=0)),
+        'precision': parse.All(parse.Coerce(int), parse.Range(min=-10, max=10))
     }
 
     def __init__(self, method='prody', target=None, modes=None, n_samples=10000, rmsd=1.0,
-                 group_by=None, group_lambda=None,
-                 path=None, write_modes=False, **kwargs):
+                 group_by=None, group_lambda=None, path=None, write_modes=False, **kwargs):
         # Fire up!
         GeneProvider.__init__(self, **kwargs)
         self.method = method
@@ -191,7 +193,7 @@ class NormalModes(GeneProvider):
     def mate(self, mate):
         """
         .. todo::
-        
+
             Combine coords between two samples in NORMAL_MODES_SAMPLES?
             Or two samples between diferent NORMAL_MODES_SAMPLES?
             Or combine samples between two NORMAL_MODES_SAMPLES?
@@ -238,7 +240,8 @@ class NormalModes(GeneProvider):
         and calculate n_confs number of configurations using this modes
         """
         prody_molecule, chimera2prody = convert_chimera_molecule_to_prody(self.molecule)
-        modes = prody_modes(prody_molecule, self.max_modes, GROUPERS[self.group_by],
+        modes = prody_modes(prody_molecule, self.max_modes,
+                            GROUPERS.get(self.group_by, self.group_by),
                             **self.group_by_options)
         samples = prody.sampleModes(modes=modes[self.modes], atoms=prody_molecule,
                                     n_confs=self.n_samples, rmsd=self.rmsd)
@@ -290,18 +293,19 @@ def prody_modes(molecule, max_modes, algorithm=None, **options):
     modes : ProDy modes ANM or RTB
     """
     modes = None
-    if algorithm in ['residues', 'mass']:
+    if callable(algorithm):
         title = 'normal modes for {}'.format(molecule.getTitle())
         molecule = algorithm(molecule, **options)
         modes = prody.RTB(title)
         modes.buildHessian(molecule.getCoords(), molecule.getBetas())
         modes.calcModes(n_modes=max_modes)
-    elif algorithm == 'calpha':
-        calphas_modes = prody.ANM('normal modes for {}'.format(molecule.getTitle()))
-        calphas = molecule = molecule.select(algorithm)
-        calphas_modes.buildHessian(calphas)
-        calphas_modes.calcModes(n_modes=max_modes)
-        modes = prody.extendModel(calphas_modes, calphas, molecule, norm=True)[0]
+    # TODO: Fix error `number of atoms do not match` at first stage (*.sampleModes())
+    #  elif algorithm == 'calpha':
+    #     calphas_modes = prody.ANM('normal modes for {}'.format(molecule.getTitle()))
+    #     calphas = molecule = molecule.select(algorithm)
+    #     calphas_modes.buildHessian(calphas)
+    #     calphas_modes.calcModes(n_modes=max_modes)
+    #     modes = prody.extendModel(calphas_modes, calphas, molecule, norm=True)[0]
     else:
         modes = prody.ANM('normal modes for {}'.format(molecule.getTitle()))
         modes.buildHessian(molecule)
@@ -377,7 +381,8 @@ def convert_chimera_molecule_to_prody(molecule):
         prody_molecule.setMasses(masses)
         prody_molecule.setTitle(str(molecule.name))
         prody_molecule.setBonds([(chimera2prody[bond.atoms[0].serialNumber],
-                                  chimera2prody[bond.atoms[1].serialNumber]) for bond in molecule.bonds])
+                                  chimera2prody[bond.atoms[1].serialNumber])
+                                  for bond in molecule.bonds])
 
     except AttributeError:
         raise TypeError('Attribute not found. Molecule must be a chimera.Molecule')
@@ -510,6 +515,4 @@ def chimeracoords2numpy(molecule):
 GROUPERS = {
     'residues': group_by_residues,
     'mass': group_by_mass,
-    'calpha': 'calpha',
-    '': None
 }
