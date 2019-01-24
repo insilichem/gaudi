@@ -1,28 +1,38 @@
+# Until prody has a conda recipe, conda-build <= 3.16 is needed
+# Requires additional channels:
+#   conda build conda-recipe/ -c insilichem -c bioconda -c conda-forge -c salilab -c omnia -c defaults
+# Locally, add:
+#   -c $CONDA_PREFIX/conda-bld/
+
+{% set version = environ.get('GIT_DESCRIBE_TAG', 'v')[1:] %}
 package:
   name: gaudi
-  version: {{ environ.get('GIT_DESCRIBE_TAG', 'v')[1:] }}
+  version: {{ version }}
 
 about:
   home: https://github.com/insilichem/gaudi
-  license: Apache 2.0
+  license: Apache-2.0
   summary: Genetic Algorithms with Unrestricted Descriptors for Intuitive Molecular Modeling
 
 source:
-{% if environ.get('TRAVIS') %}
-  git_url: ../
-{% else %}
-  git_url: https://github.com/insilichem/gaudi.git
-{% endif %}
-  git_tag: {{ environ.get('GIT_DESCRIBE_TAG', '') }}
+  path: ../
+  version: {{ version }}
+
+
+build:
+  # Enable when prody becomes a conda package
+  # script: "{{ PYTHON }} -m pip install . --no-deps -vv"
+  number: 0
 
 requirements:
-  build:
+  host:
     - python 2.7*
     - setuptools
     - distribute
     - numpy
 
   run:
+    # Base dependencies
     - python 2.7*
     - setuptools
     - distribute
@@ -33,21 +43,23 @@ requirements:
     - boltons 17.2*
     - deap 1.2*
     - pyyaml
+    - pychimera >=0.2.6
+    # Objectives and genes
     - openmm
     - openmoltools
     - pdbfixer
     - cclib
     - scipy
-    - imp
+    - imp 2.9*
     - autodock-vina
     - autodocktools-prepare
-    # - drugscorex  # [linux]
+    - drugscorex  # [linux]
     # - nwchem  # [linux]
-
 
 test:
   imports:
     - gaudi
-
-
+  commands:
+    - gaudi -h
+    - gaudi run -h
 
