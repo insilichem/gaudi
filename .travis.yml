@@ -1,4 +1,5 @@
-# Derived from https://github.com/theochem/qcgrids/blob/master/.travis.yml
+# Derived from 
+https://github.com/theochem/qcgrids/blob/master/.travis.yml
 env:
   matrix:
   - MYCONDAPY=2.7
@@ -78,7 +79,7 @@ before_install:
 - conda config --add channels insilichem
 # Use my channel temporarily (testing)
 - conda config --add channels jaimergp
-- conda config --add channels $CONDA_PREFIX/conda-bld
+- conda config --add channels file://$CONDA_PREFIX/conda-bld
 
 - conda config --add channels defaults
 - conda install -q conda conda-build
