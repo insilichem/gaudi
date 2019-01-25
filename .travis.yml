@@ -1,5 +1,5 @@
-# Derived from 
-https://github.com/theochem/qcgrids/blob/master/.travis.yml
+# Derived from  
+# https://github.com/theochem/qcgrids/blob/master/.travis.yml
 env:
   matrix:
   - MYCONDAPY=2.7
