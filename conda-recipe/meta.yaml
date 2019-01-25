@@ -20,8 +20,7 @@ source:
 
 
 build:
-  # Enable when prody becomes a conda package
-  # script: "{{ PYTHON }} -m pip install . --no-deps -vv"
+  script: "{{ PYTHON }} -m pip install . --no-deps -vv"
   number: 0
 
 requirements:
@@ -51,8 +50,10 @@ requirements:
     - cclib
     - scipy
     - imp 2.9*
+    # InsiliChem channel
     - autodock-vina
     - autodocktools-prepare
+    - prody 1.8.2
     - drugscorex  # [linux]
     # - nwchem  # [linux]
 
