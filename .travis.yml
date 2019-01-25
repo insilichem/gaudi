@@ -76,8 +76,12 @@ before_install:
 - conda config --add channels salilab
 - conda config --add channels omnia
 - conda config --add channels insilichem
+# Use my channel temporarily (testing)
+- conda config --add channels jaimergp
+- conda config --add channels $CONDA_PREFIX/conda-bld
+
 - conda config --add channels defaults
-- conda install -q conda conda-build=3.16
+- conda install -q conda conda-build
 # Show conda info for debugging
 - conda info -a
 # Get Chimera
@@ -108,7 +112,7 @@ install:
 - env
 
 script:
-- cd tests && python run_test.py -v; cd ..
+- cd tests && python run_test.py -v --benchmark-disable; cd ..
 
 before_deploy:
 - conda install -q anaconda-client
