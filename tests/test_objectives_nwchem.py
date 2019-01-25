@@ -24,13 +24,14 @@
 
 import sys
 import pytest
+from distutils.spawn import find_executable
 from conftest import datapath, expressed
 from gaudi.genes.molecule import Molecule
 from gaudi.objectives.nwchem import NWChem
 
 
-@pytest.mark.skipif(sys.platform != 'linux2',
-                    reason='NWChem conda package only available in Linux')
+@pytest.mark.skipif(not find_executable('nwchem'),
+                    reason='NWChem installation not found')
 @pytest.mark.parametrize("ligand, energy", [
     ('butane.pdb', -156.87859414774),
 ])
