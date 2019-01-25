@@ -38,6 +38,19 @@ branches:
   - /^v[0-9]+\.[0-9]+(\.[0-9]+)?([abc][0-9]*)?$/  # release branches
 
 before_install:
+# Get Chimera
+- wget https://raw.githubusercontent.com/insilichem/pychimera/clean-recipe/scripts/install_chimera.sh
+- if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
+    if [[ ! -e $HOME/chimera/bin/chimera ]]; then
+      bash install_chimera.sh;
+    fi;
+    export CHIMERADIR="$HOME/chimera";
+  else
+    if [[ ! -e $HOME/chimera/Chimera.app/Contents/Resources/bin/chimera ]]; then
+      bash install_chimera.sh;
+    fi;
+    export CHIMERADIR="$HOME/chimera/Chimera.app/Contents/Resources";
+  fi
 # Get miniconda. Take the right version, so re-installing python is hopefully not needed.
 - if test -e $HOME/miniconda/bin; then
     echo "miniconda already installed.";
@@ -47,9 +60,9 @@ before_install:
     mkdir -p $HOME/download;
     if [[ -d $HOME/download/miniconda.sh ]]; then rm -rf $HOME/download/miniconda.sh; fi;
     if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
-      wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O $HOME/download/miniconda.sh;
+      wget https://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh -O $HOME/download/miniconda.sh;
     else
-      wget https://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -O $HOME/download/miniconda.sh;
+      wget https://repo.continuum.io/miniconda/Miniconda2-latest-MacOSX-x86_64.sh -O $HOME/download/miniconda.sh;
     fi;
     bash $HOME/download/miniconda.sh -b -p $HOME/miniconda;
   fi
@@ -68,105 +81,34 @@ before_install:
 # Show conda info for debugging
 - conda info -a
 # Get Chimera
-- if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
-    if [[ ! -e $HOME/chimera/bin/chimera ]]; then
-      set +x;
-      echo "IMPORTANT - By downloading you accept the UCSF Chimera Non-Commercial Software License Agreement!";
-      echo "IMPORTANT - The license agreement can be found at http://www.cgl.ucsf.edu/chimera/license.html";
-      echo "IMPORTANT - If you do not agree, please press Ctrl-C now.";
-      echo "IMPORTANT - Downloading in 10 seconds...'";
-      sleep 10;
-      set -x;
-      _file="chimera-1.13.1-linux_x86_64_osmesa.bin";
-      _hash="ead53d8e3746d46176a1570835a03b1c";
-      _filepath="linux_x86_64_osmesa/${_file}";
-      _downloader="https://www.cgl.ucsf.edu/chimera/cgi-bin/secure/chimera-get.py";
-      _agent="Mozilla/5.0 (X11; Linux x86_64; rv:64.0) Gecko/20100101 Firefox/64.0";
-      n=0;
-      until [ $n -ge 10 ]; do
-        _download=$(command curl -A "${_agent}" -F file=${_filepath} -F choice=Accept "${_downloader}" | grep href | sed -E 's/.*href="(.*)">/\1/');
-        sleep 3;
-        command curl -A "${_agent}" "https://www.cgl.ucsf.edu${_download}" -o "${_file}";
-        echo "${_hash} ${_file}" | md5sum -c --strict --quiet && break;
-        n=$[$n+1];
-        sleep 3;
-      done;
-      echo "${_hash} ${_file}" | md5sum -c --strict --quiet;
-      chmod +x "${_file}";
-      mkdir -p "$HOME/chimera";
-      echo "$HOME/chimera" | "./${_file}";
-      rm $HOME/miniconda/bin/chimera || true;
-      ln -s $HOME/chimera/bin/chimera $HOME/miniconda/bin/chimera || true;
-      rm -rf $HOME/chimera/lib/python2.7/site-packages/{AutoDockTools,MolKit,PyBabel,mglutil,mmLib,mslib};
-      rm -rf $HOME/chimera/lib/python2.7/site-packages/setuptools*;
-    fi;
-    export CHIMERADIR="$HOME/chimera";
-  else
-    if [[ ! -e $HOME/chimera/Chimera.app/Contents/Resources/bin/chimera ]]; then
-        set +x;
-        echo "IMPORTANT - By downloading you accept the UCSF Chimera Non-Commercial Software License Agreement!";
-        echo "IMPORTANT - The license agreement can be found at http://www.cgl.ucsf.edu/chimera/license.html";
-        echo "IMPORTANT - If you do not agree, please press Ctrl-C now.";
-        echo "IMPORTANT - Downloading in 10 seconds...'";
-        sleep 10;
-        set -x;
-        _file="chimera-1.13.1-mac64.dmg";
-        _hash="62251f8677846e367de3cab4b5b1e8af";
-        _filepath="mac64/${_file}";
-        _downloader="https://www.cgl.ucsf.edu/chimera/cgi-bin/secure/chimera-get.py";
-        _agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.90 Safari/537.36";
-        n=0;
-        until [ $n -ge 10 ]; do
-          _download=$(command curl -A "${_agent}" -F file=${_filepath} -F choice=Accept "${_downloader}" | grep href | sed -E 's/.*href="(.*)">/\1/');
-          sleep 3;
-          command curl -A "${_agent}" "https://www.cgl.ucsf.edu${_download}" -o "${_file}";
-          echo "${_hash} ${_file}" | md5sum -c --strict --quiet && break;
-          n=$[$n+1];
-          sleep 3;
-        done;
-        echo "${_hash} ${_file}" | md5sum -c --strict --quiet;
-        hdiutil convert "${_file}" -format UDRW -o chimerarw;
-        hdiutil attach -mountpoint "$HOME/chimera" chimerarw.dmg;
-        rm -rf $HOME/chimera/Chimera.app/Contents/Resources/lib/python2.7/site-packages/{AutoDockTools,MolKit,PyBabel,mglutil,mmLib,mslib};
-        rm -rf $HOME/chimera/Chimera.app/Contents/Resources/lib/python2.7/site-packages/setuptools*;
-    fi;
-    export CHIMERADIR="$HOME/chimera/Chimera.app/Contents/Resources";
-  fi
+
 # While we modernize pychimera, tangram and gaudi recipes, use pychimera PR#13 builds
 - git clone https://github.com/insilichem/pychimera;
   cd pychimera;
   git checkout clean-recipe;
-  conda build -q --python=2.7 conda-recipes/pychimera;
+  conda build -q --python=2.7 conda-recipes/pychimera --no-test;
   cd ..;
 - env
 
 install:
 - export LC_ALL=en_US.UTF8
-# Dependencies
-- conda build -q --python=2.7 conda-recipe
+# Build gaudi package
+- conda build -q --python=2.7 conda-recipe --no-test
 # Create specific Python 2 env
 - conda env remove -n gaudi || true
-- conda create -n gaudi --use-local python=2.7 gaudi
+- conda create -n gaudi --use-local python=2.7 gaudi pytest pytest-benchmark
 - conda activate gaudi
-- pip install -U pytest pytest-benchmark
-- pip uninstall -y pychimera || true
-- conda install pychimera --no-deps
 # Disable until nwchem package is fixed in anaconda.org/insilichem
 # - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
 #     conda install -q nwchem;
 #     cp $HOME/miniconda/etc/default.nwchemrc $HOME/.nwchemrc || true;
 #   fi
-# PCRE creates some problems in Travis build env
-- conda remove --force pcre || true
 # Show currently installed packages
 - conda list
 - env
 
 script:
-- conda activate gaudi
-- cd tests
-- python run_test.py
-- cd ..
+- cd tests && python run_test.py -v; cd ..
 
 before_deploy:
 - conda install -q anaconda-client
