@@ -12,7 +12,6 @@ language: generic
 os:
 - linux
 - osx
-osx_image: xcode6.4
 dist: trusty
 sudo: false
 
@@ -27,6 +26,7 @@ cache:
   - $HOME/chimera
 
 before_cache:
+- conda deactivate || true
 - conda env remove -n gaudi
 - if [[ ! $TRAVIS_TAG ]]; then rm -rf $HOME/miniconda/conda-bld; fi
 - rm -rf $HOME/pychimera $HOME/miniconda/locks $HOME/miniconda/pkgs $HOME/miniconda/var $HOME/miniconda/conda-meta/history
@@ -127,6 +127,11 @@ before_install:
     fi;
     export CHIMERADIR="$HOME/chimera/Chimera.app/Contents/Resources";
   fi
+# While we modernize pychimera, tangram and gaudi recipes, use pychimera PR#13 builds
+- git clone https://github.com/insilichem/pychimera;
+  cd pychimera;
+  git checkout clean-recipe;
+  conda build -q --python=2.7 conda-recipes/pychimera;
 - env
 
 install:
