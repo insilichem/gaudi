@@ -1,5 +1,5 @@
-# Derived from 
-https://github.com/theochem/qcgrids/blob/master/.travis.yml
+# Derived from  
+# https://github.com/theochem/qcgrids/blob/master/.travis.yml
 env:
   matrix:
   - MYCONDAPY=2.7
@@ -77,17 +77,15 @@ before_install:
 - conda config --add channels salilab
 - conda config --add channels omnia
 - conda config --add channels insilichem
-# Use my channel temporarily (testing)
+# TODO: Use my channel temporarily (testing)
 - conda config --add channels jaimergp
-- conda config --add channels file://$CONDA_PREFIX/conda-bld
-
 - conda config --add channels defaults
 - conda install -q conda conda-build
 # Show conda info for debugging
 - conda info -a
 # Get Chimera
 
-# While we modernize pychimera, tangram and gaudi recipes, use pychimera PR#13 builds
+# TODO: While we modernize pychimera, tangram and gaudi recipes, use pychimera PR#13 builds
 - git clone https://github.com/insilichem/pychimera;
   cd pychimera;
   git checkout clean-recipe;
@@ -98,12 +96,12 @@ before_install:
 install:
 - export LC_ALL=en_US.UTF8
 # Build gaudi package
-- conda build -q --python=2.7 conda-recipe --no-test
+- conda build -q --python=2.7 conda-recipe --no-test -c "$HOME/miniconda/conda-bld" 
 # Create specific Python 2 env
 - conda env remove -n gaudi || true
 - conda create -n gaudi --use-local python=2.7 gaudi pytest pytest-benchmark
 - conda activate gaudi
-# Disable until nwchem package is fixed in anaconda.org/insilichem
+# TODO: Disable until nwchem package is fixed in anaconda.org/insilichem
 # - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
 #     conda install -q nwchem;
 #     cp $HOME/miniconda/etc/default.nwchemrc $HOME/.nwchemrc || true;
