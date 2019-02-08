@@ -24,22 +24,22 @@ build:
 
 requirements:
   host:
-    - python 2.7*
+    - python 2.7.*
     - setuptools
     - distribute
     - numpy
 
   run:
     # Base dependencies
-    - python 2.7*
+    - python 2.7.*
     - setuptools
     - distribute
     - nomkl
-    - munch 2.2*
-    - voluptuous 0.10*
-    - click 6.7*
-    - boltons 17.2*
-    - deap 1.2*
+    - munch 2.2.*
+    - voluptuous 0.10.*
+    - click 6.7.*
+    - boltons 17.2.*
+    - deap 1.2.*
     - pyyaml
     - pychimera >=0.2.6
     # Objectives and genes
@@ -48,7 +48,7 @@ requirements:
     - pdbfixer
     - cclib
     - scipy
-    - imp 2.9*
+    - imp 2.9.*
     # InsiliChem channel
     - autodock-vina
     - autodocktools-prepare
