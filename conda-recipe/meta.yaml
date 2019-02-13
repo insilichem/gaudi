@@ -21,15 +21,10 @@ build:
 requirements:
   host:
     - python 2.7.*
-    - setuptools
-    - distribute
-    - numpy
 
   run:
     # Base dependencies
     - python 2.7.*
-    - setuptools
-    - distribute
     - nomkl
     - munch 2.2.*
     - voluptuous 0.10.*
@@ -49,7 +44,7 @@ requirements:
     # InsiliChem channel
     - autodocktools-prepare
     - prody 1.8.*
-    - drugscorex  # [linux]
+    - drugscorex
     # - nwchem  # [linux]
 
 test:
