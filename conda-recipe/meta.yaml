@@ -1,53 +1,62 @@
+# Requires additional channels:
+#   conda build --python=2.7 -c insilichem -c bioconda -c conda-forge -c salilab -c omnia -c "$CONDA_PREFIX/conda-bld/" .
+
 package:
   name: gaudi
   version: {{ environ.get('GIT_DESCRIBE_TAG', 'v')[1:] }}
 
 about:
   home: https://github.com/insilichem/gaudi
-  license: Apache 2.0
+  license: Apache
+  license_file: LICENSE
   summary: Genetic Algorithms with Unrestricted Descriptors for Intuitive Molecular Modeling
 
 source:
-{% if environ.get('TRAVIS') %}
-  git_url: ../
-{% else %}
-  git_url: https://github.com/insilichem/gaudi.git
-{% endif %}
-  git_tag: {{ environ.get('GIT_DESCRIBE_TAG', '') }}
+  path: ../
+
+build:
+  script: "{{ PYTHON }} -m pip install . --no-deps -vv"
+  number: 0
 
 requirements:
-  build:
-    - python 2.7*
-    - setuptools
-    - distribute
-    - numpy
+  host:
+    - python 2.7.*
 
   run:
-    - python 2.7*
-    - setuptools
-    - distribute
+    # Base dependencies
+    - python 2.7.*
     - nomkl
-    - munch 2.2*
-    - voluptuous 0.10*
-    - click 6.7*
-    - boltons 17.2*
-    - deap 1.2*
+    - munch 2.2.*
+    - voluptuous 0.10.*
+    - click 6.7.*
+    - boltons 17.2.*
+    - deap 1.2.*
     - pyyaml
+    - pychimera >=0.2.6
+    # Objectives and genes
     - openmm
     - openmoltools
     - pdbfixer
     - cclib
     - scipy
-    - imp
+    - imp 2.9.*
     - autodock-vina
+    # InsiliChem channel
     - autodocktools-prepare
-    # - drugscorex  # [linux]
+    - prody 1.8.*
+    - drugscorex # [linux]
     # - nwchem  # [linux]
-
 
 test:
   imports:
     - gaudi
-
-
+  commands:
+    - gaudi -h
+    - gaudi run -h
+    - cd tests && python run_test.py -v --benchmark-disable; cd ..
+  source_files:
+    - tests
+  requires:
+    - pytest 4.0.*
+    - pytest-benchmark
 
