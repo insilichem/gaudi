@@ -22,9 +22,9 @@ cache:
 
 before_cache:
 - conda deactivate || true
-- conda env remove -n gaudi
-- if [[ ! $TRAVIS_TAG ]]; then rm -rf $HOME/miniconda/conda-bld; fi
-- rm -rf $HOME/pychimera $HOME/miniconda/locks $HOME/miniconda/pkgs $HOME/miniconda/var $HOME/miniconda/conda-meta/history
+- conda env remove -n gaudi || true
+- if [[ ! $TRAVIS_TAG ]]; then rm -rf $HOME/miniconda/conda-bld/*; fi
+- rm -rf $HOME/miniconda/locks $HOME/miniconda/pkgs $HOME/miniconda/var $HOME/miniconda/conda-meta/history
 - rm $HOME/.nwchemrc || true
 
 branches:
@@ -34,7 +34,7 @@ branches:
 
 before_install:
 # Get Chimera
-- wget https://raw.githubusercontent.com/insilichem/pychimera/clean-recipe/scripts/install_chimera.sh
+- wget https://raw.githubusercontent.com/insilichem/pychimera/master/scripts/install_chimera.sh
 - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
     if [[ ! -e $HOME/chimera/bin/chimera ]]; then
       bash install_chimera.sh;
@@ -61,6 +61,7 @@ before_install:
     fi;
     bash $HOME/download/miniconda.sh -b -p $HOME/miniconda;
   fi
+install:
 # Configure conda and get a few essentials
 - source $HOME/miniconda/etc/profile.d/conda.sh
 - conda activate
@@ -71,41 +72,14 @@ before_install:
 - conda config --add channels salilab
 - conda config --add channels omnia
 - conda config --add channels insilichem
-# TODO: Use my channel temporarily (testing)
-- conda config --add channels jaimergp
 - conda config --add channels defaults
 - conda install -q conda conda-build
 # Show conda info for debugging
 - conda info -a
-# Get Chimera
-
-# TODO: While we modernize pychimera, tangram and gaudi recipes, use pychimera PR#13 builds
-- git clone https://github.com/insilichem/pychimera;
-  cd pychimera;
-  git checkout clean-recipe;
-  conda build -q --python=2.7 conda-recipe --no-test;
-  cd ..;
-- env
-
-install:
-- export LC_ALL=en_US.UTF8
-# Build gaudi package
-- conda build -q --python=2.7 conda-recipe --no-test -c "$HOME/miniconda/conda-bld"
-# Create specific Python 2 env
-- conda env remove -n gaudi || true
-- conda create -n gaudi --use-local python=2.7 gaudi pytest pytest-benchmark
-- conda activate gaudi
-# TODO: Disable until nwchem package is fixed in anaconda.org/insilichem
-# - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
-#     conda install -q nwchem;
-#     cp $HOME/miniconda/etc/default.nwchemrc $HOME/.nwchemrc || true;
-#   fi
-# Show currently installed packages
-- conda list
-- env
+- env | sort
 
 script:
-- cd tests && python run_test.py -v --benchmark-disable; cd ..
+- conda build conda-recipe -c local
 
 before_deploy:
 - conda install -q anaconda-client

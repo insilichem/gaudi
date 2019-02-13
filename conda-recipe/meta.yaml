@@ -1,11 +1,9 @@
-# Until prody has a conda recipe, conda-build <= 3.16 is needed
 # Requires additional channels:
 #   conda build --python=2.7 -c insilichem -c bioconda -c conda-forge -c salilab -c omnia -c "$CONDA_PREFIX/conda-bld/" .
 
-{% set version = environ.get('GIT_DESCRIBE_TAG', 'v')[1:] %}
 package:
   name: gaudi
-  version: {{ version }}
+  version: {{ environ.get('GIT_DESCRIBE_TAG', 'v')[1:] }}
 
 about:
   home: https://github.com/insilichem/gaudi
@@ -15,8 +13,6 @@ about:
 
 source:
   path: ../
-  version: {{ version }}
-
 
 build:
   script: "{{ PYTHON }} -m pip install . --no-deps -vv"
@@ -49,8 +45,8 @@ requirements:
     - cclib
     - scipy
     - imp 2.9.*
-    # InsiliChem channel
     - autodock-vina
+    # InsiliChem channel
     - autodocktools-prepare
     - prody 1.8.*
     - drugscorex  # [linux]
@@ -62,7 +58,7 @@ test:
   commands:
     - gaudi -h
     - gaudi run -h
-    - cd tests && python run_test.py --benchmark-disable; cd ..
+    - cd tests && python run_test.py -v --benchmark-disable; cd ..
   source_files:
     - tests
   requires:
