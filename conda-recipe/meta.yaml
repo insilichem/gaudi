@@ -44,7 +44,7 @@ requirements:
     # InsiliChem channel
     - autodocktools-prepare
     - prody 1.8.*
-    - drugscorex
+    - drugscorex # [linux]
     # - nwchem  # [linux]
 
 test:
