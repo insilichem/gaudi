@@ -66,6 +66,11 @@ install:
 - conda config --add channels insilichem
 - conda config --add channels defaults
 - conda install -q conda conda-build
+# ProDy needs an updated NumPy
+- if [ "${TRAVIS_OS_NAME}" = "osx" ]; then
+    pip install -U numpy==1.11 -t $HOME/chimera/Chimera.app/Contents/Resources/lib/python2.7/site-packages;
+  fi;
+
 # Show conda info for debugging
 - conda info -a
 - env | sort
