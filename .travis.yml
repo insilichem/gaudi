@@ -35,6 +35,8 @@ before_install:
   else
     if [[ ! -e $HOME/chimera/Chimera.app/Contents/Resources/bin/chimera ]]; then
       bash install_chimera.sh;
+      rm -rf $HOME/chimera/Chimera.app/Contents/Resources/lib/python2.7/site-packages/{AutoDockTools,MolKit,PyBabel,mglutil,mmLib,mslib};
+      rm -rf $HOME/chimera/Chimera.app/Contents/Resources/lib/python2.7/site-packages/setuptools*;
     fi;
     export CHIMERADIR="$HOME/chimera/Chimera.app/Contents/Resources";
   fi
