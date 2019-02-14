@@ -195,10 +195,23 @@ class Contacts(ObjectiveProvider):
 
     def _surrounding_atoms(self, ind):
         """
-        Get atoms in the search zone, based on the molecule and the radius
+        Get atoms in the search zone, based on the molecule, (possible) rotamer
+        genes and the radius
         """
         self.zone.clear()
+        #Add all atoms of probes molecules
         self.zone.add([a for m in self.probes(ind) for a in m.atoms])
+
+        #Add beta carbons of rotamers to find clashes in its surroundings
+        rotamer_genes = [name for name, g in ind.genes.items() \
+                        if g.__class__.__name__ == 'Rotamers']
+        beta_carbons = []
+        for n in rotamer_genes:
+            for ((molname, pos), residue) in ind.genes[n].residues.items():
+                beta_carbons.extend([a for a in residue.atoms if a.name == 'CB'])
+        self.zone.add(beta_carbons)
+
+        #Surrounding zone from probes+rotamers atoms
         self.zone.merge(chimera.selection.REPLACE,
                         chimera.specifier.zone(self.zone, 'atom', None,
                                                self.radius, self.molecules(ind)))
