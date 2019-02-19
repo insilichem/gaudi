@@ -203,7 +203,7 @@ class Contacts(ObjectiveProvider):
         self.zone.add([a for m in self.probes(ind) for a in m.atoms])
 
         #Add beta carbons of rotamers to find clashes in its surroundings
-        rotamer_genes = [name for name, g in ind.genes.items() \
+        rotamer_genes = [name for name, g in ind.genes.items() 
                         if g.__class__.__name__ == 'Rotamers']
         beta_carbons = []
         for n in rotamer_genes:
