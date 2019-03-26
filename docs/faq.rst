@@ -19,9 +19,14 @@
 
 .. _faq:
 
-================================
-Frequently Asked Questions (FAQ)
-================================
+==================
+FAQ & Known issues
+==================
+
+Known issues
+============
+
+Most problems we have faced have to do with the installation and Chimera-Conda incompatibilities. Those are covered in the `pychimera documentation <https://pychimera.readthedocs.io/en/latest/faq.html>`_, so please check that list before raising an issue in this repository!
 
 How can I cite GaudiMM? What licenses apply?
 ============================================
