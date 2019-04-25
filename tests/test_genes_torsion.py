@@ -63,6 +63,27 @@ def test_backbone_torsion(individual, path, angle, distance):
         assert abs(Distance._distance(atom1, point) - distance) < 0.0001
 
 
+@pytest.mark.parametrize("path, selection, n_bonds", [
+    ('1amb.pdb', '', 82), # n_bonds = 3 * CA - number of gly
+    ('1amb.pdb', '@CB,CA', 56), # remove CA-CB bonds
+    ('1amb.pdb', '@CB,CA|:0-14', 28), # remove half the protein
+])
+def test_torsion_backbone_selection(individual, path, selection, n_bonds):
+    """ Use `non_rotatable_selection` to discard useless rotations in
+        side chains. By selecting '@CB,CA' the bond between them is
+        considered and discarded from the set of bonds that contains
+        atoms named CA. As a result we only rotate phi and psi angles.
+    """
+    torsion = torsions(individual, path, 90.0,
+                rotatable_atom_types=(),
+                rotatable_elements=(),
+                rotatable_atom_names=('CA',),
+                non_rotatable_selection=selection)
+    with expressed(individual):
+        assert all('CA' in [a.name for a in br.bond.atoms] for br in torsion.rotatable_bonds)
+        assert len(torsion.rotatable_bonds) == n_bonds
+
+
 @pytest.mark.parametrize("path, angle", [
     ('3pk2_ligand.pdb', 90.0),
 ])
