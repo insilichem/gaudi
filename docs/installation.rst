@@ -46,6 +46,12 @@ Quick steps:
 
 ::
 
+  conda activate insilichem
+
+or
+
+::
+
   source activate insilichem
 
 5 - Run it!
