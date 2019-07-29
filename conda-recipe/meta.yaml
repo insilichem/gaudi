@@ -1,5 +1,5 @@
 # Requires additional channels:
-#   conda build --python=2.7 -c omnia -c salilab -c insilichem -c conda-forge -c anaconda -c bioconda .
+#   conda build --python=2.7 -c omnia -c salilab -c insilichem -c conda-forge -c bioconda .
 
 package:
   name: gaudi
@@ -39,7 +39,7 @@ requirements:
     - pdbfixer
     - cclib
     - scipy
-    - imp 2.9.*
+    - imp 2.11.*
     - autodock-vina
     # InsiliChem channel
     - autodocktools-prepare
