@@ -39,7 +39,7 @@ Quick steps:
 
 ::
 
-  conda create -n gaudi_test -c omnia -c salilab -c insilichem -c anaconda gaudi
+  conda create -n insilichem -c omnia -c salilab -c insilichem -c anaconda gaudi
 
 
 4 - Activate the new environment as proposed:
