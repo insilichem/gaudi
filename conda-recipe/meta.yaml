@@ -1,5 +1,5 @@
 # Requires additional channels:
-#   conda build --python=2.7 -c insilichem -c bioconda -c conda-forge -c salilab -c omnia -c "$CONDA_PREFIX/conda-bld/" .
+#   conda build --python=2.7 -c omnia -c salilab -c insilichem -c anaconda -c bioconda .
 
 package:
   name: gaudi
