@@ -61,7 +61,7 @@ install:
 - conda activate
 - conda config --set always_yes yes
 - conda config --remove-key channels || true
-- conda config --add channels anaconda
+- conda config --add channels conda-forge
 - conda config --add channels bioconda
 - conda config --add channels salilab
 - conda config --add channels omnia
