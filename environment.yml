@@ -4,6 +4,7 @@ channels:
 - omnia
 - salilab
 - bioconda
+- conda-forge
 dependencies:
 - python=2.7
 - nomkl

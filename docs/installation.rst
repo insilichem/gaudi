@@ -39,10 +39,16 @@ Quick steps:
 
 ::
 
-  conda create -n insilichem -c omnia -c salilab -c insilichem -c bioconda gaudi
+  conda create -n insilichem -c omnia -c salilab -c insilichem -c conda-forge -c bioconda gaudi
 
 
 4 - Activate the new environment as proposed:
+
+::
+
+  conda activate insilichem
+
+or
 
 ::
 
