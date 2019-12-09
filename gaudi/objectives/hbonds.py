@@ -69,6 +69,8 @@ class Hbonds(ObjectiveProvider):
         Allowed deviation from ideal distance to consider a valid H bond.
     angle_tolerance : float, optional
         Allowed deviation from ideal angle to consider a valid H bond.
+    only_intermolecular : boolean, optional
+        Only intermolecular interactions are considered (defaults to True)
     
     Returns
     -------
@@ -80,15 +82,17 @@ class Hbonds(ObjectiveProvider):
         parse.Required('probes'): [parse.Molecule_name],
         'radius': parse.All(parse.Coerce(float), parse.Range(min=0)),
         'distance_tolerance': float,
-        'angle_tolerance': float
+        'angle_tolerance': float,
+        'only_intermolecular': bool
         }
     def __init__(self, probes=None, radius=5.0, distance_tolerance=0.4, angle_tolerance=20.0,
-                 *args, **kwargs):
+                 only_intermolecular=True, *args, **kwargs):
         ObjectiveProvider.__init__(self, **kwargs)
         self._probes = probes
         self.distance_tolerance = distance_tolerance
         self.angle_tolerance = angle_tolerance
         self.radius = radius
+        self.intramodel = False if only_intermolecular else True
 
     def molecules(self, ind):
         return [m.compound.mol for m in ind._molecules.values()]
@@ -108,7 +112,8 @@ class Hbonds(ObjectiveProvider):
         hbonds = findHBonds(molecules, cacheDA=self._cache,
                                       donors=test_atoms, acceptors=test_atoms,
                                       distSlop=self.distance_tolerance,
-                                      angleSlop=self.angle_tolerance)
+                                      angleSlop=self.angle_tolerance,
+                                      intermodel=True, intramodel=self.intramodel)
         hbonds = filterHBondsBySel(hbonds, probe_atoms, 'any')
 
         return len(hbonds)
