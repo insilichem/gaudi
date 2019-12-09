@@ -36,7 +36,7 @@ jobs:
       run: |
         wget https://raw.githubusercontent.com/insilichem/pychimera/master/scripts/install_chimera.sh
 
-        if [[ ${CI_OS} == linux-* ]]; then
+        if [[ ${CI_OS} == ubuntu-* ]]; then
           if [[ ! -e $HOME/chimera/bin/chimera ]]; then
             bash install_chimera.sh
           fi
