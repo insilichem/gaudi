@@ -25,14 +25,11 @@
 """
 This objective provides a wrapper around Chimera's
 `DetectClash` that detects clashes and contacts.
-
 Clashes are understood as steric conflicts that increases the energy
 of the system. They are evaluated as the sum of volumetric overlapping
 of the Van der Waals' spheres of the implied atoms.
-
 Contacts are considered as stabilizing, and they are evaluated with a
 Lennard-Jones 12-6 like function.
-
 """
 
 # Python
@@ -57,7 +54,6 @@ class Contacts(ObjectiveProvider):
 
     """
     Contacts class
-
     Parameters
     ----------
     probes : str
@@ -80,7 +76,9 @@ class Contacts(ObjectiveProvider):
         Useful to filter bad solutions.
     bond_separation : int, optional
         Ignore clashes or contacts between atoms within n bonds.
-
+    only_internal : bool, optional
+    	If set to True, take into account only intramolecular 
+	interactions, defaults to False
     Returns
     -------
     float
@@ -97,12 +95,13 @@ class Contacts(ObjectiveProvider):
         'hydrophobic_elements': [basestring],
         'bond_separation': parse.All(parse.Coerce(int), parse.Range(min=2)),
         'same_residue': parse.Coerce(bool),
+        'only_internal': parse.Coerce(bool)
         }
     
     def __init__(self, probes=None, radius=5.0, which='hydrophobic',
                  clash_threshold=0.6, hydrophobic_threshold=-0.4, cutoff=0.0,
                  hydrophobic_elements=('C', 'S'), bond_separation=4, 
-                 same_residue=True, *args, **kwargs):
+                 same_residue=True, only_internal=False, *args, **kwargs):
         ObjectiveProvider.__init__(self, **kwargs)
         self.which = which
         self.radius = radius
@@ -113,6 +112,7 @@ class Contacts(ObjectiveProvider):
         self.bond_separation = bond_separation
         self.same_residue = same_residue
         self._probes = probes
+        self.only_internal = only_internal
         if which == 'hydrophobic':
             self.evaluate = self.evaluate_hydrophobic
             self.threshold = hydrophobic_threshold
@@ -148,14 +148,12 @@ class Contacts(ObjectiveProvider):
     def _analyze_interactions(self, clashes):
         """
         Interpret contacts provided by DetectClash.
-
         Parameters
         ----------
         clashes : dict of dict
             Output of DetectClash. It's a dict of atoms, whose values are dicts.
             These subdictionaries contain all the contacting atoms as keys, and
             the respective overlaping length as values.
-
         Returns
         -------
         positive : list of list
@@ -164,19 +162,15 @@ class Contacts(ObjectiveProvider):
         negative : list of list
             Each sublist depict an interaction, with four items: the two involved
             atoms, their distance, and their volumetric overlap.
-
         .. note ::
             First, collect atoms that can be involved in hydrophobic interactions.
             Namely, C and S.
-
             Then, iterate the contacting atoms, getting the distances. For each
             interaction, analyze the distance and, based on the threshold, determine
             if it's attractive or repulsive.
-
             Attractive interactions are weighted with a Lennard-Jones like function
             (``_lennard_jones``), while repulsive attractions are measured with
             the volumetric overlap of the involved atoms' Van der Waals spheres.
-
         """
         positive, negative = [], []
         for a1, clash in clashes.items():
@@ -195,33 +189,43 @@ class Contacts(ObjectiveProvider):
 
     def _surrounding_atoms(self, ind):
         """
-        Get atoms in the search zone, based on the molecule and the radius
+        Get atoms in the search zone, based on the molecule, (possible) rotamer
+        genes and the radius
         """
         self.zone.clear()
+        #Add all atoms of probes molecules
         self.zone.add([a for m in self.probes(ind) for a in m.atoms])
-        self.zone.merge(chimera.selection.REPLACE,
-                        chimera.specifier.zone(self.zone, 'atom', None,
-                                               self.radius, self.molecules(ind)))
+
+        if not self.only_internal:
+	        #Add beta carbons of rotamers to find clashes/contacts in its surroundings
+	        rotamer_genes = [name for name, g in ind.genes.items() 
+	                        if g.__class__.__name__ == 'Rotamers']
+	        beta_carbons = []
+	        for n in rotamer_genes:
+	            for ((molname, pos), residue) in ind.genes[n].residues.items():
+	                beta_carbons.extend([a for a in residue.atoms if a.name == 'CB'])
+	        self.zone.add(beta_carbons)
+
+	        #Surrounding zone from probes+rotamers atoms
+	        self.zone.merge(chimera.selection.REPLACE,
+	                        chimera.specifier.zone(self.zone, 'atom', None,
+	                                               self.radius, self.molecules(ind)))
         return self.zone.atoms()
 
     @staticmethod
     def _lennard_jones(a1, a2, overlap=None):
         """
         VERY rough approximation of a Lennard-Jones score (12-6).
-
         Parameters
         ----------
         a1, a2 : chimera.Atom
         overlap : float
             Overlapping radii of involved atoms, as provided
             by DetectClash.
-
         Notes
         -----
         The usual implementation of a LJ potential is:
-
             LJ = 4*epsilon*(0.25*((r0/r)**12) - 0.5*((r0/r)**6))
-
         Two approximations are done:
             - The atoms involves are considered equal, hence the
               distance at which the energy is minimum (r0) is just
@@ -240,7 +244,6 @@ class Contacts(ObjectiveProvider):
     def _vdw_vol_overlap(a1, a2, overlap=None):
         """
         Volumetric overlap of Van der Waals spheres of atoms.
-
         Parameters
         ----------
         a1, a2 : chimera.Atom
@@ -262,4 +265,4 @@ class Contacts(ObjectiveProvider):
             h_b = (a1.radius ** 2 - (d - a2.radius) ** 2) / (2 * d)
 
         return (PI / 3) * ((h_a ** 2) * (3 * a1.radius - h_a) + 
-                           (h_b ** 2) * (3 * a2.radius - h_b))
+                            (h_b ** 2) * (3 * a2.radius - h_b))
