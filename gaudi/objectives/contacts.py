@@ -77,8 +77,8 @@ class Contacts(ObjectiveProvider):
     bond_separation : int, optional
         Ignore clashes or contacts between atoms within n bonds.
     only_internal : bool, optional
-    	Used when calculating clashes, to take into account only 
-    	intramolecular interactions, defaults to False
+    	If set to True, take into account only intramolecular 
+	interactions, defaults to False
     Returns
     -------
     float
@@ -197,7 +197,7 @@ class Contacts(ObjectiveProvider):
         self.zone.add([a for m in self.probes(ind) for a in m.atoms])
 
         if not self.only_internal:
-	        #Add beta carbons of rotamers to find clashes in its surroundings
+	        #Add beta carbons of rotamers to find clashes/contacts in its surroundings
 	        rotamer_genes = [name for name, g in ind.genes.items() 
 	                        if g.__class__.__name__ == 'Rotamers']
 	        beta_carbons = []
@@ -232,8 +232,6 @@ class Contacts(ObjectiveProvider):
               the sum of their radii.
             - Epsilon is always 1.  
         """
-        print("1",a1.radius)
-        print("2",a2.radius)
         r0 = a1.radius + a2.radius
         if overlap is None:
             distance = a1.xformCoord().distance(a2.xformCoord())
@@ -254,17 +252,11 @@ class Contacts(ObjectiveProvider):
         .. note ::
             Adapted from Eran Eyal, Comput Chem 25: 712-724, 2004
         """
-        #a1.vdw = True
-        #a2.vdw = True
-        print("1",a1.radius,a1.vdw)
-        print("2",a2.radius,a2.vdw)
         PI = 3.14159265359
         if overlap is None:
             d = a1.xformCoord().distance(a2.xformCoord())
-            print('distance: ', d)
         else:
             d = a1.radius + a2.radius - overlap
-            print('overlap', a1.element, a1.radius, a2.element, a2.radius, overlap)
         if d == 0:
             return 1000
         h_a, h_b = 0, 0
