@@ -33,16 +33,14 @@ jobs:
     - name: Install UCSF Chimera
       shell: bash
       run: |
-        wget https://raw.githubusercontent.com/insilichem/pychimera/master/scripts/install_chimera.sh
-
         if [[ ${CI_OS} == ubuntu-* ]]; then
           if [[ ! -e $GITHUB_WORKSPACE/chimera/bin/chimera ]]; then
-            bash install_chimera.sh
+            bash resources/install_chimera.sh
           fi
           echo "::set-env name=CHIMERADIR::$GITHUB_WORKSPACE/chimera"
         else
           if [[ ! -e $GITHUB_WORKSPACE/chimera/Chimera.app/Contents/Resources/bin/chimera ]]; then
-            bash install_chimera.sh
+            bash resources/install_chimera.sh
             rm -rf $GITHUB_WORKSPACE/chimera/Chimera.app/Contents/Resources/lib/python2.7/site-packages/{AutoDockTools,MolKit,PyBabel,mglutil,mmLib,mslib}
             rm -rf $GITHUB_WORKSPACE/chimera/Chimera.app/Contents/Resources/lib/python2.7/site-packages/setuptools*
           fi
