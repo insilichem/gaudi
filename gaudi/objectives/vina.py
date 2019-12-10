@@ -64,6 +64,21 @@ class Vina(ObjectiveProvider):
     -------
     float
         Interaction energy in kcal/mol, as reported by AutoDock Vina --score-only.
+
+    Notes
+    -----
+    - AutoDock scripts ``prepare_ligand4.py`` and ``prepare_receptor4.py`` are
+    used to prepare the corresponding .pdqt files that will be used as input for 
+    AutoDock Vina scorer.
+    - No repairs nor cleanups will be performed on ligand/receptor molecules, so 
+    the user has to take into account that provided .mol2 or .pdb files have 
+    correct atom types and correct structure (including Hydrogen atoms that will 
+    be taken into account in the docking evaluation). Otherwise, AutoDock 
+    errors/warnings could appear (e.g. ``ValueError: Could not find atomic number 
+    for Lp Lp``)
+    - Gasteiger charges will be added during the preparation of the .pdbqt files.
+    - All torsions of the ligand will be marked as ``inactive`` for AutoDock, 
+    because torsion changes are part of GaudiMM genes.
     """
     _validate = {
         parse.Required('receptor'): parse.Molecule_name,
@@ -110,8 +125,10 @@ class Vina(ObjectiveProvider):
     def _prepare(self, molecule, which='receptor'):
         if which == 'receptor':
             preparer = AD4ReceptorPreparation
+            kwargs = {"repairs": '', "cleanup": ''}
         elif which == 'ligand':
             preparer = AD4LigandPreparation
+            kwargs = {"repairs": '', "cleanup": '', "inactivate_all_torsions": True}
         else:
             raise ValueError('which must be receptor or ligand')
         path = '{}_{}.pdb'.format(self.tmpfile, which)
@@ -121,7 +138,7 @@ class Vina(ObjectiveProvider):
             self._paths.append(path)
             mol = MolKit.Read(path)[0]
             mol.buildBondsByDistance()
-            RPO = preparer(mol, outputfilename=pathqt)
+            RPO = preparer(mol, outputfilename=pathqt, **kwargs)
             self._paths.append(pathqt)
         else:
             # update coordinates
