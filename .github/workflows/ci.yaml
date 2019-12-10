@@ -66,6 +66,8 @@ jobs:
       run: |
         . resources/initialize_conda.sh
         env | sort
+        ls -lh $CHIMERADIR/*
+        test -f $CHIMERADIR/bin/chimera
         sudo ${CONDA}/bin/conda build -c local --python=2.7 conda-recipe
     # - name: Deploy
     #   shell: bash
