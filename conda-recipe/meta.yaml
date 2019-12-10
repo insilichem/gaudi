@@ -58,6 +58,6 @@ test:
   source_files:
     - tests
   requires:
-    - pytest 4.0.*
+    - pytest
     - pytest-benchmark
 
