@@ -3,7 +3,7 @@ env:
   - MYCONDAPY=2.7
 
 # Do not use Travis Python to save some time.
-language: python
+language: generic
 os:
 - linux
 - osx
