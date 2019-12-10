@@ -36,17 +36,17 @@ jobs:
         wget https://raw.githubusercontent.com/insilichem/pychimera/master/scripts/install_chimera.sh
 
         if [[ ${CI_OS} == ubuntu-* ]]; then
-          if [[ ! -e $HOME/chimera/bin/chimera ]]; then
+          if [[ ! -e $GITHUB_WORKSPACE/chimera/bin/chimera ]]; then
             bash install_chimera.sh
           fi
-          echo "::set-env name=CHIMERADIR::$HOME/chimera"
+          echo "::set-env name=CHIMERADIR::$GITHUB_WORKSPACE/chimera"
         else
-          if [[ ! -e $HOME/chimera/Chimera.app/Contents/Resources/bin/chimera ]]; then
+          if [[ ! -e $GITHUB_WORKSPACE/chimera/Chimera.app/Contents/Resources/bin/chimera ]]; then
             bash install_chimera.sh
-            rm -rf $HOME/chimera/Chimera.app/Contents/Resources/lib/python2.7/site-packages/{AutoDockTools,MolKit,PyBabel,mglutil,mmLib,mslib}
-            rm -rf $HOME/chimera/Chimera.app/Contents/Resources/lib/python2.7/site-packages/setuptools*
+            rm -rf $GITHUB_WORKSPACE/chimera/Chimera.app/Contents/Resources/lib/python2.7/site-packages/{AutoDockTools,MolKit,PyBabel,mglutil,mmLib,mslib}
+            rm -rf $GITHUB_WORKSPACE/chimera/Chimera.app/Contents/Resources/lib/python2.7/site-packages/setuptools*
           fi
-          echo "::set-env name=CHIMERADIR::$HOME/chimera/Chimera.app/Contents/Resources"
+          echo "::set-env name=CHIMERADIR::$GITHUB_WORKSPACE/chimera/Chimera.app/Contents/Resources"
         fi
     - name: Configure conda
       shell: bash
