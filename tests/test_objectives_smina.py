@@ -30,7 +30,7 @@ from gaudi.genes.molecule import Molecule
 
 
 @pytest.mark.parametrize("protein, ligand, affinity", [
-    ('5er1_protein.mol2', '5er1_ligand.mol2', -11.8055),
+    ('5er1_protein.mol2', '5er1_ligand.mol2', -11.80593),
 ])
 def test_smina(individual, protein, ligand, affinity):
     individual.genes['Protein'] = Molecule(parent=individual, path=datapath(protein))
