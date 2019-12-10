@@ -62,7 +62,7 @@ jobs:
         conda config --add channels omnia
         conda config --add channels insilichem
         conda config --add channels defaults
-        conda install -q conda conda-build
+        sudo ${CONDA}/bin/conda install -q conda conda-build
     - name: Build package
       shell: bash
       run: |
