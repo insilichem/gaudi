@@ -67,12 +67,14 @@ jobs:
       shell: bash
       run: |
         . resources/initialize_conda.sh
+        env | sort
         sudo ${CONDA}/bin/conda build -c local --python=2.7 conda-recipe
     # - name: Deploy
     #   shell: bash
     #   run: |
-    #     conda install -q anaconda-client
-    #     anaconda -t {{ $secrets.ANACONDA_TOKEN }} upload -u insilichem $HOME/miniconda/conda-bld/**/gaudi-*.tar.bz2
+    #     . resources/initialize_conda.sh
+    #     sudo ${CONDA}/bin/conda install -q anaconda-client
+    #     anaconda -t {{ $secrets.ANACONDA_TOKEN }} upload -u insilichem ${CONDA}/conda-bld/**/gaudi-*.tar.bz2
     #   on:
     #     push:
     #       tags:
