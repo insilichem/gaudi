@@ -25,7 +25,7 @@ jobs:
     #   run: |
     #     . resources/initialize_conda.sh
     #     conda activate
-    #     pip install flake8
+    #     sudo ${CONDA}/bin/conda install flake8
     #     # stop the build if there are Python syntax errors or undefined names
     #     flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
     #     # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
@@ -67,7 +67,7 @@ jobs:
       shell: bash
       run: |
         . resources/initialize_conda.sh
-        conda build -c local --python=2.7 conda-recipe
+        sudo ${CONDA}/bin/conda build -c local --python=2.7 conda-recipe
     # - name: Deploy
     #   shell: bash
     #   run: |
