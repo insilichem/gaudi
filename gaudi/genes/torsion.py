@@ -33,15 +33,22 @@ objects, if they exhibit free bond rotations.
 # Python
 import random
 import logging
+import numpy as np
+import math
+
 # Chimera
 import chimera
+from Molecule import atom_positions
+
 # External dependencies
 from deap.tools import cxSimulatedBinaryBounded, mutPolynomialBounded
+
 # GAUDI
 from gaudi.genes import GeneProvider
 from gaudi import box, parse
 
 logger = logging.getLogger(__name__)
+
 
 def enable(**kwargs):
     kwargs = Torsion.validate(kwargs)
@@ -68,6 +75,12 @@ class Torsion(GeneProvider):
     rotatable_atom_names : list of str
         Which type of atom names (as in chimera.Atom.name) should rotate.
         Defaults to ().
+    rotatable_bonds : list of [SerialNumberAtom1, SerialNumberAtom2, SerialNumberAnchor]
+        Concrete bonds that are allowed to rotate. Atoms have to be
+        designated using their chimera serial number. IMPORTANT: if set,
+        these will be the ONLY bonds allowed to rotate, ignoring
+        other possible conditions (e.g. rotatable_atom_types, 
+        rotatable_atom_names...).
 
     Attributes
     ----------
@@ -86,24 +99,38 @@ class Torsion(GeneProvider):
     """
 
     _validate = {
-        parse.Required('target'): parse.Molecule_name,
-        'flexibility': parse.Degrees,
-        'max_bonds': parse.All(parse.Coerce(int), parse.Range(min=0)),
-        'anchor': parse.Named_spec("molecule", "atom"),
-        'rotatable_atom_types': [basestring],
-        'rotatable_atom_names': [basestring],
-        'rotatable_elements': [basestring],
-        'non_rotatable_bonds': [parse.All([parse.Named_spec("molecule", "atom")],
-                                          parse.Length(min=2, max=2))],
-        'precision': parse.All(parse.Coerce(int), parse.Range(min=-3, max=3))
-        }
+        parse.Required("target"): parse.Molecule_name,
+        "flexibility": parse.Degrees,
+        "max_bonds": parse.All(parse.Coerce(int), parse.Range(min=0)),
+        "anchor": parse.Named_spec("molecule", "atom"),
+        "rotatable_atom_types": [basestring],
+        "rotatable_atom_names": [basestring],
+        "rotatable_elements": [basestring],
+        "non_rotatable_bonds": [
+            parse.All(
+                [parse.Named_spec("molecule", "atom")], parse.Length(min=2, max=2)
+            )
+        ],
+        "rotatable_bonds": [parse.All([parse.Coerce(int)], parse.Length(min=3, max=3))],
+        "precision": parse.All(parse.Coerce(int), parse.Range(min=-3, max=3)),
+    }
 
     BONDS_ROTS = {}
 
-    def __init__(self, target=None, flexibility=360.0, max_bonds=None, anchor=None,
-                 rotatable_atom_types=('C3', 'N3', 'C2', 'N2', 'P'),
-                 rotatable_atom_names=(), rotatable_elements=(),
-                 non_rotatable_bonds=(), precision=1, **kwargs):
+    def __init__(
+        self,
+        target=None,
+        flexibility=360.0,
+        max_bonds=None,
+        anchor=None,
+        rotatable_atom_types=("C3", "N3", "C2", "N2", "P"),
+        rotatable_atom_names=(),
+        rotatable_elements=(),
+        non_rotatable_bonds=(),
+        rotatable_bonds=(),
+        precision=1,
+        **kwargs
+    ):
         GeneProvider.__init__(self, **kwargs)
         self._kwargs = kwargs
         self.target = target
@@ -113,6 +140,7 @@ class Torsion(GeneProvider):
         self.rotatable_atom_names = rotatable_atom_names
         self.rotatable_elements = rotatable_elements
         self.non_rotatable_bonds = non_rotatable_bonds
+        self.concrete_rotatable_bonds = rotatable_bonds
         self.precision = precision
         self._anchor = anchor
         self.allele = [self.random_angle() for i in xrange(50)]
@@ -128,7 +156,7 @@ class Torsion(GeneProvider):
         """
         for alpha, br in zip(self.allele, self.rotatable_bonds):
             try:
-                if all(a.idatmType in ('C2', 'N2') for a in br.bond.atoms):
+                if all(a.idatmType in ("C2", "N2") for a in br.bond.atoms):
                     alpha = 0 if alpha <= 0 else 180
                 br.adjustAngle(alpha - br.angle, br.rotanchor)
             # A null bondrot was returned -> non-rotatable bond
@@ -144,17 +172,27 @@ class Torsion(GeneProvider):
 
     def mate(self, mate):
         self_allele, mate_allele = cxSimulatedBinaryBounded(
-            self.allele, mate.allele, eta=self.cxeta,
-            low=-0.5 * self.flexibility, up=0.5 * self.flexibility)
+            self.allele,
+            mate.allele,
+            eta=self.cxeta,
+            low=-0.5 * self.flexibility,
+            up=0.5 * self.flexibility,
+        )
         self.allele[:] = [round(n, self.precision) for n in self_allele]
         mate.allele[:] = [round(n, self.precision) for n in mate_allele]
 
     def mutate(self, indpb):
-        allele, = mutPolynomialBounded(self.allele,
-                                       indpb=self.indpb, eta=self.mteta,
-                                       low=-0.5 * self.flexibility,
-                                       up=0.5 * self.flexibility)
-        self.allele[:] = [round(n, self.precision) for n in allele]
+        if random.random() < 0.5:
+            allele, = mutPolynomialBounded(
+                self.allele,
+                indpb=self.indpb,
+                eta=self.mteta,
+                low=-0.5 * self.flexibility,
+                up=0.5 * self.flexibility,
+            )
+            self.allele[:] = [round(n, self.precision) for n in allele]
+        else:
+            self.allele = [self.random_angle() for i in xrange(self.max_bonds)]
 
     def clear_cache(self):
         GeneProvider.clear_cache()
@@ -169,8 +207,10 @@ class Torsion(GeneProvider):
         """
         Returns a random angle within flexibility limits
         """
-        return round(random.uniform(-0.5 * self.flexibility, 0.5 * self.flexibility),
-                     self.precision)
+        return round(
+            random.uniform(-0.5 * self.flexibility, 0.5 * self.flexibility),
+            self.precision,
+        )
 
     @property
     def rotatable_bonds(self):
@@ -203,8 +243,9 @@ class Torsion(GeneProvider):
             return self.molecule._rotatable_bonds
 
     def _compute_rotatable_bonds(self):
-        bonds = sorted(self.molecule.bonds,
-                       key=lambda b: min(y.serialNumber for y in b.atoms))
+        bonds = sorted(
+            self.molecule.bonds, key=lambda b: min(y.serialNumber for y in b.atoms)
+        )
 
         non_rotatable_bonds = []
         for atom_a, atom_b in self.non_rotatable_bonds:
@@ -214,33 +255,56 @@ class Torsion(GeneProvider):
             if bond:
                 non_rotatable_bonds.append(bond)
             else:
-                logger.warning('Atoms {} and {} are not bonded!'.format(a, b))
+                logger.warning("Atoms {} and {} are not bonded!".format(a, b))
 
-        def conditions(*atoms):
-            for a in atoms:
-                # Must be satisfied by at least one atom
-                if a.numBonds == 1 or a.element.isMetal:
-                    return False
-            for a in atoms:
-                if a.name == 'DUM' or \
-                   a.idatmType in self.rotatable_atom_types or \
-                   a.name in self.rotatable_atom_names or \
-                   a.element.name in self.rotatable_elements:
-                    return True
-
-        for b in bonds:
-            if b in non_rotatable_bonds:
-                continue
-            if conditions(*b.atoms):
-                try:
-                    br = chimera.BondRot(b)
-                except (chimera.error, ValueError) as v:
-                    if "cycle" in str(v) or "already used" in str(v):
-                        continue  # discard bonds in cycles and used!
-                    raise
+        if self.concrete_rotatable_bonds:
+            rotatable_bonds = []
+            for atom_a, atom_b, anchor in self.concrete_rotatable_bonds:
+                a = self.parent.find_molecule(self.target).find_atom(atom_a)
+                b = self.parent.find_molecule(self.target).find_atom(atom_b)
+                an = self.parent.find_molecule(self.target).find_atom(anchor)
+                bond = a.findBond(b)
+                if bond:
+                    try:
+                        br = chimera.BondRot(bond)
+                    except (chimera.error, ValueError) as v:
+                        if "cycle" in str(v) or "already used" in str(v):
+                            continue  # discard bonds in cycles and used!
+                        raise
+                    else:
+                        br.rotanchor = an
+                        yield br
                 else:
-                    br.rotanchor = box.find_nearest(self.anchor, b.atoms)
-                    yield br
+                    logger.warning("Atoms {} and {} are not bonded!".format(a, b))
+        else:
+
+            def conditions(*atoms):
+                for a in atoms:
+                    # Must be satisfied by at least one atom
+                    if a.numBonds == 1 or a.element.isMetal:
+                        return False
+                for a in atoms:
+                    if (
+                        a.name == "DUM"
+                        or a.idatmType in self.rotatable_atom_types
+                        or a.name in self.rotatable_atom_names
+                        or a.element.name in self.rotatable_elements
+                    ):
+                        return True
+
+            for b in bonds:
+                if b in non_rotatable_bonds:
+                    continue
+                if conditions(*b.atoms):
+                    try:
+                        br = chimera.BondRot(b)
+                    except (chimera.error, ValueError) as v:
+                        if "cycle" in str(v) or "already used" in str(v):
+                            continue  # discard bonds in cycles and used!
+                        raise
+                    else:
+                        br.rotanchor = box.find_nearest(self.anchor, b.atoms)
+                        yield br
 
     @property
     def anchor(self):
@@ -249,7 +313,8 @@ class Torsion(GeneProvider):
         atom of the molecule.
 
         Usually, this is the target atom in the Search gene, but if we can't find it,
-        get the ``donor`` atom of the molecule.
+        get the nearest atom to the geometric center of the molecule, and if it's not
+        possible, the ``donor`` atom of the molecule.
         """
         try:
             return self.molecule._rotation_anchor
@@ -265,18 +330,34 @@ class Torsion(GeneProvider):
             else:
                 self.molecule._rotation_anchor = anchor
                 return anchor
-
         target_gene = self.parent.find_molecule(self.target)
         try:
-            search_gene = next(g for g in self.parent.genes.values()
-                               if g.__class__.__name__ == 'Search'
-                               and g.target == self.target)
-        except StopIteration:
+
+            if isinstance(self.target, str):
+                mol = target_gene.compound.mol
+                anchor = target_gene.find_atom(nearest_atom(mol, center(mol)))
+        except (StopIteration, AttributeError):
             anchor = target_gene.compound.donor
-        else:
-            try:
-                anchor = target_gene.find_atom(search_gene.anchor)
-            except (StopIteration, AttributeError):
-                anchor = target_gene.compound.donor
         self.molecule._rotation_anchor = anchor
         return anchor
+
+
+def center(mol):
+    coordinates = atom_positions(mol.atoms)
+    c = np.average(coordinates, axis=0)
+    return c
+
+
+def distance(a, b):
+    ax, ay, az = a
+    bx, by, bz = b
+    return math.sqrt(
+        (bx - ax) * (bx - ax) + (by - ay) * (by - ay) + (bz - az) * (bz - az)
+    )
+
+
+def nearest_atom(mol, position):
+    dist = {}
+    for atom in mol.atoms:
+        dist[atom.serialNumber] = distance(atom.coord().data(), position)
+    return min(dist, key=dist.get)
