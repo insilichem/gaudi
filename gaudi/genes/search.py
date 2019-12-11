@@ -39,20 +39,23 @@ can be used to implement docking experiments.
 import random
 import logging
 from numpy import around as numpy_around
+import math
+import numpy as np
+
 # Chimera
 import chimera
 from chimera import Xform as X
 import Matrix as M
 from FitMap.search import random_rotation
+from Molecule import atom_positions
+
 # GAUDI
 from gaudi.genes import GeneProvider
 from gaudi import parse
 
 
 ZERO = chimera.Point(0.0, 0.0, 0.0)
-IDENTITY = ((1.0, 0.0, 0.0, 0.0),
-            (0.0, 1.0, 0.0, 0.0),
-            (0.0, 0.0, 1.0, 0.0))
+IDENTITY = ((1.0, 0.0, 0.0, 0.0), (0.0, 1.0, 0.0, 0.0), (0.0, 0.0, 1.0, 0.0))
 logger = logging.getLogger(__name__)
 
 
@@ -66,11 +69,15 @@ class Search(GeneProvider):
     """
     Parameters
     ----------
-    target : namedtuple
-        The *anchor* atom of the molecule we want to move, with syntax
+    target : namedtuple or Name of gaudi.genes.molecule
+        Can be either:
+        - The *anchor* atom of the molecule we want to move, with syntax
         ``<molecule_name>/<index>``. For example, if we want to move Ligand
         using atom with serial number = 1 as pivot, we would specify
         ``Ligand/1``. It's parsed to the actual chimera.Atom later on.
+        - A name of gaudi.genes.molecule instance. In this case, the *anchor* 
+        atom for the movement of the molecule will be set to its nearest 
+        atom to the geometric center of the molecule.
     center : 3-item list or tuple of float, optional
         Coordinates to the center of the desired search sphere
     radius : float
@@ -130,16 +137,26 @@ class Search(GeneProvider):
     """
 
     _validate = {
-        parse.Required('target'): parse.Named_spec("molecule", "atom"),
-        'center': parse.Any(parse.Coordinates, parse.Named_spec("molecule", "atom")),
-        'radius': parse.Coerce(float),
-        'rotate': parse.Boolean,
-        'precision': parse.All(parse.Coerce(int), parse.Range(min=-3, max=6)),
-        'interpolation': parse.All(parse.Coerce(float), parse.Range(min=0, max=1.0))
-        }
+        parse.Required("target"): parse.Any(
+            parse.Named_spec("molecule", "atom"), parse.Molecule_name
+        ),
+        "center": parse.Any(parse.Coordinates, parse.Named_spec("molecule", "atom")),
+        "radius": parse.Coerce(float),
+        "rotate": parse.Boolean,
+        "precision": parse.All(parse.Coerce(int), parse.Range(min=-3, max=6)),
+        "interpolation": parse.All(parse.Coerce(float), parse.Range(min=0, max=1.0)),
+    }
 
-    def __init__(self, target=None, center=None, radius=None, rotate=True,
-                 precision=0, interpolation=0.5, **kwargs):
+    def __init__(
+        self,
+        target=None,
+        center=None,
+        radius=None,
+        rotate=True,
+        precision=0,
+        interpolation=0.5,
+        **kwargs
+    ):
         GeneProvider.__init__(self, **kwargs)
         self.radius = radius
         self.rotate = rotate
@@ -149,6 +166,10 @@ class Search(GeneProvider):
         self.interpolation = interpolation
 
     def __ready__(self):
+        if isinstance(self.target, str):
+            mol = self.parent.find_molecule(self.target).compound.mol
+            anchor_atom = nearest_atom(mol, center(mol))
+            self.target = parse.MoleculeAtom(self.target, anchor_atom)
         self.allele = self.random_transform()
 
     @property
@@ -175,9 +196,7 @@ class Search(GeneProvider):
         Needed for rotations.
         """
         x, y, z = self.origin
-        return ((1.0, 0.0, 0.0, -x),
-                (0.0, 1.0, 0.0, -y),
-                (0.0, 0.0, 1.0, -z))
+        return ((1.0, 0.0, 0.0, -x), (0.0, 1.0, 0.0, -y), (0.0, 0.0, 1.0, -z))
 
     def express(self):
         """
@@ -187,10 +206,12 @@ class Search(GeneProvider):
         matrices = self.allele + (self.to_zero,)
         if self.precision > 0:
             self.molecule.openState.xform = M.chimera_xform(
-                M.multiply_matrices(*numpy_around(matrices, self.precision).tolist()))
+                M.multiply_matrices(*numpy_around(matrices, self.precision).tolist())
+            )
         else:
             self.molecule.openState.xform = M.chimera_xform(
-                M.multiply_matrices(*matrices))
+                M.multiply_matrices(*matrices)
+            )
 
     def unexpress(self):
         """
@@ -208,13 +229,18 @@ class Search(GeneProvider):
         interp = M.xform_matrix(M.interpolate_xforms(xf1, ZERO, xf2, 0.5))
         interp_rot = [x[:3] + (0,) for x in interp]
         interp_tl = [y[:3] + x[-1:] for x, y in zip(interp, M.identity_matrix())]
-        self.allele, mate.allele = (self.allele[0], interp_rot), (interp_tl, mate.allele[1])
+        self.allele, mate.allele = (
+            (self.allele[0], interp_rot),
+            (interp_tl, mate.allele[1]),
+        )
 
     def mutate(self, indpb):
         if random.random() < self.indpb:
             xf1 = M.chimera_xform(M.multiply_matrices(*self.allele))
             xf2 = M.chimera_xform(M.multiply_matrices(*self.random_transform()))
-            interp = M.xform_matrix(M.interpolate_xforms(xf1, ZERO, xf2, self.interpolation))
+            interp = M.xform_matrix(
+                M.interpolate_xforms(xf1, ZERO, xf2, self.interpolation)
+            )
             interp_rot = [x[:3] + (0,) for x in interp]
             interp_tl = [y[:3] + x[-1:] for x, y in zip(interp, M.identity_matrix())]
             self.allele = interp_tl, interp_rot
@@ -265,11 +291,10 @@ def rotate(molecule, at, alpha):
         delta = chimera.dihedral(a1, a2, a3, a4) - alpha
         pivot = a3
     else:
-        raise ValueError(
-            "Atom list must contain 3 (angle) or 4 (dihedral) atoms only")
+        raise ValueError("Atom list must contain 3 (angle) or 4 (dihedral) atoms only")
 
     r = X.translation(pivot - ZERO)  # move to origin
-    r.multiply(X.rotation(axis, - delta))  # rotate
+    r.multiply(X.rotation(axis, -delta))  # rotate
     r.multiply(X.translation(ZERO - pivot))  # return to orig pos
     for a in molecule.atoms:
         a.setCoord(r.apply(a.coord()))
@@ -277,9 +302,7 @@ def rotate(molecule, at, alpha):
 
 def rand_xform(origin, destination, r, rotate=True):
     x, y, z = origin
-    to_zero = ((1.0, 0.0, 0.0, -x),
-               (0.0, 1.0, 0.0, -y),
-               (0.0, 0.0, 1.0, -z))
+    to_zero = ((1.0, 0.0, 0.0, -x), (0.0, 1.0, 0.0, -y), (0.0, 0.0, 1.0, -z))
     rotation = random_rotation() if rotate else IDENTITY
     translation = random_translation(destination, r)
     return translation, rotation, to_zero
@@ -302,16 +325,14 @@ def random_translation(center, r):
     -------
     A translation matrix to a random point in the search sphere, with no rotation.
     """
-    r2 = r*r
+    r2 = r * r
     a, b, c = center
     random_uniform = random.uniform
     while True:
         x, y, z = [random_uniform(-r, r) for m in center]
-        if x*x + y*y + z*z <= r2:
+        if x * x + y * y + z * z <= r2:
             break
-    return ((1.0, 0.0, 0.0, a + x),
-            (0.0, 1.0, 0.0, b + y),
-            (0.0, 0.0, 1.0, c + z))
+    return ((1.0, 0.0, 0.0, a + x), (0.0, 1.0, 0.0, b + y), (0.0, 0.0, 1.0, c + z))
 
 
 def parse_origin(origin, individual=None):
@@ -338,4 +359,25 @@ def parse_origin(origin, individual=None):
     elif isinstance(origin, list) and len(origin) == 3:
         return tuple(origin)
     else:
-        raise ValueError('Origin {} cannot be parsed'.format(origin))
+        raise ValueError("Origin {} cannot be parsed".format(origin))
+
+
+def center(mol):
+    coordinates = atom_positions(mol.atoms)
+    c = np.average(coordinates, axis=0)
+    return c
+
+
+def distance(a, b):
+    ax, ay, az = a
+    bx, by, bz = b
+    return math.sqrt(
+        (bx - ax) * (bx - ax) + (by - ay) * (by - ay) + (bz - az) * (bz - az)
+    )
+
+
+def nearest_atom(mol, position):
+    dist = {}
+    for atom in mol.atoms:
+        dist[atom.serialNumber] = distance(atom.coord().data(), position)
+    return min(dist, key=dist.get)
