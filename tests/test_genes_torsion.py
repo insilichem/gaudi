@@ -48,7 +48,7 @@ def test_torsion(individual, path, angle, bonds, rotatable, distance):
         atom1 = individual.genes['Molecule'].compound.mol.atoms[0]
         point = individual.genes['Molecule'].compound.mol.atoms[-1].xformCoord()
         assert len(list(torsion.rotatable_bonds)) == rotatable == torsion.max_bonds == len(torsion.allele)
-        assert Distance._distance(atom1, point) == distance
+        assert abs(Distance._distance(atom1, point) - distance) < 0.0001
 
 
 @pytest.mark.parametrize("path, angle, distance", [
