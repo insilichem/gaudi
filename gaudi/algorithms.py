@@ -42,6 +42,7 @@ from deap import tools
 from deap.algorithms import varOr
 import yaml
 import gaudi
+import random
 
 logger = logging.getLogger(__name__)
 
@@ -100,6 +101,10 @@ def ea_mu_plus_lambda(population, toolbox, mu, lambda_, cxpb, mutpb, ngen, cfg,
     for ind, fit in zip(invalid_ind, fitnesses):
         ind.fitness.values = fit
 
+    # This is just to assign the crowding distance to the individuals
+    # no actual selection is done
+    population = toolbox.select(population, len(population))
+    
     if halloffame is not None:
         halloffame.update(population)
 
@@ -116,7 +121,6 @@ def ea_mu_plus_lambda(population, toolbox, mu, lambda_, cxpb, mutpb, ngen, cfg,
                    speed='{:.2f} ev/s'.format(speed), eta=remaining, **record)
     if verbose:
         logger.log(100, logbook.stream)
-
     # Begin the generational process
     for gen in xrange(1, ngen + 1):
         try:
@@ -128,16 +132,38 @@ def ea_mu_plus_lambda(population, toolbox, mu, lambda_, cxpb, mutpb, ngen, cfg,
             t1 = time()
             invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
             fitnesses = toolbox.map(toolbox.evaluate, invalid_ind)
+            
             for ind, fit in zip(invalid_ind, fitnesses):
                 ind.fitness.values = fit
 
-            # Update the hall of fame with the generated individuals # every 2 generations
-            if halloffame is not None: # and not gen % 2:
-                halloffame.update(offspring)
+            #Discard similar inds
+            new_population = []
+            for i in population + offspring:
+                to_delete = [] #Delete those similar inds with worse fitness
+                for n_i in new_population:
+                    # Loop through the new_population to check for any
+                    # similar individual
+                    if toolbox.similarity(i, n_i):
+                        if i.fitness <= n_i.fitness:
+                            break
+                        else:
+                            to_delete.append(new_population.index(n_i))
+                else:
+                    if to_delete:
+                        new_population = [i for j, i in enumerate(new_population) if j not in to_delete]
+                    # The child is different enough
+                    new_population.append(i)
+            # Complete new_population with random ind if there are not enough
+            while len(new_population) < mu:
+                new_population.append(random.choice(population + offspring))
+
+            # Update the hall of fame with the generated individuals
+            if halloffame is not None:
+                halloffame.clear()
+                halloffame.update(new_population)
 
             # Select the next generation population
-            population[:] = toolbox.select(population + offspring, mu)
-
+            population[:] = toolbox.select(new_population, mu)
             # Update the statistics with the new population
             nevals = len(invalid_ind)
             t2 = time()
