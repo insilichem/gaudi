@@ -101,10 +101,13 @@ class Molecule(GeneProvider):
         Only for testing and debugging. Better run pdbfixer prior to GAUDI.
         Fix potential issues that may cause troubles with OpenMM forcefields.
 
-    vdw_radii : list of (str, float), optional
+    vdw_radii : dict {str: float} , optional
         Set a specific vdw_radius for a particular element (instead of standard
         Chimera VdW table). It can be useful in particular cases together with 
-        a contacts objective. Example of use: [['Fe', 2.00], ['Cu', 2.16]]. 
+        a contacts objective. Example of use in the .yaml file: 
+        vdw_radii: {
+            Fe: 2.00,
+            Cu: 2.16}
         Defaults to None
 
     Attributes
@@ -145,7 +148,7 @@ class Molecule(GeneProvider):
         'symmetry': [[basestring]],
         'hydrogens': parse.Boolean,
         'pdbfix': parse.Boolean,
-        'vdw_radii': [[basestring, float]]
+        'vdw_radii': {basestring: float}
         }
 
     _CATALOG = {}
@@ -821,9 +824,8 @@ class Compound(object):
 
     def set_vdw_radii(self, vdw_radii):
         for atom in self.mol.atoms:
-            for elem in vdw_radii:
-                if str(atom.element) == elem[0]:
-                    atom.radius = elem[1]
+            if str(atom.element) in vdw_radii.keys():
+                atom.radius = vdw_radii[str(atom.element)]
 
 
 def _apply_pdbfix(molecule, pH=7.0, add_hydrogens=False):
