@@ -101,6 +101,12 @@ class Molecule(GeneProvider):
         Only for testing and debugging. Better run pdbfixer prior to GAUDI.
         Fix potential issues that may cause troubles with OpenMM forcefields.
 
+    vdw_radii : list of (str, float), optional
+        Set a specific vdw_radius for a particular element (instead of standard
+        Chimera VdW table). It can be useful in particular cases together with 
+        a contacts objective. Example of use: [['Fe', 2.00], ['Cu', 2.16]]. 
+        Defaults to None
+
     Attributes
     ----------
     allele : tuple of str
@@ -139,12 +145,13 @@ class Molecule(GeneProvider):
         'symmetry': [[basestring]],
         'hydrogens': parse.Boolean,
         'pdbfix': parse.Boolean,
+        'vdw_radii': [[basestring, float]]
         }
 
     _CATALOG = {}
     SUPPORTED_FILETYPES = ('mol2', 'pdb')
 
-    def __init__(self, path=None, symmetry=None, hydrogens=False, pdbfix=False, **kwargs):
+    def __init__(self, path=None, symmetry=None, hydrogens=False, pdbfix=False, vdw_radii=None, **kwargs):
         self._kwargs = kwargs.copy()
         GeneProvider.__init__(self, **kwargs)
         self._kwargs = kwargs
@@ -152,6 +159,7 @@ class Molecule(GeneProvider):
         self.symmetry = symmetry
         self.hydrogens = hydrogens
         self.pdbfix = pdbfix
+        self.vdw_radii = vdw_radii
         try:
             self.catalog = self._CATALOG[self.name]
         except KeyError:
@@ -305,6 +313,9 @@ class Molecule(GeneProvider):
             base.add_hydrogens()
         if self.pdbfix:
             base.apply_pdbfix()
+        if self.vdw_radii:
+            base.set_vdw_radii(self.vdw_radii)
+
         return base
 
     def _compile_catalog(self):
@@ -807,6 +818,12 @@ class Compound(object):
         Run PDBFixer and replace original molecule with new one
         """
         self.mol = _apply_pdbfix(self.mol, pH)
+
+    def set_vdw_radii(self, vdw_radii):
+        for atom in self.mol.atoms:
+            for elem in vdw_radii:
+                if str(atom.element) == elem[0]:
+                    atom.radius = elem[1]
 
 
 def _apply_pdbfix(molecule, pH=7.0, add_hydrogens=False):
