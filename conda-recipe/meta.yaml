@@ -42,6 +42,7 @@ requirements:
     - imp 2.11.*
     - autodock-vina
     - smina 2017.11.*
+    - parmed
     # InsiliChem channel
     - autodocktools-prepare
     - prody 1.8.*
