@@ -66,6 +66,7 @@ install:
 - conda config --add channels salilab
 - conda config --add channels omnia
 - conda config --add channels insilichem
+- conda config --add channels tpeulen
 - conda config --add channels defaults
 - conda install -q conda conda-build
 # ProDy needs an updated NumPy. Other updates are also included here.
