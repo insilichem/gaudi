@@ -26,12 +26,9 @@
 This objective is a wrapper around Chimera's `FindHBond`. 
 It returns the number of hydrogen bonds that can be formed
 between the target molecule and its environment.
-
 .. todo::
-
     Evaluate the possible HBonds with some kind of function that
     gives a rough idea of the strength (energy) of each of them.
-
 """
 
 # Python
@@ -57,7 +54,6 @@ class Hbonds(ObjectiveProvider):
 
     """
     Hbonds class
-
     Parameters
     ----------
     probes : list of str
@@ -71,6 +67,9 @@ class Hbonds(ObjectiveProvider):
         Allowed deviation from ideal angle to consider a valid H bond.
     only_intermolecular : boolean, optional
         Only intermolecular interactions are considered (defaults to True)
+    only_probes : boolean, optional
+        Only interactions between probe molecules are considered,
+        excluding other molecule genes. (defaults to False)
     
     Returns
     -------
@@ -83,16 +82,18 @@ class Hbonds(ObjectiveProvider):
         'radius': parse.All(parse.Coerce(float), parse.Range(min=0)),
         'distance_tolerance': float,
         'angle_tolerance': float,
-        'only_intermolecular': bool
+        'only_intermolecular': bool,
+        'only_probes': bool
         }
     def __init__(self, probes=None, radius=5.0, distance_tolerance=0.4, angle_tolerance=20.0,
-                 only_intermolecular=True, *args, **kwargs):
+                 only_intermolecular=True, only_probes=False, *args, **kwargs):
         ObjectiveProvider.__init__(self, **kwargs)
         self._probes = probes
         self.distance_tolerance = distance_tolerance
         self.angle_tolerance = angle_tolerance
         self.radius = radius
         self.intramodel = False if only_intermolecular else True
+        self.only_probes = only_probes
 
     def molecules(self, ind):
         return [m.compound.mol for m in ind._molecules.values()]
@@ -106,7 +107,7 @@ class Hbonds(ObjectiveProvider):
         only those that interact with probe. Ie, discard those hbonds in that search
         space whose none of their atoms involved are not part of self.probe.
         """
-        molecules = self.molecules(ind)
+        molecules = self.probes(ind) if self.only_probes else self.molecules(ind)
         probe_atoms = [a for m in self.probes(ind) for a in m.atoms]
         test_atoms = self._surrounding_atoms(probe_atoms, molecules)
         hbonds = findHBonds(molecules, cacheDA=self._cache,
