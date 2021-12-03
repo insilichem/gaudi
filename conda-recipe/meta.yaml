@@ -34,7 +34,7 @@ requirements:
     - pyyaml
     - pychimera >=0.2.6
     # Objectives and genes
-    - openmm
+    - openmm 7.3.*
     - openmoltools
     - pdbfixer
     - cclib
