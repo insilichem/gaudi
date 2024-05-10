@@ -65,7 +65,7 @@ If you need help with GaudiMM, please use the `issues page <https://github.com/i
 License
 -------
 
-GaudiMM is licensed under the Apache License, Version 2.0. Check the details in the `LICENSE <https://raw.githubusercontent.com/insilichem/gaudi/master/LICENSE>`_ file.
+GaudiMM is licensed under the GNU Lesser General Public License version 3. Check the details in the `LICENSE <https://raw.githubusercontent.com/insilichem/gaudi/master/LICENSE>`_ file.
 
 Citation
 --------
