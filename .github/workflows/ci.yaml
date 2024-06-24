@@ -1,0 +1,81 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  test:
+
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macOS-latest, ubuntu-latest]
+    env:
+      CI_OS: ${{ matrix.os }}
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: Additional info about the build
+      shell: bash
+      run: |
+        uname -a
+        df -h
+        ulimit -a
+    # - name: Lint with flake8
+    #   shell: bash
+    #   run: |
+    #     . resources/initialize_conda.sh
+    #     conda activate
+    #     sudo ${CONDA}/bin/conda install flake8
+    #     # stop the build if there are Python syntax errors or undefined names
+    #     flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+    #     # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
+    #     flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+    - name: Install UCSF Chimera
+      shell: bash
+      run: |
+        if [[ ${CI_OS} == ubuntu-* ]]; then
+          if [[ ! -e $GITHUB_WORKSPACE/chimera/bin/chimera ]]; then
+            bash resources/install_chimera.sh
+          fi
+          echo "::set-env name=CHIMERADIR::$GITHUB_WORKSPACE/chimera"
+        else
+          if [[ ! -e $GITHUB_WORKSPACE/chimera/Chimera.app/Contents/Resources/bin/chimera ]]; then
+            bash resources/install_chimera.sh
+            rm -rf $GITHUB_WORKSPACE/chimera/Chimera.app/Contents/Resources/lib/python2.7/site-packages/{AutoDockTools,MolKit,PyBabel,mglutil,mmLib,mslib}
+            rm -rf $GITHUB_WORKSPACE/chimera/Chimera.app/Contents/Resources/lib/python2.7/site-packages/setuptools*
+          fi
+          echo "::set-env name=CHIMERADIR::$GITHUB_WORKSPACE/chimera/Chimera.app/Contents/Resources"
+        fi
+    - name: Configure conda
+      shell: bash
+      run: |
+        . resources/initialize_conda.sh
+        conda activate
+        conda info
+        conda config --set always_yes yes
+        conda config --remove-key channels || true
+        conda config --add channels conda-forge
+        conda config --add channels bioconda
+        conda config --add channels salilab
+        conda config --add channels omnia
+        conda config --add channels insilichem
+        conda config --add channels defaults
+        sudo ${CONDA}/bin/conda install -q conda conda-build
+    - name: Build package
+      shell: bash
+      run: |
+        . resources/initialize_conda.sh
+        env | sort
+        ls -lh $CHIMERADIR/*
+        test -f $CHIMERADIR/bin/chimera
+        sudo ${CONDA}/bin/conda build -c local --python=2.7 conda-recipe
+    # - name: Deploy
+    #   shell: bash
+    #   run: |
+    #     . resources/initialize_conda.sh
+    #     sudo ${CONDA}/bin/conda install -q anaconda-client
+    #     anaconda -t {{ $secrets.ANACONDA_TOKEN }} upload -u insilichem ${CONDA}/conda-bld/**/gaudi-*.tar.bz2
+    #   on:
+    #     push:
+    #       tags:
+    #       - 'v*'
